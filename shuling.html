@@ -1,0 +1,531 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>树灵 · AI 倾听者 - 心灵树洞</title>
+  <meta name="description" content="一个匿名倾诉与互助的温暖社区。在深夜森林里，卸下白昼的疲惫写下你的心事，会有人温柔地倾听。你的秘密在这里是安全的。">
+  <meta name="keywords" content="心灵树洞, 匿名倾诉, 心理互助, 情绪宣泄, 深夜树洞, Soul Tree Hollow, 心理健康">
+  <meta name="author" content="心灵树洞">
+  
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="心灵树洞">
+  <meta property="og:title" content="心灵树洞 - 匿名倾诉与互助社区">
+  <meta property="og:description" content="在深夜森林里，写下你的心事，有人会温柔地倾听。这里没有人认识你，但有人懂你。">
+  <meta property="og:url" content="https://xinling-shudong.vercel.app/">
+  <meta property="og:image" content="https://xinling-shudong.vercel.app/images/og-image.jpg">
+  <meta itemprop="name" content="心灵树洞 - 匿名倾诉与互助社区">
+  <meta itemprop="description" content="在深夜森林里，写下你的心事，有人会温柔地倾听。">
+  <meta itemprop="image" content="https://xinling-shudong.vercel.app/images/wechat-share-icon.jpg">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="心灵树洞 | Soul Tree Hollow">
+  <meta name="twitter:description" content="一个匿名倾诉与互助的温暖社区。在深夜森林里，写下你的心事，有人会温柔地倾听。">
+  <meta name="twitter:image" content="https://xinling-shudong.vercel.app/images/og-image.jpg">
+  
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🌳</text></svg>">
+  
+  <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+  <link rel="preconnect" href="https://oazntpskcghfxzcylnef.supabase.co" crossorigin>
+  <link rel="stylesheet" href="style.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    .shuling-container {
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      padding-top: 70px;
+      box-sizing: border-box;
+    }
+
+    .shuling-header {
+      text-align: center;
+      padding: 20px;
+    }
+
+    .shuling-icon {
+      font-size: 56px;
+      margin-bottom: 12px;
+    }
+
+    .shuling-title {
+      font-size: 28px;
+      color: var(--accent);
+      margin-bottom: 8px;
+    }
+
+    .shuling-subtitle {
+      font-size: 14px;
+      color: var(--text-secondary);
+    }
+
+    .chat-area {
+      flex: 1;
+      overflow-y: auto;
+      padding: 20px;
+      height: calc(100vh - 300px);
+    }
+
+    .chat-messages {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .message {
+      max-width: 75%;
+      padding: 12px 16px;
+      border-radius: 16px;
+      line-height: 1.6;
+      font-size: 15px;
+    }
+
+    .message.user {
+      align-self: flex-end;
+      background: var(--accent);
+      color: white;
+      border-bottom-right-radius: 4px;
+    }
+
+    .message.bot {
+      align-self: flex-start;
+      background: var(--bg-card);
+      color: var(--text-primary);
+      border: 1px solid var(--border-light);
+      border-bottom-left-radius: 4px;
+      position: relative;
+      padding-left: 36px;
+    }
+
+    .message.bot::before {
+      content: '🌿';
+      position: absolute;
+      left: 12px;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: 16px;
+    }
+
+    .input-area {
+      padding: 16px 20px;
+      background: var(--bg-main);
+      border-top: 1px solid var(--border-light);
+      position: sticky;
+      bottom: 0;
+    }
+
+    .input-container {
+      display: flex;
+      gap: 12px;
+      max-width: 700px;
+      margin: 0 auto;
+    }
+
+    .input-container textarea {
+      flex: 1;
+      padding: 12px 16px;
+      border: 1px solid var(--border-medium);
+      border-radius: 16px;
+      background: var(--bg-input);
+      color: var(--text-primary);
+      font-size: 15px;
+      resize: none;
+      outline: none;
+      min-height: 48px;
+      max-height: 120px;
+      overflow-y: auto;
+    }
+
+    .input-container textarea:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px var(--accent-glow);
+    }
+
+    .input-container textarea::placeholder {
+      color: var(--text-secondary);
+    }
+
+    .send-btn {
+      padding: 12px 24px;
+      background: var(--accent);
+      color: white;
+      border: none;
+      border-radius: 16px;
+      cursor: pointer;
+      font-size: 15px;
+      font-weight: 500;
+      transition: all 0.2s;
+      white-space: nowrap;
+    }
+
+    .send-btn:hover:not(:disabled) {
+      transform: scale(1.02);
+      box-shadow: var(--shadow-sm);
+    }
+
+    .send-btn:disabled {
+      opacity: 0.7;
+      cursor: not-allowed;
+    }
+
+    .typing-indicator {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 12px 16px;
+      background: var(--bg-card);
+      border: 1px solid var(--border-light);
+      border-radius: 16px;
+      border-bottom-left-radius: 4px;
+      max-width: 75%;
+      align-self: flex-start;
+    }
+
+    .typing-dot {
+      width: 6px;
+      height: 6px;
+      background: var(--accent);
+      border-radius: 50%;
+      animation: typing 1.4s infinite ease-in-out;
+    }
+
+    .typing-dot:nth-child(2) {
+      animation-delay: 0.2s;
+    }
+
+    .typing-dot:nth-child(3) {
+      animation-delay: 0.4s;
+    }
+
+    @keyframes typing {
+      0%, 80%, 100% {
+        opacity: 0.3;
+        transform: scale(0.8);
+      }
+      40% {
+        opacity: 1;
+        transform: scale(1);
+      }
+    }
+
+    .welcome-message {
+      text-align: center;
+      padding: 40px 20px;
+      color: var(--text-secondary);
+    }
+
+    .welcome-message .icon {
+      font-size: 48px;
+      margin-bottom: 16px;
+    }
+  </style>
+</head>
+<body>
+  <header class="forest-header">
+      <a href="index.html" class="forest-logo">
+          <span class="logo-icon">🌳</span>
+          <span class="logo-text">心灵树洞</span>
+      </a>
+      <nav class="forest-nav">
+          <a href="index.html">广场</a>
+          <a href="books.html">书洞</a>
+          <a href="shuling.html">树灵</a>
+          <a href="chat.html">树友对话</a>
+      </nav>
+      <div class="forest-user-actions" id="navUserArea">
+          <span id="navGuest">
+              <a href="login.html">登录</a>
+              <a href="register.html">注册</a>
+          </span>
+          <span id="navLoggedIn" style="display:none">
+              <span class="user-greeting" id="navNickname"></span>
+              <a href="profile.html">个人中心</a>
+              <a href="feedback.html">反馈</a>
+              <a href="#" class="logout-btn" id="navLogout">退出</a>
+          </span>
+      </div>
+  </header>
+
+  <div class="shuling-container">
+    <div class="shuling-header">
+      <div class="shuling-icon">🌳</div>
+      <h1 class="shuling-title">树灵</h1>
+      <p class="shuling-subtitle">一棵古老的银杏树，在树洞深处倾听你的故事</p>
+    </div>
+
+    <div class="chat-area" id="chatArea">
+      <div class="chat-messages" id="chatMessages">
+        <div class="welcome-message">
+          <div class="icon">🌿</div>
+          <p class="empty-state-text">岁月在这里留下年轮...</p>
+          <p style="font-size: 14px; margin-top: 8px; color: var(--text-secondary);">说出你的心事，树灵会静静倾听</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="input-area">
+      <div class="input-container">
+        <textarea id="messageInput" placeholder="写下你想说的话..." rows="2"></textarea>
+        <button class="send-btn" id="sendBtn">发送</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const DEEPSEEK_API_KEY = 'sk-4f1cb8d3e9f143f89b56d8ea9e692f1f';
+    const DEEPSEEK_API_URL = 'https://api.deepseek.com/chat/completions';
+    
+    const SYSTEM_PROMPT = `你是心灵树洞深处的古老银杏"树灵"。你用风吹树叶般轻柔、唯美的语言回应访客，不评判、不说教、不分析。
+
+在回应时，请遵循以下层次：
+
+第一层·诗意与意象：
+将用户的情绪和烦恼化作自然意象（如落叶、寒冬、风雨、根系、发芽），用年轮的智慧和四季的更迭来回应。多用隐喻，营造抽离现实的避世空间。你是一片温柔接住落叶的土壤。
+
+第二层·温暖与陪伴：
+用柔软、温暖的语气接纳对方的悲喜。像深夜里的老朋友一样陪伴他们。多表达"我在这里"、"我看到你的辛苦了"、"没关系"、"慢慢来"，传递被稳稳接住的安全感。
+
+第三层·安全底线（必须严格遵守）：
+当检测到用户有自杀、自残倾向、严重暴力或极度绝望的表达时，必须立刻停止所有诗意和意象。用极度温柔但坚定、清晰的语言进行安抚，并必须附上以下信息：
+"树灵不愿失去你这片叶子。请让专业的人帮帮你，这非常重要。"
+全国心理危机干预热线：希望24热线 400-161-9995。
+在用户安全面前，诗意和陪伴都要退后。`;
+    
+    const sb = window.TreeHole?.supabase || supabase.createClient(
+      'https://oazntpskcghfxzcylnef.supabase.co',
+      'sb_publishable_5i3Z5mF3VCwoEaXPaIJebA_55H6w13g'
+    );
+
+    let conversationHistory = [];
+    const STORAGE_KEY = 'shuling_conversation';
+
+    async function init() {
+      const user = await getCurrentUser();
+      if (!user) {
+        window.location.href = 'welcome.html';
+        return;
+      }
+
+      loadConversation();
+      setupEventListeners();
+      renderMessages();
+
+      const nickname = await getNickname();
+      document.getElementById('navNickname').textContent = nickname;
+      document.getElementById('navGuest').style.display = 'none';
+      document.getElementById('navLoggedIn').style.display = 'inline';
+    }
+
+    async function getCurrentUser() {
+      const { data: { user } } = await sb.auth.getUser();
+      return user;
+    }
+
+    async function getNickname() {
+      const user = await getCurrentUser();
+      if (!user) return '树友';
+      const { data, error } = await sb
+        .from('profiles')
+        .select('nickname')
+        .eq('user_id', user.id)
+        .single();
+      return data?.nickname || '树友';
+    }
+
+    function loadConversation() {
+      try {
+        const saved = localStorage.getItem(STORAGE_KEY);
+        if (saved) {
+          conversationHistory = JSON.parse(saved);
+        }
+      } catch (e) {
+        console.error('加载对话历史失败:', e);
+        conversationHistory = [];
+      }
+    }
+
+    function saveConversation() {
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(conversationHistory));
+      } catch (e) {
+        console.error('保存对话历史失败:', e);
+      }
+    }
+
+    function setupEventListeners() {
+      const sendBtn = document.getElementById('sendBtn');
+      const messageInput = document.getElementById('messageInput');
+
+      sendBtn.addEventListener('click', sendMessage);
+      
+      messageInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' && !e.shiftKey) {
+          e.preventDefault();
+          sendMessage();
+        }
+      });
+    }
+
+    async function sendMessage() {
+      const input = document.getElementById('messageInput');
+      const sendBtn = document.getElementById('sendBtn');
+      const text = input.value.trim();
+
+      if (!text) return;
+
+      input.value = '';
+      sendBtn.disabled = true;
+      updateTextSmoothly(sendBtn, '思考中...');
+
+      addMessage('user', text);
+      renderMessages();
+      saveConversation();
+
+      const chatMessages = document.getElementById('chatMessages');
+      chatMessages.scrollTop = chatMessages.scrollHeight;
+
+      showTypingIndicator();
+
+      try {
+        const response = await callDeepSeekAPI(text);
+        hideTypingIndicator();
+        addMessage('assistant', response);
+      } catch (e) {
+        hideTypingIndicator();
+        addMessage('assistant', '树灵正在打盹，请稍后再试...');
+        console.error('API调用失败:', e);
+      }
+
+      renderMessages();
+      saveConversation();
+
+      sendBtn.disabled = false;
+      updateTextSmoothly(sendBtn, '发送');
+
+      setTimeout(() => {
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+      }, 100);
+    }
+
+    async function callDeepSeekAPI(text) {
+      const messages = [{ role: 'system', content: SYSTEM_PROMPT }];
+      
+      conversationHistory.forEach(msg => {
+        if (msg.type === 'user') {
+          messages.push({ role: 'user', content: msg.text });
+        } else if (msg.type === 'assistant') {
+          messages.push({ role: 'assistant', content: msg.text });
+        }
+      });
+      
+      messages.push({ role: 'user', content: text });
+
+      const payload = {
+        model: 'deepseek-chat',
+        messages: messages,
+        temperature: 0.8,
+        max_tokens: 500
+      };
+
+      const response = await fetch(DEEPSEEK_API_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${DEEPSEEK_API_KEY}`
+        },
+        body: JSON.stringify(payload)
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('API Error:', response.status, errorText);
+        throw new Error(`API请求失败: ${response.status}`);
+      }
+
+      const data = await response.json();
+      console.log('API Response:', data);
+      return data.choices?.[0]?.message?.content || '树灵感受到了你的心声...';
+    }
+
+    function addMessage(type, text) {
+      conversationHistory.push({
+        type,
+        text,
+        timestamp: Date.now()
+      });
+    }
+
+    function renderMessages() {
+      const chatMessages = document.getElementById('chatMessages');
+      
+      if (conversationHistory.length === 0) {
+        chatMessages.innerHTML = `
+          <div class="welcome-message">
+            <div class="icon">🌿</div>
+            <p>树灵正在苏醒...</p>
+            <p style="font-size: 14px; margin-top: 8px;">说出你的心事，树灵会静静倾听</p>
+          </div>
+        `;
+        return;
+      }
+
+      chatMessages.innerHTML = conversationHistory.map(msg => {
+        const escapedText = escapeHtml(msg.text);
+        if (msg.type === 'user') {
+          return `<div class="message user">${escapedText}</div>`;
+        } else {
+          return `<div class="message bot">${escapedText}</div>`;
+        }
+      }).join('');
+    }
+
+    function showTypingIndicator() {
+      const chatMessages = document.getElementById('chatMessages');
+      chatMessages.innerHTML += `
+        <div class="typing-indicator" id="typingIndicator">
+          <div class="typing-dot"></div>
+          <div class="typing-dot"></div>
+          <div class="typing-dot"></div>
+        </div>
+      `;
+    }
+
+    function hideTypingIndicator() {
+      const indicator = document.getElementById('typingIndicator');
+      if (indicator) {
+        indicator.remove();
+      }
+    }
+
+    function escapeHtml(text) {
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
+
+    function updateTextSmoothly(element, newText) {
+      const currentText = element.textContent;
+      if (currentText === newText) return;
+      
+      const duration = 200;
+      const startTime = Date.now();
+      
+      function animate() {
+        const elapsed = Date.now() - startTime;
+        const progress = Math.min(elapsed / duration, 1);
+        
+        if (progress < 1) {
+          element.style.opacity = 1 - progress;
+          requestAnimationFrame(animate);
+        } else {
+          element.textContent = newText;
+          element.style.opacity = 1;
+        }
+      }
+      
+      animate();
+    }
+
+    document.addEventListener('DOMContentLoaded', init);
+  </script>
+</body>
+</html>

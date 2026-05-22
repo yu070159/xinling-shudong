@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>对话中 - 心灵树洞</title>
+  <meta name="description" content="一个匿名倾诉与互助的温暖社区。在深夜森林里，卸下白昼的疲惫写下你的心事，会有人温柔地倾听。你的秘密在这里是安全的。">
+  <meta name="keywords" content="心灵树洞, 匿名倾诉, 心理互助, 情绪宣泄, 深夜树洞, Soul Tree Hollow, 心理健康">
+  <meta name="author" content="心灵树洞">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="心灵树洞">
+  <meta property="og:title" content="心灵树洞 - 匿名倾诉与互助社区">
+  <meta property="og:description" content="在深夜森林里，写下你的心事，有人会温柔地倾听。这里没有人认识你，但有人懂你。">
+  <meta property="og:url" content="https://xinling-shudong.vercel.app/">
+  <meta property="og:image" content="https://xinling-shudong.vercel.app/images/og-image.jpg">
+  <meta itemprop="name" content="心灵树洞 - 匿名倾诉与互助社区">
+  <meta itemprop="description" content="在深夜森林里，写下你的心事，有人会温柔地倾听。">
+  <meta itemprop="image" content="https://xinling-shudong.vercel.app/images/wechat-share-icon.jpg">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="心灵树洞 | Soul Tree Hollow">
+  <meta name="twitter:description" content="一个匿名倾诉与互助的温暖社区。在深夜森林里，写下你的心事，有人会温柔地倾听。">
+  <meta name="twitter:image" content="https://xinling-shudong.vercel.app/images/og-image.jpg">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🌳</text></svg>">
+  <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+  <link rel="preconnect" href="https://oazntpskcghfxzcylnef.supabase.co" crossorigin>
+  <link rel="stylesheet" href="style.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    .detail-container { max-width: 680px; margin: 0 auto; padding: 20px; padding-top: 80px; display: flex; flex-direction: column; height: calc(100vh - 80px); color: var(--text-primary); }
+    .msg-header { display: flex; align-items: center; padding-bottom: 15px; border-bottom: 1px solid var(--border-light); margin-bottom: 15px; }
+    .back-link { color: var(--text-secondary); text-decoration: none; margin-right: 15px; }
+    .back-link:hover { color: var(--text-primary); }
+    .msg-list { flex: 1; overflow-y: auto; padding-right: 10px; display: flex; flex-direction: column; gap: 12px; }
+    .msg { max-width: 80%; padding: 10px 16px; border-radius: 18px; word-break: break-word; }
+    .msg-sent { align-self: flex-end; background: var(--accent); color: white; border-bottom-right-radius: 4px; }
+    .msg-received { align-self: flex-start; background: var(--bg-card); color: var(--text-primary); border-bottom-left-radius: 4px; border: 1px solid var(--border-light); }
+    .msg-time { font-size: 11px; color: var(--text-muted); margin-top: 4px; }
+    .input-area { display: flex; gap: 10px; padding-top: 15px; border-top: 1px solid var(--border-light); }
+    .input-area textarea { flex: 1; padding: 12px; border-radius: 12px; background: var(--bg-input); border: 1px solid var(--border-medium); color: var(--text-primary); resize: none; height: 50px; }
+    .send-btn { background: var(--accent); border: none; color: white; padding: 0 20px; border-radius: 12px; cursor: pointer; }
+  </style>
+</head>
+<body>
+  <header class="forest-header">
+      <a href="index.html" class="forest-logo">
+          <span class="logo-icon">🌳</span>
+          <span class="logo-text">心灵树洞</span>
+      </a>
+      <nav class="forest-nav">
+          <a href="index.html">广场</a>
+          <a href="books.html">书洞</a>
+          <a href="shuling.html">树灵</a>
+          <a href="chat.html">树友对话</a>
+      </nav>
+      <div class="forest-user-actions" id="navUserArea">
+          <span id="navGuest">
+              <a href="login.html">登录</a>
+              <a href="register.html">注册</a>
+          </span>
+          <span id="navLoggedIn" style="display:none">
+              <span class="user-greeting" id="navNickname"></span>
+              <a href="profile.html">个人中心</a>
+              <a href="feedback.html">反馈</a>
+              <a href="#" class="logout-btn" id="navLogout">退出</a>
+          </span>
+      </div>
+  </header>
+  <div class="detail-container">
+    <div class="msg-header">
+      <a href="chat.html" class="back-link">← 返回</a>
+      <span id="partnerName">加载中...</span>
+    </div>
+    <div id="msgList" class="msg-list"></div>
+    <div class="input-area">
+      <textarea id="msgInput" placeholder="写下你想说的话..."></textarea>
+      <button id="sendBtn" class="send-btn">发送</button>
+    </div>
+  </div>
+
+  <script>
+    const sb = supabase.createClient('https://oazntpskcghfxzcylnef.supabase.co', 'sb_publishable_5i3Z5mF3VCwoEaXPaIJebA_55H6w13g');
+    const urlParams = new URLSearchParams(window.location.search);
+    const partnerId = urlParams.get('user');
+
+    async function loadMessages() {
+      const { data: { user } } = await sb.auth.getUser();
+      if (!user || !partnerId) { window.location.href = 'chat.html'; return; }
+
+      await sb.from('messages').update({ is_read: true }).eq('sender_id', partnerId).eq('receiver_id', user.id);
+
+      const { data: messages } = await sb.from('messages').select('*')
+        .or(`and(sender_id.eq.${user.id},receiver_id.eq.${partnerId}),and(sender_id.eq.${partnerId},receiver_id.eq.${user.id})`)
+        .order('created_at', { ascending: true });
+
+      const list = document.getElementById('msgList');
+      list.innerHTML = '';
+      if (messages) messages.forEach(msg => {
+        const isSent = msg.sender_id === user.id;
+        const div = document.createElement('div');
+        div.className = `msg ${isSent ? 'msg-sent' : 'msg-received'}`;
+        div.innerHTML = `${msg.content}<div class="msg-time">${new Date(msg.created_at).toLocaleTimeString()}</div>`;
+        list.appendChild(div);
+      });
+      list.scrollTop = list.scrollHeight;
+    }
+
+    document.getElementById('sendBtn').addEventListener('click', async () => {
+      const input = document.getElementById('msgInput');
+      const content = input.value.trim();
+      if (!content) return;
+      const { data: { user } } = await sb.auth.getUser();
+      if (!user) return;
+      await sb.from('messages').insert([{ sender_id: user.id, receiver_id: partnerId, content }]);
+      input.value = '';
+      loadMessages();
+    });
+
+    window.addEventListener('DOMContentLoaded', async () => {
+      const navGuest = document.getElementById('navGuest');
+      const navLoggedIn = document.getElementById('navLoggedIn');
+      const navNickname = document.getElementById('navNickname');
+      const navLogout = document.getElementById('navLogout');
+
+      const { data: { user } } = await sb.auth.getUser();
+      if (!user) { window.location.href = 'welcome.html'; return; }
+
+      // 更新导航栏状态
+      navGuest.style.display = 'none';
+      navLoggedIn.style.display = 'inline';
+      const { data: myProfile } = await sb.from('profiles').select('nickname').eq('user_id', user.id).single();
+      navNickname.textContent = myProfile?.nickname || '树友';
+      navLogout.addEventListener('click', (e) => { e.preventDefault(); sb.auth.signOut().then(() => window.location.href='welcome.html'); });
+
+      // 加载对方昵称和消息
+      const { data: partnerProfile } = await sb.from('profiles').select('nickname').eq('user_id', partnerId).single();
+      document.getElementById('partnerName').textContent = partnerProfile?.nickname || '未知树友';
+      loadMessages();
+      setInterval(loadMessages, 5000);
+    });
+  </script>
+
+  <script>
+    window.AI_FLOAT_API_KEY = 'sk-4f1cb8d3e9f143f89b56d8ea9e692f1f';
+  </script>
+  <script src="ai-float.js"></script>
+</body>
+</html>

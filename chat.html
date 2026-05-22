@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>树友对话 - 心灵树洞</title>
+  <meta name="description" content="一个匿名倾诉与互助的温暖社区。在深夜森林里，卸下白昼的疲惫写下你的心事，会有人温柔地倾听。你的秘密在这里是安全的。">
+  <meta name="keywords" content="心灵树洞, 匿名倾诉, 心理互助, 情绪宣泄, 深夜树洞, Soul Tree Hollow, 心理健康">
+  <meta name="author" content="心灵树洞">
+  
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="心灵树洞">
+  <meta property="og:title" content="心灵树洞 - 匿名倾诉与互助社区">
+  <meta property="og:description" content="在深夜森林里，写下你的心事，有人会温柔地倾听。这里没有人认识你，但有人懂你。">
+  <meta property="og:url" content="https://xinling-shudong.vercel.app/">
+  <meta property="og:image" content="https://xinling-shudong.vercel.app/images/og-image.jpg">
+  <meta itemprop="name" content="心灵树洞 - 匿名倾诉与互助社区">
+  <meta itemprop="description" content="在深夜森林里，写下你的心事，有人会温柔地倾听。">
+  <meta itemprop="image" content="https://xinling-shudong.vercel.app/images/wechat-share-icon.jpg">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="心灵树洞 | Soul Tree Hollow">
+  <meta name="twitter:description" content="一个匿名倾诉与互助的温暖社区。在深夜森林里，写下你的心事，有人会温柔地倾听。">
+  <meta name="twitter:image" content="https://xinling-shudong.vercel.app/images/og-image.jpg">
+  
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🌳</text></svg>">
+  
+  <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+  <link rel="preconnect" href="https://oazntpskcghfxzcylnef.supabase.co" crossorigin>
+  <link rel="stylesheet" href="style.css">
+  <!-- 关键修复：去掉 defer，确保后续 script 能立即使用 supabase -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    .chat-container { max-width: 680px; margin: 0 auto; padding: 20px; padding-top: 80px; color: var(--text-primary); }
+    .page-title { text-align: center; color: var(--accent); margin-bottom: 30px; }
+    
+    .pinned-section { margin-bottom: 30px; }
+    .section-title { font-size: 14px; color: var(--text-secondary); margin-bottom: 10px; border-bottom: 1px solid var(--border-light); padding-bottom: 8px; }
+    .pinned-chat-btn {
+      display: block; width: 100%; padding: 16px; background: var(--accent-glow);
+      border: 1px solid var(--border-medium); border-radius: 16px; color: var(--accent); text-align: left;
+      cursor: pointer; transition: 0.2s; margin-bottom: 20px; font-size: 16px;
+    }
+    .pinned-chat-btn:hover { background: var(--accent-glow); transform: translateY(-2px); box-shadow: var(--shadow-md); }
+    .pinned-unread { background: var(--danger); color: white; border-radius: 10px; padding: 2px 8px; font-size: 12px; margin-left: 10px; }
+
+    .chat-list-item {
+      display: flex; align-items: center; padding: 16px; background: var(--bg-card);
+      border: 1px solid var(--border-light); border-radius: 12px; margin-bottom: 10px;
+      cursor: pointer; transition: 0.2s; justify-content: space-between;
+    }
+    .chat-list-item:hover { background: var(--bg-card); border-color: var(--border-hover); }
+    .chat-partner-name { font-weight: 600; color: var(--text-primary); }
+    .chat-last-msg { color: var(--text-secondary); font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 250px; }
+    .chat-list-right { text-align: right; }
+    .chat-time { font-size: 12px; color: var(--text-muted); display: block; }
+    .chat-list-unread { background: var(--danger); color: white; border-radius: 50%; width: 20px; height: 20px; display: inline-flex; align-items: center; justify-content: center; font-size: 11px; margin-top: 4px; }
+
+    .back-link { color: var(--text-secondary); text-decoration: none; margin-bottom: 20px; display: inline-block; }
+    .back-link:hover { color: var(--text-primary); }
+    .empty-state { text-align: center; color: var(--text-secondary); margin-top: 60px; }
+  </style>
+</head>
+<body>
+  <header class="forest-header">
+      <a href="index.html" class="forest-logo">
+          <span class="logo-icon">🌳</span>
+          <span class="logo-text">心灵树洞</span>
+      </a>
+      <nav class="forest-nav">
+          <a href="index.html">广场</a>
+          <a href="books.html">书洞</a>
+          <a href="shuling.html">树灵</a>
+          <a href="chat.html">树友对话</a>
+      </nav>
+      <div class="forest-user-actions" id="navUserArea">
+          <span id="navGuest">
+              <a href="login.html">登录</a>
+              <a href="register.html">注册</a>
+          </span>
+          <span id="navLoggedIn" style="display:none">
+              <span class="user-greeting" id="navNickname"></span>
+              <a href="profile.html">个人中心</a>
+              <a href="feedback.html">反馈</a>
+              <a href="#" class="logout-btn" id="navLogout">退出</a>
+          </span>
+      </div>
+  </header>
+
+  <div class="chat-container">
+    <a href="index.html" class="back-link">← 返回树洞</a>
+    <h1 class="page-title">树友对话</h1>
+
+    <div class="pinned-section" id="pinnedSection">
+      <div class="section-title">✨ 树洞管理员</div>
+      <div class="pinned-chat-btn" id="pinnedChatBtn">
+        🌳 给站长留言 <span id="pinnedUnreadBadge" class="pinned-unread" style="display:none"></span>
+      </div>
+    </div>
+
+    <div id="otherChatsSection">
+      <div class="section-title">💬 其他对话</div>
+      <div id="otherChatsList"></div>
+      <div id="emptyOtherChats" class="empty-state" style="display:none">还没有和其他树友聊过天，在树洞里相遇吧。</div>
+    </div>
+  </div>
+
+  <script>
+    // 现在 supabase 已经同步加载完成，可以直接使用
+    const sb = supabase.createClient('https://oazntpskcghfxzcylnef.supabase.co', 'sb_publishable_5i3Z5mF3VCwoEaXPaIJebA_55H6w13g');
+    const MY_USER_ID = 'fafab57d-9188-4de8-ab53-c0802edfe73c'; 
+
+    async function loadChats() {
+      const { data: { user } } = await sb.auth.getUser();
+      if (!user) { window.location.href = 'welcome.html'; return; }
+
+      const { data: sent, error: err1 } = await sb.from('messages').select('receiver_id').eq('sender_id', user.id);
+      const { data: received, error: err2 } = await sb.from('messages').select('sender_id').eq('receiver_id', user.id);
+      if (err1 || err2) { console.error(err1, err2); return; }
+
+      const allPartnerIds = new Set();
+      sent.forEach(m => allPartnerIds.add(m.receiver_id));
+      received.forEach(m => allPartnerIds.add(m.sender_id));
+      const uniquePartnerIds = Array.from(allPartnerIds).filter(id => id !== user.id);
+
+      if (uniquePartnerIds.length === 0) {
+        document.getElementById('otherChatsList').innerHTML = '';
+        document.getElementById('emptyOtherChats').style.display = 'block';
+        loadPinnedStatus();
+        return;
+      }
+      document.getElementById('emptyOtherChats').style.display = 'none';
+
+      const { data: profiles } = await sb.from('profiles').select('user_id, nickname').in('user_id', uniquePartnerIds);
+      const nicknameMap = {};
+      if (profiles) profiles.forEach(p => { nicknameMap[p.user_id] = p.nickname || '匿名树友'; });
+
+      const otherChatsContainer = document.getElementById('otherChatsList');
+      otherChatsContainer.innerHTML = '';
+
+      for (const partnerId of uniquePartnerIds) {
+        const { data: lastMsg } = await sb.from('messages')
+          .select('content, created_at, sender_id')
+          .or(`and(sender_id.eq.${user.id},receiver_id.eq.${partnerId}),and(sender_id.eq.${partnerId},receiver_id.eq.${user.id})`)
+          .order('created_at', { ascending: false }).limit(1).single();
+
+        const { count: unreadCount } = await sb.from('messages')
+          .select('*', { count: 'exact', head: true })
+          .eq('sender_id', partnerId).eq('receiver_id', user.id).eq('is_read', false);
+
+        const partnerName = nicknameMap[partnerId] || '未知树友';
+        const isMine = lastMsg && lastMsg.sender_id === user.id;
+        const lastMsgText = lastMsg ? (isMine ? `我: ${lastMsg.content}` : lastMsg.content) : '开始聊天吧';
+
+        const item = document.createElement('div');
+        item.className = 'chat-list-item';
+        item.innerHTML = `
+          <div>
+            <div class="chat-partner-name">${partnerName}</div>
+            <div class="chat-last-msg">${lastMsgText}</div>
+          </div>
+          <div class="chat-list-right">
+            <span class="chat-time">${lastMsg ? new Date(lastMsg.created_at).toLocaleDateString() : ''}</span>
+            ${unreadCount > 0 ? `<span class="chat-list-unread">${unreadCount}</span>` : ''}
+          </div>
+        `;
+        item.addEventListener('click', () => { window.location.href = `chat-detail.html?user=${partnerId}`; });
+        otherChatsContainer.appendChild(item);
+      }
+
+      loadPinnedStatus();
+    }
+
+    async function loadPinnedStatus() {
+      const { data: { user } } = await sb.auth.getUser();
+      if (!user) return;
+      const { count } = await sb.from('messages').select('*', { count: 'exact', head: true })
+        .eq('sender_id', MY_USER_ID).eq('receiver_id', user.id).eq('is_read', false);
+      const badge = document.getElementById('pinnedUnreadBadge');
+      if (count > 0) { badge.style.display = 'inline'; badge.textContent = count; } 
+      else { badge.style.display = 'none'; }
+    }
+
+    document.getElementById('pinnedChatBtn').addEventListener('click', () => {
+      window.location.href = `chat-detail.html?user=${MY_USER_ID}`;
+    });
+
+    window.addEventListener('DOMContentLoaded', async () => {
+      const navGuest = document.getElementById('navGuest');
+      const navLoggedIn = document.getElementById('navLoggedIn');
+      const navNickname = document.getElementById('navNickname');
+      const navLogout = document.getElementById('navLogout');
+      const { data: { user } } = await sb.auth.getUser();
+      if (user) {
+        navGuest.style.display = 'none'; navLoggedIn.style.display = 'inline';
+        const { data: profile } = await sb.from('profiles').select('nickname').eq('user_id', user.id).single();
+        navNickname.textContent = profile?.nickname || '树友';
+        navLogout.addEventListener('click', (e) => { e.preventDefault(); sb.auth.signOut().then(() => window.location.href='welcome.html'); });
+        loadChats();
+      } else { window.location.href = 'welcome.html'; }
+    });
+  </script>
+
+  <script>
+    window.AI_FLOAT_API_KEY = 'sk-4f1cb8d3e9f143f89b56d8ea9e692f1f';
+  </script>
+  <script src="ai-float.js"></script>
+</body>
+</html>

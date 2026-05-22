@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>注册 - 心灵树洞</title>
+  <meta name="description" content="一个匿名倾诉与互助的温暖社区。在深夜森林里，卸下白昼的疲惫写下你的心事，会有人温柔地倾听。你的秘密在这里是安全的。">
+  <meta name="keywords" content="心灵树洞, 匿名倾诉, 心理互助, 情绪宣泄, 深夜树洞, Soul Tree Hollow, 心理健康">
+  <meta name="author" content="心灵树洞">
+  
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="心灵树洞">
+  <meta property="og:title" content="心灵树洞 - 匿名倾诉与互助社区">
+  <meta property="og:description" content="在深夜森林里，写下你的心事，有人会温柔地倾听。这里没有人认识你，但有人懂你。">
+  <meta property="og:url" content="https://xinling-shudong.vercel.app/">
+  <meta property="og:image" content="https://xinling-shudong.vercel.app/images/og-image.jpg">
+  <meta itemprop="name" content="心灵树洞 - 匿名倾诉与互助社区">
+  <meta itemprop="description" content="在深夜森林里，写下你的心事，有人会温柔地倾听。">
+  <meta itemprop="image" content="https://xinling-shudong.vercel.app/images/wechat-share-icon.jpg">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="心灵树洞 | Soul Tree Hollow">
+  <meta name="twitter:description" content="一个匿名倾诉与互助的温暖社区。在深夜森林里，写下你的心事，有人会温柔地倾听。">
+  <meta name="twitter:image" content="https://xinling-shudong.vercel.app/images/og-image.jpg">
+  
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🌳</text></svg>">
+  
+  <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+  <link rel="preconnect" href="https://oazntpskcghfxzcylnef.supabase.co" crossorigin>
+  <link rel="stylesheet" href="style.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="app.js" defer></script>
+</head>
+<body>
+  <header class="forest-header">
+      <a href="index.html" class="forest-logo">
+          <span class="logo-icon">🌳</span>
+          <span class="logo-text">心灵树洞</span>
+      </a>
+      <nav class="forest-nav">
+          <a href="index.html">广场</a>
+          <a href="books.html">书洞</a>
+          <a href="shuling.html">树灵</a>
+          <a href="chat.html">树友对话</a>
+      </nav>
+      <div class="forest-user-actions" id="navUserArea">
+          <span id="navGuest">
+              <a href="login.html">登录</a>
+              <a href="register.html">注册</a>
+          </span>
+          <span id="navLoggedIn" style="display:none">
+              <span class="user-greeting" id="navNickname"></span>
+              <a href="profile.html">个人中心</a>
+              <a href="feedback.html">反馈</a>
+              <a href="#" class="logout-btn" id="navLogout">退出</a>
+          </span>
+      </div>
+  </header>
+  <div class="container">
+    <div class="login-container">
+      <div class="login-icon">🌱</div>
+      <h2 class="login-title">加入心灵树洞</h2>
+      <div id="regError" class="smooth-text"></div>
+      <input type="email" id="regEmail" class="login-input" placeholder="输入你的邮箱">
+      <input type="text" id="regNickname" class="login-input" placeholder="你的昵称（选填）">
+      <input type="password" id="regPassword" class="login-input" placeholder="密码，至少6位">
+      <button id="regBtn">成为树友</button>
+      <div class="login-footer">
+        <div class="login-hint">你的邮箱不会公开，仅用于登录</div>
+        已有账号？<a href="login.html">登录</a>
+      </div>
+    </div>
+  </div>
+  <script>
+    document.addEventListener('DOMContentLoaded', async () => {
+      const regBtn = document.getElementById('regBtn');
+      const regEmail = document.getElementById('regEmail');
+      const regNickname = document.getElementById('regNickname');
+      const regPassword = document.getElementById('regPassword');
+      const regError = document.getElementById('regError');
+      
+      const navGuest = document.getElementById('navGuest');
+      const navLoggedIn = document.getElementById('navLoggedIn');
+      const navNickname = document.getElementById('navNickname');
+      const navLogout = document.getElementById('navLogout');
+      
+      if (navGuest && navLoggedIn) {
+        const user = await TreeHole.getCurrentUser();
+        if (user) {
+          navGuest.style.display = 'none';
+          navLoggedIn.style.display = 'inline';
+          const profile = await TreeHole.getUserProfile();
+          navNickname.textContent = profile?.nickname || '树友';
+        } else {
+          navGuest.style.display = 'inline';
+          navLoggedIn.style.display = 'none';
+        }
+      }
+      
+      if (navLogout) {
+        navLogout.addEventListener('click', (e) => {
+          e.preventDefault();
+          TreeHole.signOut();
+        });
+      }
+      
+      const handleRegister = async () => {
+        const email = regEmail.value.trim();
+        const nickname = regNickname.value.trim();
+        const password = regPassword.value.trim();
+        
+        regError.style.display = 'none';
+        
+        if (!email) {
+          updateTextSmoothly('regError', '请填写邮箱');
+          regError.style.display = 'block';
+          return;
+        }
+        
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(email)) {
+          updateTextSmoothly('regError', '请输入正确的邮箱格式');
+          regError.style.display = 'block';
+          return;
+        }
+        
+        if (!password) {
+          updateTextSmoothly('regError', '请设置密码');
+          regError.style.display = 'block';
+          return;
+        }
+        
+        if (password.length < 6) {
+          updateTextSmoothly('regError', '密码至少需要6位');
+          regError.style.display = 'block';
+          return;
+        }
+        
+        const originalText = regBtn.textContent;
+        regBtn.textContent = '正在注册...';
+        regBtn.disabled = true;
+        
+        const result = await TreeHole.signUp(email, password, nickname);
+        
+        regBtn.textContent = originalText;
+        regBtn.disabled = false;
+        
+        if (!result.success) {
+          updateTextSmoothly('regError', result.error || '注册失败，请重试');
+          regError.style.display = 'block';
+        }
+      };
+      
+      regBtn.addEventListener('click', handleRegister);
+      
+      [regEmail, regNickname, regPassword].forEach(input => {
+        input.addEventListener('keypress', (e) => {
+          if (e.key === 'Enter') {
+            handleRegister();
+          }
+        });
+      });
+    });
+
+    function updateTextSmoothly(elementId, newText) {
+      const element = document.getElementById(elementId);
+      if (!element) return;
+      const currentText = element.textContent;
+      if (currentText === newText) return;
+      
+      const duration = 200;
+      const startTime = Date.now();
+      
+      function animate() {
+        const elapsed = Date.now() - startTime;
+        const progress = Math.min(elapsed / duration, 1);
+        
+        if (progress < 1) {
+          element.style.opacity = 1 - progress;
+          requestAnimationFrame(animate);
+        } else {
+          element.textContent = newText;
+          element.style.opacity = 1;
+        }
+      }
+      
+      animate();
+    }
+  </script>
+
+  <script>
+    window.AI_FLOAT_API_KEY = 'sk-4f1cb8d3e9f143f89b56d8ea9e692f1f';
+  </script>
+  <script src="ai-float.js"></script>
+</body>
+</html>

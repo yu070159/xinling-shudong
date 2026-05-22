@@ -1,0 +1,491 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>树洞详情 - 心灵树洞</title>
+  <meta name="description" content="一个匿名倾诉与互助的温暖社区。在深夜森林里，卸下白昼的疲惫写下你的心事，会有人温柔地倾听。你的秘密在这里是安全的。">
+  <meta name="keywords" content="心灵树洞, 匿名倾诉, 心理互助, 情绪宣泄, 深夜树洞, Soul Tree Hollow, 心理健康">
+  <meta name="author" content="心灵树洞">
+  
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="心灵树洞">
+  <meta property="og:title" content="心灵树洞 - 匿名倾诉与互助社区">
+  <meta property="og:description" content="在深夜森林里，写下你的心事，有人会温柔地倾听。这里没有人认识你，但有人懂你。">
+  <meta property="og:url" content="https://你的域名.vercel.app/">
+  <meta property="og:image" content="https://你的域名.vercel.app/images/og-image.jpg">
+  <meta itemprop="name" content="心灵树洞 - 匿名倾诉与互助社区">
+  <meta itemprop="description" content="在深夜森林里，写下你的心事，有人会温柔地倾听。">
+  <meta itemprop="image" content="https://你的域名.vercel.app/images/wechat-share-icon.jpg">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="心灵树洞 | Soul Tree Hollow">
+  <meta name="twitter:description" content="一个匿名倾诉与互助的温暖社区。在深夜森林里，写下你的心事，有人会温柔地倾听。">
+  <meta name="twitter:image" content="https://你的域名.vercel.app/images/og-image.jpg">
+  
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🌳</text></svg>">
+  
+  <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+  <link rel="preconnect" href="https://oazntpskcghfxzcylnef.supabase.co" crossorigin>
+  <link rel="stylesheet" href="style.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    .action-btns-row {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      margin-top: 12px;
+      flex-wrap: wrap;
+    }
+    .action-btn {
+      background: none;
+      border: none;
+      font-size: 13px;
+      cursor: pointer;
+      padding: 4px 8px;
+      transition: opacity 0.2s;
+    }
+    .action-btn:hover {
+      text-decoration: underline;
+    }
+    .action-btn:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+    .action-btn.favorite-btn {
+      color: var(--warm-heart);
+    }
+    .action-btn.delete-btn {
+      color: var(--danger);
+    }
+    .action-btn.friend-btn {
+      color: var(--text-secondary);
+    }
+    .favorite-count {
+      font-size: 12px;
+      color: var(--text-muted);
+      margin-left: 4px;
+    }
+    .answer-actions {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      margin-left: 12px;
+    }
+  </style>
+</head>
+<body>
+  <header class="forest-header">
+      <a href="index.html" class="forest-logo">
+          <span class="logo-icon">🌳</span>
+          <span class="logo-text">心灵树洞</span>
+      </a>
+      <nav class="forest-nav">
+          <a href="index.html">广场</a>
+          <a href="books.html">书洞</a>
+          <a href="shuling.html">树灵</a>
+          <a href="chat.html">树友对话</a>
+      </nav>
+      <div class="forest-user-actions" id="navUserArea">
+          <span id="navGuest">
+              <a href="login.html">登录</a>
+              <a href="register.html">注册</a>
+          </span>
+          <span id="navLoggedIn" style="display:none">
+              <span class="user-greeting" id="navNickname"></span>
+              <a href="profile.html">个人中心</a>
+              <a href="feedback.html">反馈</a>
+              <a href="#" class="logout-btn" id="navLogout">退出</a>
+          </span>
+      </div>
+  </header>
+  <div class="container">
+    <a href="index.html" class="back-link">← 返回树洞广场</a>
+    <div id="question-detail" class="card"></div>
+    <section class="answers-section">
+      <h2>💬 回应</h2>
+      <div id="answers-list"></div>
+    </section>
+    <section class="submit-answer card">
+      <textarea id="answer-content" placeholder="写下你的回应..." rows="3"></textarea>
+      <div id="answer-msg" class="form-message"></div>
+      <div class="form-row">
+        <input type="text" id="answer-nickname" placeholder="匿名树友" maxlength="20">
+        <button id="submit-answer-btn">💌 送出回应</button>
+      </div>
+    </section>
+  </div>
+
+  <div class="login-modal-overlay" id="loginModal">
+    <div class="login-modal">
+      <p>登录后才能写下心事哦</p>
+      <div class="login-modal-buttons">
+        <button class="login-modal-btn login-modal-btn-primary" onclick="location.href='login.html'">去登录</button>
+        <button class="login-modal-btn login-modal-btn-secondary" onclick="document.getElementById('loginModal').style.display='none'">再想想</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    window.AI_FLOAT_API_KEY = 'sk-4f1cb8d3e9f143f89b56d8ea9e692f1f';
+  </script>
+  <script src="ai-float.js"></script>
+  
+  <script>
+    const sb = window.supabase.createClient(
+      'https://oazntpskcghfxzcylnef.supabase.co',
+      'sb_publishable_5i3Z5mF3VCwoEaXPaIJebA_55H6w13g'
+    );
+
+    function formatDate(dateString) {
+      const now = new Date();
+      const date = new Date(dateString);
+      const diff = Math.floor((now - date) / 1000);
+      if (diff < 60) return '刚刚';
+      if (diff < 3600) return Math.floor(diff / 60) + '分钟前';
+      if (diff < 86400) return Math.floor(diff / 3600) + '小时前';
+      if (diff < 2592000) return Math.floor(diff / 86400) + '天前';
+      return date.toLocaleDateString('zh-CN');
+    }
+
+    function escapeHtml(text) {
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
+
+    function hasReacted(targetType, targetId) {
+      return localStorage.getItem(`reacted_${targetType}_${targetId}`) === '1';
+    }
+
+    function setReactedLocal(targetType, targetId) {
+      localStorage.setItem(`reacted_${targetType}_${targetId}`, '1');
+    }
+
+    async function addReaction(targetType, targetId) {
+      if (hasReacted(targetType, targetId)) return true;
+      try {
+        const { error } = await sb.from('reactions').insert({
+          target_type: targetType,
+          target_id: targetId
+        });
+        if (error) throw error;
+        setReactedLocal(targetType, targetId);
+        return true;
+      } catch (err) {
+        console.error('添加反应失败:', err);
+        return false;
+      }
+    }
+
+    async function getReactionCounts(targetType, targetIds) {
+      if (!targetIds || targetIds.length === 0) return {};
+      try {
+        const { data, error } = await sb
+          .from('reactions')
+          .select('target_id')
+          .eq('target_type', targetType)
+          .in('target_id', targetIds);
+        if (error) throw error;
+        return data.reduce((counts, r) => {
+          counts[r.target_id] = (counts[r.target_id] || 0) + 1;
+          return counts;
+        }, {});
+      } catch (err) {
+        console.error('获取反应计数失败:', err);
+        return {};
+      }
+    }
+
+    document.addEventListener('DOMContentLoaded', async () => {
+      const urlParams = new URLSearchParams(window.location.search);
+      const questionId = urlParams.get('id');
+      const questionDetailEl = document.getElementById('question-detail');
+      
+      if (!questionId) {
+        questionDetailEl.innerHTML = '<p style="color: var(--danger); text-align: center;">缺少问题ID，请返回 <a href="index.html">树洞广场</a></p>';
+        return;
+      }
+
+      const { data: { user } } = await sb.auth.getUser();
+      const currentUserId = user?.id || null;
+
+      const navGuest = document.getElementById('navGuest');
+      const navLoggedIn = document.getElementById('navLoggedIn');
+      const navNickname = document.getElementById('navNickname');
+      const navLogout = document.getElementById('navLogout');
+      if (currentUserId) {
+        navGuest.style.display = 'none';
+        navLoggedIn.style.display = 'inline';
+        const { data: profile } = await sb.from('profiles').select('nickname').eq('user_id', currentUserId).single();
+        if (navNickname) navNickname.textContent = profile?.nickname || '树友';
+        if (navLogout) navLogout.addEventListener('click', (e) => {
+          e.preventDefault();
+          sb.auth.signOut().then(() => window.location.href = 'welcome.html');
+        });
+      } else {
+        navGuest.style.display = 'inline';
+        navLoggedIn.style.display = 'none';
+      }
+
+      const { data: question, error: qError } = await sb
+        .from('questions')
+        .select('*')
+        .eq('id', questionId)
+        .single();
+      
+      if (qError || !question) {
+        questionDetailEl.innerHTML = '<p style="color: var(--danger); text-align: center;">问题不存在或已被删除</p>';
+        return;
+      }
+
+      const { data: answers } = await sb
+        .from('answers')
+        .select('*')
+        .eq('question_id', questionId)
+        .order('created_at', { ascending: true });
+
+      const qCounts = await getReactionCounts('question', [questionId]);
+      const questionHeartCount = qCounts[questionId] || 0;
+      const questionReacted = hasReacted('question', questionId);
+
+      let answerCounts = {};
+      if (answers && answers.length > 0) {
+        const answerIds = answers.map(a => a.id);
+        answerCounts = await getReactionCounts('answer', answerIds);
+      }
+
+      let favoriteCount = 0;
+      let isFavorited = false;
+      if (currentUserId) {
+        const { count } = await sb
+          .from('favorites')
+          .select('*', { count: 'exact', head: true })
+          .eq('question_id', questionId);
+        favoriteCount = count || 0;
+        const { data: favData } = await sb
+          .from('favorites')
+          .select('id')
+          .eq('user_id', currentUserId)
+          .eq('question_id', questionId)
+          .maybeSingle();
+        isFavorited = !!favData;
+      }
+
+      let friendStatus = null;
+      if (currentUserId && question.user_id && question.user_id !== currentUserId) {
+        const { data: reqData } = await sb
+          .from('friend_requests')
+          .select('status')
+          .eq('from_user', currentUserId)
+          .eq('to_user', question.user_id)
+          .maybeSingle();
+        friendStatus = reqData?.status || null;
+      }
+
+      const isOwner = currentUserId && question.user_id === currentUserId;
+
+      let actionBtnsHtml = `<div class="action-btns-row">`;
+      actionBtnsHtml += `
+        <button class="heart-btn ${questionReacted ? 'reacted' : ''}"
+                data-type="question" data-id="${questionId}"
+                ${questionReacted ? 'disabled' : ''}>
+          ${questionReacted ? '♡' : '♥'} <span class="count">${questionHeartCount}</span>
+        </button>
+      `;
+      if (currentUserId) {
+        actionBtnsHtml += `
+          <button class="action-btn favorite-btn" id="favoriteBtn" data-favorited="${isFavorited}">
+            ${isFavorited ? '★ 已收藏' : '☆ 收藏'}<span class="favorite-count">(${favoriteCount})</span>
+          </button>
+        `;
+      }
+      if (isOwner) {
+        actionBtnsHtml += `<button class="action-btn delete-btn" id="deleteQuestionBtn">删除</button>`;
+      }
+      if (currentUserId && question.user_id && !isOwner) {
+        let friendBtnHtml = '';
+        if (!friendStatus) {
+          friendBtnHtml = '<button class="action-btn friend-btn" id="friendRequestBtn">申请加为树友</button>';
+        } else if (friendStatus === 'pending') {
+          friendBtnHtml = '<button class="action-btn friend-btn" disabled>已申请</button>';
+        } else if (friendStatus === 'accepted') {
+          friendBtnHtml = '<button class="action-btn friend-btn" disabled>已是树友</button>';
+        } else if (friendStatus === 'rejected') {
+          friendBtnHtml = '<button class="action-btn friend-btn" disabled>已拒绝</button>';
+        }
+        actionBtnsHtml += friendBtnHtml;
+      }
+      actionBtnsHtml += `</div>`;
+
+      questionDetailEl.innerHTML = `
+        <h2>${escapeHtml(question.content)}</h2>
+        <div class="meta question-meta">
+          <span>🧑 ${escapeHtml(question.nickname)}</span>
+          <span>${formatDate(question.created_at)}</span>
+        </div>
+        ${actionBtnsHtml}
+      `;
+
+      const answersContainer = document.getElementById('answers-list');
+      if (!answers || answers.length === 0) {
+        answersContainer.innerHTML = '<p class="empty-state-text">还没有人回应这份心事，坐下来陪 ta 一会吧 ✨</p>';
+      } else {
+        answersContainer.innerHTML = answers.map(a => {
+          const reacted = hasReacted('answer', a.id);
+          const count = answerCounts[a.id] || 0;
+          const isAnswerOwner = currentUserId && a.user_id === currentUserId;
+          return `
+            <div class="answer-card" data-answer-id="${a.id}">
+              <div class="answer-content">${escapeHtml(a.content)}</div>
+              <div class="answer-meta">
+                <span>🧑 ${escapeHtml(a.nickname)}</span>
+                <span>${formatDate(a.created_at)}</span>
+                <button class="heart-btn ${reacted ? 'reacted' : ''}"
+                        data-type="answer" data-id="${a.id}"
+                        ${reacted ? 'disabled' : ''}>
+                  ${reacted ? '♡' : '♥'} <span class="count">${count}</span>
+                </button>
+                ${isAnswerOwner ? `<span class="answer-actions"><button class="action-btn delete-btn delete-answer-btn" data-answer-id="${a.id}">删除</button></span>` : ''}
+              </div>
+            </div>
+          `;
+        }).join('');
+      }
+
+      document.querySelectorAll('.heart-btn').forEach(btn => {
+        btn.addEventListener('click', async () => {
+          const type = btn.dataset.type;
+          const targetId = btn.dataset.id;
+          const ok = await addReaction(type, targetId);
+          if (ok) {
+            const countSpan = btn.querySelector('.count');
+            countSpan.textContent = parseInt(countSpan.textContent) + 1;
+            btn.innerHTML = `♡ <span class="count">${countSpan.textContent}</span>`;
+            btn.classList.add('reacted');
+            btn.disabled = true;
+          }
+        });
+      });
+
+      const favoriteBtn = document.getElementById('favoriteBtn');
+      if (favoriteBtn) {
+        favoriteBtn.addEventListener('click', async () => {
+          const btn = favoriteBtn;
+          const favorited = btn.dataset.favorited === 'true';
+          if (favorited) {
+            const { error } = await sb
+              .from('favorites')
+              .delete()
+              .eq('user_id', currentUserId)
+              .eq('question_id', questionId);
+            if (!error) {
+              btn.dataset.favorited = 'false';
+              const { count } = await sb
+                .from('favorites')
+                .select('*', { count: 'exact', head: true })
+                .eq('question_id', questionId);
+              btn.innerHTML = `☆ 收藏<span class="favorite-count">(${count || 0})</span>`;
+            }
+          } else {
+            const { error } = await sb
+              .from('favorites')
+              .insert({ user_id: currentUserId, question_id: questionId });
+            if (!error) {
+              btn.dataset.favorited = 'true';
+              const { count } = await sb
+                .from('favorites')
+                .select('*', { count: 'exact', head: true })
+                .eq('question_id', questionId);
+              btn.innerHTML = `★ 已收藏<span class="favorite-count">(${count || 0})</span>`;
+            }
+          }
+        });
+      }
+
+      const deleteQuestionBtn = document.getElementById('deleteQuestionBtn');
+      if (deleteQuestionBtn) {
+        deleteQuestionBtn.addEventListener('click', async () => {
+          if (!confirm('确定要删除这条心事吗？删除后无法恢复。')) return;
+          const { error } = await sb
+            .from('questions')
+            .delete()
+            .eq('id', questionId);
+          if (!error) {
+            window.location.href = 'index.html';
+          } else {
+            alert('删除失败，请稍后重试');
+          }
+        });
+      }
+
+      const friendRequestBtn = document.getElementById('friendRequestBtn');
+      if (friendRequestBtn) {
+        friendRequestBtn.addEventListener('click', async () => {
+          const { error } = await sb
+            .from('friend_requests')
+            .insert({ from_user: currentUserId, to_user: question.user_id });
+          if (!error) {
+            friendRequestBtn.textContent = '已申请';
+            friendRequestBtn.disabled = true;
+          } else {
+            alert('申请失败，请稍后重试');
+          }
+        });
+      }
+
+      document.querySelectorAll('.delete-answer-btn').forEach(btn => {
+        btn.addEventListener('click', async () => {
+          const answerId = btn.dataset.answerId;
+          if (!confirm('确定要删除这条回答吗？')) return;
+          const { error } = await sb
+            .from('answers')
+            .delete()
+            .eq('id', answerId);
+          if (!error) {
+            const card = btn.closest('.answer-card');
+            if (card) card.remove();
+            const remaining = answersContainer.querySelectorAll('.answer-card');
+            if (remaining.length === 0) {
+              answersContainer.innerHTML = '<p class="empty-state-text">还没有人回应这份心事，坐下来陪 ta 一会吧 ✨</p>';
+            }
+          } else {
+            alert('删除失败，请稍后重试');
+          }
+        });
+      });
+
+      document.getElementById('submit-answer-btn').addEventListener('click', async () => {
+        if (!currentUserId) {
+          document.getElementById('loginModal').style.display = 'flex';
+          return;
+        }
+        const contentInput = document.getElementById('answer-content');
+        const content = contentInput.value.trim();
+        if (!content) {
+          alert('请写下你想说的话');
+          return;
+        }
+        const nicknameInput = document.getElementById('answer-nickname');
+        const nickname = nicknameInput.value.trim() || '匿名树友';
+        const btn = document.getElementById('submit-answer-btn');
+        btn.textContent = '正在发送...';
+        btn.disabled = true;
+        const { error } = await sb.from('answers').insert({
+          question_id: questionId,
+          content: content,
+          nickname: nickname,
+          user_id: currentUserId
+        });
+        btn.textContent = '💌 送出回应';
+        btn.disabled = false;
+        if (!error) {
+          contentInput.value = '';
+          location.reload();
+        } else {
+          alert('回应失败，请重试');
+        }
+      });
+    });
+  </script>
+</body>
+</html>
