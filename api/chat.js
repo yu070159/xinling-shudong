@@ -1,20 +1,17 @@
 // api/chat.js
-export default async function handler(req, res) {
-  // 只允许 POST 请求
-  if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Method Not Allowed' });
-  }
-
-  const { messages } = req.body;
-  // 从环境变量中安全获取 API Key，绝不暴露在前端
-  const apiKey = process.env.DEEPSEEK_API_KEY;
-
-  if (!apiKey) {
-    return res.status(500).json({ error: '树洞管理员还未配置钥匙' });
-  }
-
+export async function POST(request) {
   try {
-    // 由服务器替前端去向 DeepSeek 发起请求
+    const { messages } = await request.json();
+    const apiKey = process.env.DEEPSEEK_API_KEY;
+
+    if (!apiKey) {
+      console.error("【后端错误】: DEEPSEEK_API_KEY 未找到，请检查 .env.local 文件！");
+      return new Response(JSON.stringify({ error: '树洞管理员还未配置钥匙' }), {
+        status: 500,
+        headers: { 'Content-Type': 'application/json' }
+      });
+    }
+
     const response = await fetch('https://api.deepseek.com/chat/completions', {
       method: 'POST',
       headers: {
@@ -29,14 +26,25 @@ export default async function handler(req, res) {
       })
     });
 
+    const data = await response.json();
+    
     if (!response.ok) {
-      throw new Error('API Request Failed');
+      console.error("【后端错误】: DeepSeek API 返回错误:", JSON.stringify(data));
+      return new Response(JSON.stringify({ error: 'API 请求失败' }), {
+        status: 500,
+        headers: { 'Content-Type': 'application/json' }
+      });
     }
 
-    const data = await response.json();
-    // 将结果返回给前端
-    res.status(200).json(data);
+    return new Response(JSON.stringify(data), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json' }
+    });
   } catch (error) {
-    res.status(500).json({ error: '树灵正在打盹，请稍后再试...' });
+    console.error("【后端错误】: 捕获到异常:", error);
+    return new Response(JSON.stringify({ error: '树灵正在打盹，请稍后再试...' }), {
+      status: 500,
+      headers: { 'Content-Type': 'application/json' }
+    });
   }
 }

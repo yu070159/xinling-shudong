@@ -12,15 +12,15 @@
   <meta property="og:site_name" content="心灵树洞">
   <meta property="og:title" content="心灵树洞 - 匿名倾诉与互助社区">
   <meta property="og:description" content="在深夜森林里，写下你的心事，有人会温柔地倾听。这里没有人认识你，但有人懂你。">
-  <meta property="og:url" content="https://你的域名.vercel.app/">
-  <meta property="og:image" content="https://你的域名.vercel.app/images/og-image.jpg">
+  <meta property="og:url" content="https://xinling-shudong.vercel.app/">
+  <meta property="og:image" content="https://xinling-shudong.vercel.app/images/og-image.jpg">
   <meta itemprop="name" content="心灵树洞 - 匿名倾诉与互助社区">
   <meta itemprop="description" content="在深夜森林里，写下你的心事，有人会温柔地倾听。">
-  <meta itemprop="image" content="https://你的域名.vercel.app/images/wechat-share-icon.jpg">
+  <meta itemprop="image" content="https://xinling-shudong.vercel.app/images/wechat-share-icon.jpg">
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="心灵树洞 | Soul Tree Hollow">
   <meta name="twitter:description" content="一个匿名倾诉与互助的温暖社区。在深夜森林里，写下你的心事，有人会温柔地倾听。">
-  <meta name="twitter:image" content="https://你的域名.vercel.app/images/og-image.jpg">
+  <meta name="twitter:image" content="https://xinling-shudong.vercel.app/images/og-image.jpg">
   
   <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🌳</text></svg>">
   
@@ -85,6 +85,26 @@
     
     .answer-card {
       padding-right: 4px !important;
+    }
+
+    .author-info {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .user-avatar {
+      border-radius: 50%;
+      object-fit: cover;
+      border: 2px solid var(--accent);
+    }
+    .user-avatar-placeholder {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 50%;
+      background: var(--accent-glow);
+      border: 2px solid var(--accent);
+      color: var(--accent);
     }
   </style>
 </head>
@@ -208,6 +228,40 @@
       }
     }
 
+    // 批量获取用户头像
+    async function getAvatarMap(userIds) {
+      if (!userIds || userIds.length === 0) return {};
+      const uniqueIds = [...new Set(userIds.filter(id => id))];
+      if (uniqueIds.length === 0) return {};
+      try {
+        const { data, error } = await sb
+          .from('profiles')
+          .select('user_id, avatar_url')
+          .in('user_id', uniqueIds);
+        if (error) throw error;
+        const map = {};
+        data.forEach(p => {
+          if (p.avatar_url) map[p.user_id] = p.avatar_url;
+        });
+        return map;
+      } catch (err) {
+        console.error('获取头像失败:', err);
+        return {};
+      }
+    }
+
+    // 根据头像映射生成头像 HTML（带 data-user-id 用于弹窗）
+    function getAvatarHtml(userId, avatarMap, size = 36) {
+      const dataAttr = userId ? ` data-user-id="${escapeHtml(userId)}"` : '';
+      if (!userId) {
+        return `<div class="user-avatar-placeholder" style="width:${size}px;height:${size}px;font-size:${size*0.4}px;">🌱</div>`;
+      }
+      if (avatarMap[userId]) {
+        return `<img src="${escapeHtml(avatarMap[userId])}" class="user-avatar" alt="头像" style="width:${size}px;height:${size}px;"${dataAttr}>`;
+      }
+      return `<div class="user-avatar-placeholder" style="width:${size}px;height:${size}px;font-size:${size*0.4}px;"${dataAttr}>🌱</div>`;
+    }
+
     document.addEventListener('DOMContentLoaded', async () => {
       const urlParams = new URLSearchParams(window.location.search);
       const questionId = urlParams.get('id');
@@ -296,6 +350,10 @@
 
       const isOwner = currentUserId && question.user_id === currentUserId;
 
+      // 收集所有需要头像的用户 ID，批量获取头像
+      const userIds = [question.user_id, ...answers.map(a => a.user_id)].filter(id => id);
+      const avatarMap = await getAvatarMap(userIds);
+
       let actionBtnsHtml = `<div class="action-btns-row">`;
       actionBtnsHtml += `
         <button class="heart-btn ${questionReacted ? 'reacted' : ''}"
@@ -329,10 +387,13 @@
       }
       actionBtnsHtml += `</div>`;
 
+      // 问题作者头像
+      const qAvatarHtml = getAvatarHtml(question.user_id, avatarMap, 40);
+
       questionDetailEl.innerHTML = `
         <h2>${escapeHtml(question.content)}</h2>
         <div class="meta question-meta">
-          <span>🧑 ${escapeHtml(question.nickname)}</span>
+          <span class="author-info">${qAvatarHtml}${escapeHtml(question.nickname)}</span>
           <span>${formatDate(question.created_at)}</span>
         </div>
         ${actionBtnsHtml}
@@ -346,11 +407,13 @@
           const reacted = hasReacted('answer', a.id);
           const count = answerCounts[a.id] || 0;
           const isAnswerOwner = currentUserId && a.user_id === currentUserId;
+          // 回答作者头像
+          const aAvatarHtml = getAvatarHtml(a.user_id, avatarMap, 36);
           return `
             <div class="answer-card" data-answer-id="${a.id}">
               <div class="answer-content">${escapeHtml(a.content)}</div>
               <div class="answer-meta">
-                <span>🧑 ${escapeHtml(a.nickname)}</span>
+                <span class="author-info">${aAvatarHtml}${escapeHtml(a.nickname)}</span>
                 <span>${formatDate(a.created_at)}</span>
                 <button class="heart-btn ${reacted ? 'reacted' : ''}"
                         data-type="answer" data-id="${a.id}"
@@ -499,5 +562,6 @@
       });
     });
   </script>
+  <script src="user-popup.js"></script>
 </body>
 </html>

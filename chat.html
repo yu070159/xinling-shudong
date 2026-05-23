@@ -27,7 +27,7 @@
   <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
   <link rel="preconnect" href="https://oazntpskcghfxzcylnef.supabase.co" crossorigin>
   <link rel="stylesheet" href="style.css">
-  <!-- 关键修复：去掉 defer，确保后续 script 能立即使用 supabase -->
+  <!-- 关键修复：恢复正确的 Supabase SDK 地址 -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
     .chat-container { max-width: 680px; margin: 0 auto; padding: 20px; padding-top: 80px; color: var(--text-primary); }
@@ -47,6 +47,11 @@
       display: flex; align-items: center; padding: 16px; background: var(--bg-card);
       border: 1px solid var(--border-light); border-radius: 12px; margin-bottom: 10px;
       cursor: pointer; transition: 0.2s; justify-content: space-between;
+      gap: 12px;
+    }
+    .chat-info {
+      flex: 1;
+      min-width: 0;
     }
     .chat-list-item:hover { background: var(--bg-card); border-color: var(--border-hover); }
     .chat-partner-name { font-weight: 600; color: var(--text-primary); }
@@ -105,7 +110,6 @@
   </div>
 
   <script>
-    // 现在 supabase 已经同步加载完成，可以直接使用
     const sb = supabase.createClient('https://oazntpskcghfxzcylnef.supabase.co', 'sb_publishable_5i3Z5mF3VCwoEaXPaIJebA_55H6w13g');
     const MY_USER_ID = 'fafab57d-9188-4de8-ab53-c0802edfe73c'; 
 
@@ -130,9 +134,13 @@
       }
       document.getElementById('emptyOtherChats').style.display = 'none';
 
-      const { data: profiles } = await sb.from('profiles').select('user_id, nickname').in('user_id', uniquePartnerIds);
+      const { data: profiles } = await sb.from('profiles').select('user_id, nickname, avatar_url').in('user_id', uniquePartnerIds);
       const nicknameMap = {};
-      if (profiles) profiles.forEach(p => { nicknameMap[p.user_id] = p.nickname || '匿名树友'; });
+      const avatarMap = {};
+      if (profiles) profiles.forEach(p => { 
+        nicknameMap[p.user_id] = p.nickname || '匿名树友'; 
+        avatarMap[p.user_id] = p.avatar_url || null;
+      });
 
       const otherChatsContainer = document.getElementById('otherChatsList');
       otherChatsContainer.innerHTML = '';
@@ -151,10 +159,17 @@
         const isMine = lastMsg && lastMsg.sender_id === user.id;
         const lastMsgText = lastMsg ? (isMine ? `我: ${lastMsg.content}` : lastMsg.content) : '开始聊天吧';
 
+        const avatarUrl = avatarMap[partnerId];
+        // 统一使用 user-avatar 和 user-avatar-placeholder 类名，并添加 data-user-id 属性
+        const avatarHtml = avatarUrl 
+          ? `<img src="${avatarUrl}" class="user-avatar" alt="${partnerName}" data-user-id="${partnerId}" style="width:40px;height:40px;">`
+          : `<div class="user-avatar-placeholder" data-user-id="${partnerId}" style="width:40px;height:40px;font-size:16px;">🌱</div>`;
+          
         const item = document.createElement('div');
         item.className = 'chat-list-item';
         item.innerHTML = `
-          <div>
+          ${avatarHtml}
+          <div class="chat-info">
             <div class="chat-partner-name">${partnerName}</div>
             <div class="chat-last-msg">${lastMsgText}</div>
           </div>
@@ -201,5 +216,6 @@
   </script>
 
   <script src="ai-float.js"></script>
+  <script src="user-popup.js"></script>
 </body>
 </html>

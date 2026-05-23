@@ -31,9 +31,14 @@
     .back-link { color: var(--text-secondary); text-decoration: none; margin-right: 15px; }
     .back-link:hover { color: var(--text-primary); }
     .msg-list { flex: 1; overflow-y: auto; padding-right: 10px; display: flex; flex-direction: column; gap: 12px; }
-    .msg { max-width: 80%; padding: 10px 16px; border-radius: 18px; word-break: break-word; }
-    .msg-sent { align-self: flex-end; background: var(--accent); color: white; border-bottom-right-radius: 4px; }
-    .msg-received { align-self: flex-start; background: var(--bg-card); color: var(--text-primary); border-bottom-left-radius: 4px; border: 1px solid var(--border-light); }
+    .msg-container { display: flex; gap: 8px; }
+    .msg-container.sent { justify-content: flex-end; }
+    .msg-container.received { justify-content: flex-start; }
+    .msg-avatar { width: 32px; height: 32px; border-radius: 50%; object-fit: cover; flex-shrink: 0; }
+    .msg-avatar-placeholder { width: 32px; height: 32px; border-radius: 50%; background: var(--accent-glow); display: flex; align-items: center; justify-content: center; font-size: 14px; flex-shrink: 0; }
+    .msg-content { max-width: 80%; padding: 10px 16px; border-radius: 18px; word-break: break-word; }
+    .msg-sent .msg-content { background: var(--accent); color: white; border-bottom-right-radius: 4px; }
+    .msg-received .msg-content { background: var(--bg-card); color: var(--text-primary); border-bottom-left-radius: 4px; border: 1px solid var(--border-light); }
     .msg-time { font-size: 11px; color: var(--text-muted); margin-top: 4px; }
     .input-area { display: flex; gap: 10px; padding-top: 15px; border-top: 1px solid var(--border-light); }
     .input-area textarea { flex: 1; padding: 12px; border-radius: 12px; background: var(--bg-input); border: 1px solid var(--border-medium); color: var(--text-primary); resize: none; height: 50px; }
@@ -82,9 +87,29 @@
     const urlParams = new URLSearchParams(window.location.search);
     const partnerId = urlParams.get('user');
 
+    let myAvatar = null;
+    let partnerAvatar = null;
+
+    async function loadAvatars(userId) {
+      const { data: myProfile } = await sb.from('profiles').select('avatar_url').eq('user_id', userId).single();
+      const { data: partnerProfile } = await sb.from('profiles').select('avatar_url').eq('user_id', partnerId).single();
+      myAvatar = myProfile?.avatar_url || null;
+      partnerAvatar = partnerProfile?.avatar_url || null;
+    }
+
+    function getAvatarHtml(avatarUrl, userId = null) {
+      const dataAttr = userId ? ` data-user-id="${userId}"` : '';
+      if (avatarUrl) {
+        return `<img src="${avatarUrl}" class="msg-avatar" alt="头像"${dataAttr}>`;
+      }
+      return `<div class="msg-avatar-placeholder"${dataAttr}>🌱</div>`;
+    }
+
     async function loadMessages() {
       const { data: { user } } = await sb.auth.getUser();
       if (!user || !partnerId) { window.location.href = 'chat.html'; return; }
+
+      await loadAvatars(user.id);
 
       await sb.from('messages').update({ is_read: true }).eq('sender_id', partnerId).eq('receiver_id', user.id);
 
@@ -96,10 +121,19 @@
       list.innerHTML = '';
       if (messages) messages.forEach(msg => {
         const isSent = msg.sender_id === user.id;
-        const div = document.createElement('div');
-        div.className = `msg ${isSent ? 'msg-sent' : 'msg-received'}`;
-        div.innerHTML = `${msg.content}<div class="msg-time">${new Date(msg.created_at).toLocaleTimeString()}</div>`;
-        list.appendChild(div);
+        const avatar = isSent ? myAvatar : partnerAvatar;
+        const senderId = msg.sender_id;
+        const avatarHtml = getAvatarHtml(avatar, senderId);
+        
+        const container = document.createElement('div');
+        container.className = `msg-container ${isSent ? 'sent' : 'received'}`;
+        
+        if (!isSent) {
+          container.innerHTML = `${avatarHtml}<div class="msg-content">${msg.content}<div class="msg-time">${new Date(msg.created_at).toLocaleTimeString()}</div></div>`;
+        } else {
+          container.innerHTML = `<div class="msg-content">${msg.content}<div class="msg-time">${new Date(msg.created_at).toLocaleTimeString()}</div></div>${avatarHtml}`;
+        }
+        list.appendChild(container);
       });
       list.scrollTop = list.scrollHeight;
     }
@@ -140,5 +174,6 @@
   </script>
 
   <script src="ai-float.js"></script>
+  <script src="user-popup.js"></script>
 </body>
 </html>

@@ -76,6 +76,38 @@
     .empty-state { text-align: center; color: var(--text-muted); padding: 40px 20px; font-size: 14px; }
     .empty-state a { color: var(--accent); text-decoration: none; }
     .smooth-text { transition: opacity 0.2s ease-in-out; }
+    /* 新增头像样式 */
+    .avatar-upload { text-align: center; margin-bottom: 20px; }
+    #avatarPreview { width: 100px; height: 100px; border-radius: 50%; object-fit: cover; border: 2px solid var(--border-light); cursor: pointer; }
+    
+    /* 对外展示设置卡片 */
+    .show-settings-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-light);
+      border-radius: 12px;
+      padding: 16px;
+      margin-bottom: 20px;
+    }
+    .show-settings-title {
+      color: var(--text-primary);
+      font-size: 15px;
+      font-weight: 600;
+      margin-bottom: 12px;
+    }
+    .show-setting-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 0;
+      cursor: pointer;
+      color: var(--text-secondary);
+      font-size: 14px;
+    }
+    .show-setting-item input[type="checkbox"] {
+      width: 18px;
+      height: 18px;
+      cursor: pointer;
+    }
   </style>
 </head>
 <body>
@@ -114,6 +146,10 @@
     </div>
 
     <div id="tab-profile" class="tab-content">
+      <div class="avatar-upload">
+        <img id="avatarPreview" src="https://via.placeholder.com/100" alt="头像">
+        <input type="file" id="avatarInput" accept="image/*" style="display:none;">
+      </div>
       <div id="saveMsg" class="smooth-text"></div>
       <label class="profile-label">昵称</label>
       <input type="text" id="profileNickname" class="profile-input" placeholder="你的昵称">
@@ -127,6 +163,40 @@
       <div class="profile-info-divider"></div>
       <p class="profile-info" id="regDate">注册时间：加载中...</p>
       <p class="profile-info" id="questionCount">已发表心事：加载中...</p>
+      
+      <!-- 对外展示设置 -->
+      <div class="show-settings-card">
+        <h3 class="show-settings-title">对外展示设置</h3>
+        <label class="show-setting-item">
+          <input type="checkbox" id="showMbtiCheck">
+          <span>允许展示 MBTI 类型</span>
+        </label>
+        <label class="show-setting-item">
+          <input type="checkbox" id="showBioCheck">
+          <span>允许展示个人简介</span>
+        </label>
+        <label class="show-setting-item">
+          <input type="checkbox" id="showJoinDateCheck">
+          <span>允许展示注册时间</span>
+        </label>
+        <label class="show-setting-item">
+          <input type="checkbox" id="showHeartsCheck">
+          <span>允许展示暖心数量</span>
+        </label>
+        <label class="show-setting-item">
+          <input type="checkbox" id="showFavoritesCheck">
+          <span>允许展示收藏数量</span>
+        </label>
+        <label class="show-setting-item">
+          <input type="checkbox" id="showPostsCheck">
+          <span>允许展示发帖/回应数量</span>
+        </label>
+        <label class="show-setting-item">
+          <input type="checkbox" id="showFriendsCheck">
+          <span>允许展示树友数量</span>
+        </label>
+      </div>
+      
       <button id="logoutBtn">退出树洞</button>
     </div>
 
@@ -158,6 +228,7 @@
     );
 
     let currentUser = null;
+    let newAvatarUrl = null; // 【缝合】用于存储临时头像地址
 
     async function getCurrentUser() {
       if (!sb) return null;
@@ -171,9 +242,13 @@
       return data;
     }
 
-    async function updateProfile({ nickname, mbti, bio }) {
+    // 修改了 updateProfile，允许传入 avatar_url 和展示设置
+    async function updateProfile({ nickname, mbti, bio, avatar_url, show_mbti, show_bio, show_join_date, show_hearts, show_favorites, show_posts, show_friends }) {
       const { data: { session } } = await sb.auth.getSession();
       if (!session) throw new Error('未登录');
+      const payload = { nickname, mbti, bio, show_mbti, show_bio, show_join_date, show_hearts, show_favorites, show_posts, show_friends };
+      if (avatar_url) payload.avatar_url = avatar_url; // 仅当有新头像时才更新
+
       const response = await fetch(
         `https://oazntpskcghfxzcylnef.supabase.co/rest/v1/profiles?user_id=eq.${session.user.id}`,
         {
@@ -184,7 +259,7 @@
             'Authorization': `Bearer ${session.access_token}`,
             'Prefer': 'return=minimal'
           },
-          body: JSON.stringify({ nickname, mbti, bio })
+          body: JSON.stringify(payload)
         }
       );
       if (!response.ok) { const errText = await response.text(); throw new Error(errText || '更新失败'); }
@@ -203,7 +278,6 @@
       setTimeout(() => { element.textContent = newText; element.style.opacity = '1'; }, 200);
     }
 
-    // 根据用户 ID 获取昵称（独立查询，避免关联查询语法兼容性问题）
     async function getNicknameById(userId) {
       if (!userId) return '匿名树友';
       const { data } = await sb.from('profiles').select('nickname').eq('user_id', userId).single();
@@ -249,7 +323,6 @@
       const pendingEmpty = document.getElementById('pendingEmpty');
       pendingContainer.innerHTML = '';
 
-      // 查询待处理的申请（只用 friend_requests 表，不做关联查询）
       const { data: pending, error: pendingError } = await sb.from('friend_requests')
         .select('id, from_user, created_at')
         .eq('to_user', currentUser.id)
@@ -264,7 +337,6 @@
         pendingEmpty.textContent = '没有待处理的好友申请';
       } else {
         pendingEmpty.style.display = 'none';
-        // 逐条获取申请人昵称
         for (const req of pending) {
           const nickname = await getNicknameById(req.from_user);
           const card = document.createElement('div');
@@ -280,7 +352,6 @@
           `;
           pendingContainer.appendChild(card);
         }
-        // 绑定按钮事件
         pendingContainer.querySelectorAll('.action-accept').forEach(btn => {
           btn.addEventListener('click', async (e) => {
             e.stopPropagation();
@@ -297,7 +368,6 @@
         });
       }
 
-      // 已接受的树友
       const friendsContainer = document.getElementById('acceptedFriends');
       const friendsEmpty = document.getElementById('friendsEmpty');
       friendsContainer.innerHTML = '';
@@ -323,7 +393,6 @@
         }
       }
 
-      // 更新徽章
       const { count } = await sb.from('friend_requests').select('*', { count: 'exact', head: true }).eq('to_user', currentUser.id).eq('status', 'pending');
       const badge = document.getElementById('friendBadge');
       if (count > 0) { badge.style.display = 'inline'; badge.textContent = count; }
@@ -349,6 +418,17 @@
         document.getElementById('profileNickname').value = profile.nickname || '';
         document.getElementById('profileMbti').value = profile.mbti || '';
         document.getElementById('profileBio').value = profile.bio || '';
+        // 加载原有头像
+        if (profile.avatar_url) document.getElementById('avatarPreview').src = profile.avatar_url;
+        // 加载对外展示设置
+        document.getElementById('showMbtiCheck').checked = profile.show_mbti !== false;
+        document.getElementById('showBioCheck').checked = profile.show_bio !== false;
+        document.getElementById('showJoinDateCheck').checked = profile.show_join_date !== false;
+        document.getElementById('showHeartsCheck').checked = profile.show_hearts !== false;
+        document.getElementById('showFavoritesCheck').checked = profile.show_favorites !== false;
+        document.getElementById('showPostsCheck').checked = profile.show_posts !== false;
+        document.getElementById('showFriendsCheck').checked = profile.show_friends !== false;
+
         if (profile.created_at) {
           const d = new Date(profile.created_at);
           document.getElementById('regDate').textContent = `注册时间：${d.getFullYear()}年${String(d.getMonth()+1).padStart(2,'0')}月${String(d.getDate()).padStart(2,'0')}日`;
@@ -368,18 +448,43 @@
         }
       }
 
+      // 【缝合】头像点击和上传逻辑
+      document.getElementById('avatarPreview').addEventListener('click', () => document.getElementById('avatarInput').click());
+      document.getElementById('avatarInput').addEventListener('change', async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        const preview = document.getElementById('avatarPreview');
+        try {
+          const fileExt = file.name.split('.').pop();
+          const fileName = `${currentUser.id}.${fileExt}`;
+          const { error: uploadError } = await sb.storage.from('avatars').upload(fileName, file, { upsert: true });
+          if (uploadError) throw uploadError;
+          const { data: urlData } = sb.storage.from('avatars').getPublicUrl(fileName);
+          newAvatarUrl = urlData.publicUrl;
+          preview.src = newAvatarUrl;
+        } catch (err) { alert('上传失败: ' + err.message); }
+      });
+
       const saveBtn = document.getElementById('profileSaveBtn');
       const saveMsg = document.getElementById('saveMsg');
       saveBtn.addEventListener('click', async () => {
         const nickname = document.getElementById('profileNickname').value.trim();
         const mbti = document.getElementById('profileMbti').value.trim();
         const bio = document.getElementById('profileBio').value.trim();
+        const showMbti = document.getElementById('showMbtiCheck').checked;
+        const showBio = document.getElementById('showBioCheck').checked;
+        const showJoinDate = document.getElementById('showJoinDateCheck').checked;
+        const showHearts = document.getElementById('showHeartsCheck').checked;
+        const showFavorites = document.getElementById('showFavoritesCheck').checked;
+        const showPosts = document.getElementById('showPostsCheck').checked;
+        const showFriends = document.getElementById('showFriendsCheck').checked;
         if (!nickname) { updateTextSmoothly('saveMsg', '请填写昵称'); saveMsg.className = 'smooth-text error'; return; }
         saveBtn.disabled = true; saveBtn.textContent = '保存中...';
         saveMsg.className = 'smooth-text';
         updateTextSmoothly('saveMsg', '');
         try {
-          await updateProfile({ nickname, mbti, bio });
+          // 传入 newAvatarUrl 和展示设置
+          await updateProfile({ nickname, mbti, bio, avatar_url: newAvatarUrl, show_mbti: showMbti, show_bio: showBio, show_join_date: showJoinDate, show_hearts: showHearts, show_favorites: showFavorites, show_posts: showPosts, show_friends: showFriends });
           updateTextSmoothly('saveMsg', '✅ 资料已保存');
           saveMsg.className = 'smooth-text success';
           navNickname.textContent = nickname;
@@ -401,5 +506,6 @@
   </script>
 
   <script src="ai-float.js"></script>
+  <script src="user-popup.js"></script>
 </body>
 </html>

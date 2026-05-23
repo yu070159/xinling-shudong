@@ -1,6 +1,6 @@
 (function() {
   // 防御性检查：确保 Supabase SDK 已加载
-  if (typeof window.supabase === 'undefined') {
+  if (typeof window.supabase === 'undefined' || !window.supabase.createClient) {
     console.error('Supabase SDK 未加载，请检查 <script> 引入顺序');
   }
   
@@ -12,8 +12,24 @@
   
   window.TreeHole = window.TreeHole || {};
   window.TreeHole.config = CONFIG;
-  window.TreeHole.supabase = window.supabase.createClient(CONFIG.SUPABASE_URL, CONFIG.SUPABASE_ANON_KEY);
+  
+  // 初始化 Supabase 客户端（带完整防御性检查）
+  if (typeof window.supabase !== 'undefined' && window.supabase.createClient) {
+    window.TreeHole.supabase = window.supabase.createClient(CONFIG.SUPABASE_URL, CONFIG.SUPABASE_ANON_KEY);
+  } else {
+    window.TreeHole.supabase = null;
+    console.error('Supabase 客户端初始化失败');
+  }
   const sb = window.TreeHole.supabase;
+
+  // 统一防御性检查函数
+  function ensureSb() {
+    if (!sb || typeof sb.auth === 'undefined' || typeof sb.from === 'undefined') {
+      console.error('Supabase 客户端未初始化或不可用');
+      return false;
+    }
+    return true;
+  }
 
   // 常量配置
   const NICKNAME_KEY = 'treehole_nickname';
@@ -113,6 +129,7 @@
   // API 请求层
   // =====================
   async function getReactionCounts(targetType, targetIds) {
+    if (!ensureSb()) return {};
     if (!targetIds || targetIds.length === 0) return {};
     try {
       const { data, error } = await sb
@@ -134,6 +151,7 @@
   }
 
   async function addReaction(targetType, targetId) {
+    if (!ensureSb()) return false;
     if (hasReacted(targetType, targetId)) return true;
     try {
       const { error } = await sb.from('reactions').insert({
@@ -151,6 +169,8 @@
   }
 
   async function fetchQuestions() {
+    if (!ensureSb()) return { success: false, error: 'Supabase 未初始化' };
+    
     try {
       const { data, error } = await sb
         .from('questions')
@@ -170,6 +190,8 @@
   }
 
   async function submitQuestionAPI(content, nickname, userId = null) {
+    if (!ensureSb()) return { success: false, error: 'Supabase 未初始化' };
+    
     try {
       const finalNickname = nickname.trim() || DEFAULT_NICKNAME;
       const payload = { content, nickname: finalNickname };
@@ -185,6 +207,8 @@
   }
 
   async function fetchQuestionDetail(id) {
+    if (!ensureSb()) return { success: false, error: 'Supabase 未初始化' };
+    
     try {
       const { data: question, error: qError } = await sb
         .from('questions')
@@ -217,6 +241,8 @@
   }
 
   async function submitAnswerAPI(questionId, content, nickname) {
+    if (!ensureSb()) return { success: false, error: 'Supabase 未初始化' };
+    
     try {
       const finalNickname = nickname.trim() || DEFAULT_NICKNAME;
       const { error } = await sb.from('answers').insert({
@@ -233,6 +259,8 @@
   }
 
   async function signUp(email, password, nickname) {
+    if (!ensureSb()) return { success: false, error: 'Supabase 未初始化' };
+    
     try {
       const finalNickname = nickname.trim() || email.split('@')[0];
       const { data, error } = await sb.auth.signUp({ email, password });
@@ -257,6 +285,8 @@
   }
 
   async function signIn(email, password) {
+    if (!ensureSb()) return { success: false, error: 'Supabase 未初始化' };
+    
     try {
       const { error } = await sb.auth.signInWithPassword({ email, password });
       if (error) throw error;
@@ -267,6 +297,13 @@
   }
 
   async function signOut() {
+    if (!ensureSb()) {
+      console.warn('Supabase 未初始化，强制清理本地状态');
+      localStorage.removeItem(NICKNAME_KEY);
+      window.location.href = 'welcome.html';
+      return;
+    }
+    
     try {
       await sb.auth.signOut();
     } catch (err) {
@@ -278,6 +315,7 @@
   }
 
   async function getCurrentUser() {
+    if (!ensureSb()) return null;
     const { data: { user } } = await sb.auth.getUser();
     return user || null;
   }
@@ -294,10 +332,129 @@
     }
   }
 
+  async function getAvatarMap(userIds) {
+    if (!ensureSb()) return {};
+    if (!userIds || userIds.length === 0) return {};
+    const uniqueIds = [...new Set(userIds.filter(id => id))];
+    if (uniqueIds.length === 0) return {};
+    
+    try {
+      const { data, error } = await sb
+        .from('profiles')
+        .select('user_id, avatar_url')
+        .in('user_id', uniqueIds);
+      
+      if (error) throw error;
+      
+      const map = {};
+      data.forEach(p => {
+        if (p.avatar_url) map[p.user_id] = p.avatar_url;
+      });
+      return map;
+    } catch (err) {
+      console.error('获取头像失败:', err);
+      return {};
+    }
+  }
+
+  // =====================
+  // 用户资料弹窗 (新增)
+  // =====================
+  async function showUserPopup(userId) {
+    const client = window.TreeHole?.supabase;
+    if (!client) {
+      console.error('Supabase client not found');
+      return;
+    }
+
+    // 移除已存在的弹窗
+    const existingOverlay = document.getElementById('user-popup-overlay');
+    if (existingOverlay) existingOverlay.remove();
+
+    const { data, error } = await client
+      .from('profiles')
+      .select('*')
+      .eq('user_id', userId)
+      .single();
+
+    if (error || !data) return;
+
+    // 注入样式（只注入一次）
+    if (!document.getElementById('user-popup-style')) {
+      const style = document.createElement('style');
+      style.id = 'user-popup-style';
+      style.innerHTML = `
+        #user-popup-overlay {
+          position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+          background: rgba(0,0,0,0.5); display: flex; justify-content: center;
+          align-items: center; z-index: 9999; backdrop-filter: blur(2px);
+        }
+        #user-popup-card {
+          background: var(--bg-card, #ffffff); border-radius: 16px; padding: 24px;
+          width: 90%; max-width: 320px; position: relative;
+          box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+        }
+        #user-popup-close {
+          position: absolute; top: 12px; right: 12px; background: none;
+          border: none; cursor: pointer; font-size: 18px; color: var(--text-muted);
+        }
+        .popup-avatar {
+          width: 60px; height: 60px; border-radius: 50%; object-fit: cover;
+          display: block; margin: 0 auto 12px; border: 2px solid var(--border-light);
+        }
+        .popup-nickname {
+          text-align: center; font-size: 18px; font-weight: 600;
+          margin-bottom: 16px; color: var(--text-primary);
+        }
+        .popup-row {
+          margin-bottom: 10px; font-size: 14px; color: var(--text-secondary);
+        }
+        .popup-label {
+          font-weight: 600; color: var(--text-primary); margin-right: 8px;
+        }
+      `;
+      document.head.appendChild(style);
+    }
+
+    const date = new Date(data.created_at);
+    const formattedDate = `${date.getFullYear()}年${date.getMonth() + 1}月${date.getDate()}日`;
+    const avatarSrc = data.avatar_url || 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><text y=".9em" font-size="90">🌱</text></svg>';
+
+    let contentHtml = `
+      <img src="${avatarSrc}" class="popup-avatar" alt="Avatar">
+      <div class="popup-nickname">${data.nickname || '匿名用户'}</div>
+    `;
+
+    if (data.show_mbti && data.mbti) {
+      contentHtml += `<div class="popup-row"><span class="popup-label">MBTI:</span>${data.mbti}</div>`;
+    }
+    if (data.show_bio && data.bio) {
+      contentHtml += `<div class="popup-row"><span class="popup-label">简介:</span>${data.bio}</div>`;
+    }
+    if (data.show_join_date) {
+      contentHtml += `<div class="popup-row"><span class="popup-label">注册于:</span>${formattedDate}</div>`;
+    }
+
+    const overlay = document.createElement('div');
+    overlay.id = 'user-popup-overlay';
+    overlay.innerHTML = `
+      <div id="user-popup-card">
+        <button id="user-popup-close">✕</button>
+        ${contentHtml}
+      </div>
+    `;
+
+    const close = () => overlay.remove();
+    overlay.querySelector('#user-popup-close').onclick = close;
+    overlay.onclick = (e) => { if (e.target === overlay) close(); };
+
+    document.body.appendChild(overlay);
+  }
+
   // =====================
   // UI 渲染逻辑层
   // =====================
-  function renderQuestions(questions) {
+  async function renderQuestions(questions) {
     const container = document.getElementById('questions-list');
     if (!container) return;
 
@@ -312,18 +469,27 @@
       return;
     }
 
+    const userIds = questions.map(q => q.user_id).filter(id => id);
+    const avatarMap = await getAvatarMap(userIds);
+
     const currentUserId = window.currentUserId;
     container.innerHTML = questions.map(q => {
       const preview = q.content.length > 50 ? q.content.substring(0, 50) + '...' : q.content;
       const answerCount = q.answers[0]?.count || 0;
       const heartCount = window.reactionCounts?.[q.id] || 0;
       const isMine = currentUserId && q.user_id === currentUserId;
+      
+      // 添加 data-user-id 属性
+      const avatarHtml = q.user_id && avatarMap[q.user_id]
+        ? `<img src="${escapeHtml(avatarMap[q.user_id])}" class="user-avatar" alt="头像" data-user-id="${q.user_id}">`
+        : `<div class="user-avatar-placeholder" data-user-id="${q.user_id}">🌱</div>`;
+      
       return `
         <a href="detail.html?id=${q.id}" class="question-card">
           ${isMine ? '<span class="my-tag">我的</span>' : ''}
           <div class="content-preview">${escapeHtml(preview)}</div>
           <div class="meta">
-            <span>🧑 ${escapeHtml(q.nickname)}</span>
+            <span class="author-info">${avatarHtml}${escapeHtml(q.nickname)}</span>
             <span>${formatDate(q.created_at)}</span>
             <span class="heart-count">♥ ${heartCount}</span>
             <span class="answer-count">${answerCount} 回答</span>
@@ -338,14 +504,14 @@
     if (res.success) {
       window.allQuestions = res.data;
       window.reactionCounts = res.reactionCounts;
-      renderQuestions(res.data);
+      await renderQuestions(res.data);
     } else {
       const container = document.getElementById('questions-list');
       if (container) container.innerHTML = `<p class="error-message">${res.error}</p>`;
     }
   }
 
-  function filterQuestions(keyword) {
+  async function filterQuestions(keyword) {
     if (!window.allQuestions) return [];
     const k = keyword.toLowerCase().trim();
     if (!k) return window.allQuestions;
@@ -398,6 +564,19 @@
 
     const isOwner = currentUserId && question.user_id === currentUserId;
 
+    const userIds = [question.user_id, ...answers.map(a => a.user_id)].filter(id => id);
+    const avatarMap = await getAvatarMap(userIds);
+
+    const getAvatarHtml = (userId, nickname, size = 36) => {
+      if (!userId) {
+        return `<div class="user-avatar-placeholder" style="width: ${size}px; height: ${size}px; font-size: ${size * 0.4}px;" data-user-id="${userId}">🌱</div>`;
+      }
+      if (avatarMap[userId]) {
+        return `<img src="${escapeHtml(avatarMap[userId])}" class="user-avatar" alt="${escapeHtml(nickname)}" style="width: ${size}px; height: ${size}px;" data-user-id="${userId}">`;
+      }
+      return `<div class="user-avatar-placeholder" style="width: ${size}px; height: ${size}px; font-size: ${size * 0.4}px;" data-user-id="${userId}">🌱</div>`;
+    };
+
     let actionBtnsHtml = `
       <div class="action-btns-row">
         <button class="heart-btn ${questionReacted ? 'reacted' : ''}"
@@ -440,7 +619,7 @@
     document.getElementById('question-detail').innerHTML = `
       <h2>${escapeHtml(question.content)}</h2>
       <div class="meta question-meta">
-        <span>🧑 ${escapeHtml(question.nickname)}</span>
+        <span class="author-info">${getAvatarHtml(question.user_id, question.nickname, 40)}${escapeHtml(question.nickname)}</span>
         <span>${formatDate(question.created_at)}</span>
       </div>
       ${actionBtnsHtml}
@@ -459,7 +638,7 @@
           <div class="answer-card" data-answer-id="${a.id}">
             <div class="answer-content">${escapeHtml(a.content)}</div>
             <div class="answer-meta">
-              <span>🧑 ${escapeHtml(a.nickname)}</span>
+              <span class="author-info">${getAvatarHtml(a.user_id, a.nickname, 36)}${escapeHtml(a.nickname)}</span>
               <span>${formatDate(a.created_at)}</span>
               <button class="heart-btn ${reacted ? 'reacted' : ''}"
                       data-type="answer" data-id="${a.id}"
@@ -592,13 +771,22 @@
     formatDate, escapeHtml, renderQuestions, filterQuestions,
     signUp, signIn, signOut, getCurrentUser, getUserProfile,
     initQuestionsBoard, initQuestionDetailPage,
-    updateTextSmoothly, initEmptyStateCursors
+    updateTextSmoothly, initEmptyStateCursors,
+    showUserPopup // 新增
   });
 
   // =====================
   // DOM 事件绑定 (页面入口)
   // =====================
-  window.addEventListener('DOMContentLoaded', async () => {
+window.addEventListener('DOMContentLoaded', async () => {
+    // --- 防御检查开始 ---
+    const client = window.TreeHole?.supabase;
+    if (!client || typeof client.auth === 'undefined') {
+        console.error('Supabase 客户端未初始化，应用停止加载');
+        return;
+    }
+    // --- 防御检查结束 ---
+
     initEmptyStateCursors();
 
     const navGuest = document.getElementById('navGuest');
@@ -644,15 +832,16 @@
     const searchInput = document.getElementById('searchInput');
     const clearSearch = document.getElementById('clearSearch');
     if (searchInput && clearSearch) {
-      searchInput.addEventListener('input', () => {
+      searchInput.addEventListener('input', async () => {
         const keyword = searchInput.value.trim();
         clearSearch.classList.toggle('visible', keyword);
-        TreeHole.renderQuestions(TreeHole.filterQuestions(keyword));
+        const filtered = await TreeHole.filterQuestions(keyword);
+        await TreeHole.renderQuestions(filtered);
       });
-      clearSearch.addEventListener('click', () => {
+      clearSearch.addEventListener('click', async () => {
         searchInput.value = '';
         clearSearch.classList.remove('visible');
-        TreeHole.renderQuestions(window.allQuestions || []);
+        await TreeHole.renderQuestions(window.allQuestions || []);
       });
     }
 
@@ -747,5 +936,15 @@
         }
       });
     }
+
+    // 全局头像点击事件委托
+    document.body.addEventListener('click', function(e) {
+      const avatar = e.target.closest('.user-avatar, .user-avatar-placeholder');
+      if (!avatar) return;
+      const userId = avatar.dataset.userId;
+      if (userId && window.TreeHole?.showUserPopup) {
+        window.TreeHole.showUserPopup(userId);
+      }
+    });
   });
 })();
