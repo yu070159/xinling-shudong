@@ -488,12 +488,7 @@
     sendBtn.textContent = '发送';
   }
 
-  async function callDeepSeekAPI(text) {
-    const apiKey = getApiKey();
-    if (!apiKey) throw new Error('树灵暂时失去了魔法连接 (未配置API Key)');
-
-    const DEEPSEEK_API_URL = 'https://api.deepseek.com/chat/completions';
-    
+async function callDeepSeekAPI(text) {
     const SYSTEM_PROMPT = `你是心灵树洞深处的古老银杏"树灵"。你用风吹树叶般轻柔、唯美的语言回应访客，不评判、不说教、不分析。
 
 在回应时，请遵循以下层次：
@@ -522,33 +517,23 @@
       
     messages.push({ role: 'user', content: text });
 
-    const payload = {
-      model: 'deepseek-chat',
-      messages: messages,
-      temperature: 0.8,
-      max_tokens: 500
-    };
-
-    const response = await fetch(DEEPSEEK_API_URL, {
+    // 核心改变：改为请求我们自己部署的安全后端接口，不再暴露 API Key
+    const response = await fetch('/api/chat', {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiKey}`
+        'Content-Type': 'application/json'
       },
-      body: JSON.stringify(payload)
+      body: JSON.stringify({ messages: messages })
     });
 
     if (!response.ok) {
-      const errorText = await response.text();
-      console.error('API Error:', response.status, errorText);
       throw new Error('树灵正在打盹，请稍后再试...');
     }
 
     const data = await response.json();
-    console.log('API Response:', data);
     return data.choices?.[0]?.message?.content || '树灵感受到了你的心声...';
   }
-
+  
   function addMessage(type, text) {
     conversationHistory.push({
       type,

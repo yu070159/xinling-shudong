@@ -8,7 +8,6 @@
   const CONFIG = {
     SUPABASE_URL: 'https://oazntpskcghfxzcylnef.supabase.co',
     SUPABASE_ANON_KEY: 'sb_publishable_5i3Z5mF3VCwoEaXPaIJebA_55H6w13g',
-    GEMINI_API_KEY: 'AIzaSyDa-FGYMW0LR54JKz4uv4wJJApBmzqMgLE'
   };
   
   window.TreeHole = window.TreeHole || {};

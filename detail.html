@@ -65,11 +65,26 @@
       color: var(--text-muted);
       margin-left: 4px;
     }
+    
+    .answer-meta {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      justify-content: flex-end;
+      gap: 4px;
+      text-align: right;
+      padding-right: 4px;
+      width: 100%;
+    }
+    
     .answer-actions {
       display: inline-flex;
       align-items: center;
-      gap: 8px;
-      margin-left: 12px;
+      margin-left: 0;
+    }
+    
+    .answer-card {
+      padding-right: 4px !important;
     }
   </style>
 </head>
@@ -125,9 +140,6 @@
     </div>
   </div>
 
-  <script>
-    window.AI_FLOAT_API_KEY = 'sk-4f1cb8d3e9f143f89b56d8ea9e692f1f';
-  </script>
   <script src="ai-float.js"></script>
   
   <script>
