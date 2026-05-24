@@ -1,4 +1,4 @@
-// api/chat.js
+// api/gemini.js — 已改用 DeepSeek API 代理（内容审核、情绪分析、AI建议等）
 const CORS_HEADERS = {
   'Content-Type': 'application/json',
   'Access-Control-Allow-Origin': '*',
@@ -12,12 +12,12 @@ export async function OPTIONS() {
 
 export async function POST(request) {
   try {
-    const { messages } = await request.json();
+    const { prompt } = await request.json();
     const apiKey = process.env.DEEPSEEK_API_KEY;
 
     if (!apiKey) {
-      console.error("【后端错误】: DEEPSEEK_API_KEY 未找到，请检查 .env.local 文件！");
-      return new Response(JSON.stringify({ error: '树洞管理员还未配置钥匙' }), {
+      console.error("【DeepSeek】DEEPSEEK_API_KEY 未配置");
+      return new Response(JSON.stringify({ error: 'DeepSeek 服务未配置' }), {
         status: 500,
         headers: CORS_HEADERS
       });
@@ -30,30 +30,36 @@ export async function POST(request) {
         'Authorization': `Bearer ${apiKey}`
       },
       body: JSON.stringify({
-        model: 'deepseek-chat',
-        messages: messages,
-        temperature: 0.8,
-        max_tokens: 500
+        model: 'deepseek-v4-flash',
+        messages: [{ role: 'user', content: prompt }],
+        max_tokens: 600
       })
     });
 
     const data = await response.json();
 
     if (!response.ok) {
-      console.error("【后端错误】: DeepSeek API 返回错误:", JSON.stringify(data));
-      return new Response(JSON.stringify({ error: 'API 请求失败' }), {
+      console.error("【DeepSeek】API 返回错误:", JSON.stringify(data));
+      return new Response(JSON.stringify({ error: 'DeepSeek 请求失败', detail: data }), {
         status: 500,
         headers: CORS_HEADERS
       });
     }
 
-    return new Response(JSON.stringify(data), {
+    const text = data.choices?.[0]?.message?.content || '';
+
+    const geminiFormat = {
+      candidates: [{ content: { parts: [{ text }] }, finishReason: 'STOP' }],
+      usageMetadata: data.usage || {}
+    };
+
+    return new Response(JSON.stringify(geminiFormat), {
       status: 200,
       headers: CORS_HEADERS
     });
   } catch (error) {
-    console.error("【后端错误】: 捕获到异常:", error);
-    return new Response(JSON.stringify({ error: '树灵正在打盹，请稍后再试...' }), {
+    console.error("【DeepSeek】异常:", error);
+    return new Response(JSON.stringify({ error: '服务异常' }), {
       status: 500,
       headers: CORS_HEADERS
     });

@@ -1,16 +1,16 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>个人中心 - 心灵树洞</title>
-  <meta name="description" content="一个匿名倾诉与互助的温暖社区。在深夜森林里，卸下白昼的疲惫写下你的心事，会有人温柔地倾听。你的秘密在这里是安全的。">
-  <meta name="keywords" content="心灵树洞, 匿名倾诉, 心理互助, 情绪宣泄, 深夜树洞, Soul Tree Hollow, 心理健康">
+  <meta name="description" content="一个匿名倾诉与互助的温暖社区。">
+  <meta name="keywords" content="心灵树洞, 匿名倾诉, 心理互助">
   <meta name="author" content="心灵树洞">
   <meta property="og:type" content="website">
   <meta property="og:site_name" content="心灵树洞">
   <meta property="og:title" content="心灵树洞 - 匿名倾诉与互助社区">
-  <meta property="og:description" content="在深夜森林里，写下你的心事，有人会温柔地倾听。这里没有人认识你，但有人懂你。">
+  <meta property="og:description" content="在深夜森林里，写下你的心事，有人会温柔地倾听。">
   <meta property="og:url" content="https://xinling-shudong.vercel.app/">
   <meta property="og:image" content="https://xinling-shudong.vercel.app/images/og-image.jpg">
   <meta itemprop="name" content="心灵树洞 - 匿名倾诉与互助社区">
@@ -18,13 +18,14 @@
   <meta itemprop="image" content="https://xinling-shudong.vercel.app/images/wechat-share-icon.jpg">
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="心灵树洞 | Soul Tree Hollow">
-  <meta name="twitter:description" content="一个匿名倾诉与互助的温暖社区。在深夜森林里，写下你的心事，有人会温柔地倾听。">
+  <meta name="twitter:description" content="一个匿名倾诉与互助的温暖社区。">
   <meta name="twitter:image" content="https://xinling-shudong.vercel.app/images/og-image.jpg">
   <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🌳</text></svg>">
-  <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+  <link rel="preconnect" href="https://unpkg.com" crossorigin>
   <link rel="preconnect" href="https://oazntpskcghfxzcylnef.supabase.co" crossorigin>
   <link rel="stylesheet" href="style.css">
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+  <script src="utils.js"></script>
   <style>
     .profile-container { max-width: 560px; margin: 0 auto; padding: 20px; color: var(--text-primary); }
     .profile-title { text-align: center; color: var(--accent); font-size: 28px; margin: 30px 0 20px; }
@@ -58,13 +59,16 @@
     .item-card {
       background: var(--bg-card); border: 1px solid var(--border-light);
       border-radius: 12px; padding: 16px; margin-bottom: 12px; cursor: pointer; transition: 0.2s;
+      display: flex; justify-content: space-between; align-items: center;
     }
     .item-card:hover { background: var(--bg-input); border-color: var(--border-hover); }
-    .item-title { color: var(--text-primary); font-size: 15px; margin-bottom: 6px; }
+    .item-title { color: var(--text-primary); font-size: 15px; margin-bottom: 0; display: flex; align-items: center; gap: 10px; }
     .item-meta { color: var(--text-secondary); font-size: 12px; }
-    .item-actions { margin-top: 10px; display: flex; gap: 10px; }
+    .item-actions { margin-top: 0; display: flex; gap: 10px; }
     .action-accept { background: var(--accent); color: white; border: none; padding: 6px 16px; border-radius: 6px; cursor: pointer; font-size: 13px; }
     .action-reject { background: transparent; color: var(--danger); border: 1px solid var(--danger); padding: 6px 16px; border-radius: 6px; cursor: pointer; font-size: 13px; }
+    .action-delete { background: transparent; color: var(--text-muted); border: 1px solid var(--border-medium); padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 13px; }
+    .action-delete:hover { color: var(--danger); border-color: var(--danger); }
     .badge { background: var(--danger); color: white; border-radius: 10px; padding: 2px 8px; font-size: 11px; margin-left: 6px; }
 
     .profile-info { color: var(--text-secondary); font-size: 13px; text-align: center; margin-bottom: 8px; }
@@ -76,11 +80,12 @@
     .empty-state { text-align: center; color: var(--text-muted); padding: 40px 20px; font-size: 14px; }
     .empty-state a { color: var(--accent); text-decoration: none; }
     .smooth-text { transition: opacity 0.2s ease-in-out; }
-    /* 新增头像样式 */
     .avatar-upload { text-align: center; margin-bottom: 20px; }
-    #avatarPreview { width: 100px; height: 100px; border-radius: 50%; object-fit: cover; border: 2px solid var(--border-light); cursor: pointer; }
+    #avatarPreview { width: 100px; height: 100px; border-radius: 50%; object-fit: cover; border: 2px solid var(--border-light); cursor: pointer; display: block; margin: 0 auto; }
+    .avatar-placeholder {
+      width: 100px; height: 100px; border-radius: 50%; background: var(--accent-glow); display: flex; align-items: center; justify-content: center; font-size: 40px; cursor: pointer; margin: 0 auto; border: 2px solid var(--accent); color: var(--accent);
+    }
     
-    /* 对外展示设置卡片 */
     .show-settings-card {
       background: var(--bg-card);
       border: 1px solid var(--border-light);
@@ -88,26 +93,15 @@
       padding: 16px;
       margin-bottom: 20px;
     }
-    .show-settings-title {
-      color: var(--text-primary);
-      font-size: 15px;
-      font-weight: 600;
-      margin-bottom: 12px;
-    }
-    .show-setting-item {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      padding: 8px 0;
-      cursor: pointer;
-      color: var(--text-secondary);
-      font-size: 14px;
-    }
-    .show-setting-item input[type="checkbox"] {
-      width: 18px;
-      height: 18px;
-      cursor: pointer;
-    }
+    .show-settings-title { color: var(--text-primary); font-size: 15px; font-weight: 600; margin-bottom: 12px; }
+    .show-setting-item { display: flex; align-items: center; gap: 10px; padding: 8px 0; cursor: pointer; color: var(--text-secondary); font-size: 14px; }
+    .show-setting-item input[type="checkbox"] { width: 18px; height: 18px; cursor: pointer; }
+    .user-avatar-placeholder { display: inline-flex; align-items: center; justify-content: center; border-radius: 50%; background: var(--accent-glow); border: 2px solid var(--accent); color: var(--accent); cursor: pointer; }
+    
+    .stat-summary { display: flex; justify-content: center; gap: 16px; margin-bottom: 20px; flex-wrap: wrap; }
+    .stat-item { text-align: center; background: var(--bg-card); border: 1px solid var(--border-light); border-radius: 10px; padding: 10px 16px; min-width: 70px; }
+    .stat-num { font-size: 22px; font-weight: 700; color: var(--accent); }
+    .stat-label { font-size: 11px; color: var(--text-secondary); margin-top: 2px; }
   </style>
 </head>
 <body>
@@ -139,15 +133,23 @@
   <div class="profile-container">
     <h1 class="profile-title">个人中心</h1>
 
+    <div class="stat-summary" id="statSummary">
+      <div class="stat-item"><div class="stat-num" id="statPosts">-</div><div class="stat-label">发帖</div></div>
+      <div class="stat-item"><div class="stat-num" id="statComments">-</div><div class="stat-label">回应</div></div>
+      <div class="stat-item"><div class="stat-num" id="statHearts">-</div><div class="stat-label">获暖心</div></div>
+      <div class="stat-item"><div class="stat-num" id="statFavorites">-</div><div class="stat-label">收藏</div></div>
+    </div>
+
     <div class="tab-nav">
       <button class="tab-btn active" data-tab="tab-profile">个人资料</button>
-      <button class="tab-btn" data-tab="tab-favorites">我的收藏</button>
+      <button class="tab-btn" data-tab="tab-content">我的内容</button>
       <button class="tab-btn" data-tab="tab-friends">好友申请<span id="friendBadge" class="badge" style="display:none"></span></button>
     </div>
 
     <div id="tab-profile" class="tab-content">
       <div class="avatar-upload">
-        <img id="avatarPreview" src="https://via.placeholder.com/100" alt="头像">
+        <div id="avatarPlaceholder" class="avatar-placeholder">🌱</div>
+        <img id="avatarPreview" src="" alt="头像" style="display:none;">
         <input type="file" id="avatarInput" accept="image/*" style="display:none;">
       </div>
       <div id="saveMsg" class="smooth-text"></div>
@@ -164,47 +166,32 @@
       <p class="profile-info" id="regDate">注册时间：加载中...</p>
       <p class="profile-info" id="questionCount">已发表心事：加载中...</p>
       
-      <!-- 对外展示设置 -->
       <div class="show-settings-card">
         <h3 class="show-settings-title">对外展示设置</h3>
-        <label class="show-setting-item">
-          <input type="checkbox" id="showMbtiCheck">
-          <span>允许展示 MBTI 类型</span>
-        </label>
-        <label class="show-setting-item">
-          <input type="checkbox" id="showBioCheck">
-          <span>允许展示个人简介</span>
-        </label>
-        <label class="show-setting-item">
-          <input type="checkbox" id="showJoinDateCheck">
-          <span>允许展示注册时间</span>
-        </label>
-        <label class="show-setting-item">
-          <input type="checkbox" id="showHeartsCheck">
-          <span>允许展示暖心数量</span>
-        </label>
-        <label class="show-setting-item">
-          <input type="checkbox" id="showFavoritesCheck">
-          <span>允许展示收藏数量</span>
-        </label>
-        <label class="show-setting-item">
-          <input type="checkbox" id="showPostsCheck">
-          <span>允许展示发帖/回应数量</span>
-        </label>
-        <label class="show-setting-item">
-          <input type="checkbox" id="showFriendsCheck">
-          <span>允许展示树友数量</span>
-        </label>
+        <label class="show-setting-item"><input type="checkbox" id="showMbtiCheck"> 允许展示 MBTI 类型</label>
+        <label class="show-setting-item"><input type="checkbox" id="showBioCheck"> 允许展示个人简介</label>
+        <label class="show-setting-item"><input type="checkbox" id="showJoinDateCheck"> 允许展示注册时间</label>
+        <label class="show-setting-item"><input type="checkbox" id="showHeartsCheck"> 允许展示暖心数量</label>
+        <label class="show-setting-item"><input type="checkbox" id="showFavoritesCheck"> 允许展示收藏数量</label>
+        <label class="show-setting-item"><input type="checkbox" id="showPostsCheck"> 允许展示发帖/回应数量</label>
+        <label class="show-setting-item"><input type="checkbox" id="showFriendsCheck"> 允许展示树友数量</label>
       </div>
       
       <button id="logoutBtn">退出树洞</button>
     </div>
 
-    <div id="tab-favorites" class="tab-content" style="display:none;">
+    <div id="tab-content" class="tab-content" style="display:none;">
+      <h3 style="color:var(--text-secondary); margin-bottom:12px;">我发布的心事</h3>
+      <div id="myQuestionsList"></div>
+      <div id="myQuestionsEmpty" class="empty-state" style="display:none;">还没有发布过心事</div>
+      <div class="profile-info-divider"></div>
+      <h3 style="color:var(--text-secondary); margin-bottom:12px;">我的回应</h3>
+      <div id="myAnswersList"></div>
+      <div id="myAnswersEmpty" class="empty-state" style="display:none;">还没有回应过任何心事</div>
+      <div class="profile-info-divider"></div>
+      <h3 style="color:var(--text-secondary); margin-bottom:12px;">我的收藏</h3>
       <div id="favoritesList"></div>
-      <div id="favoritesEmpty" class="empty-state" style="display:none;">
-        还没有收藏任何心事。<br><a href="index.html">去树洞广场看看 →</a>
-      </div>
+      <div id="favoritesEmpty" class="empty-state" style="display:none;">还没有收藏任何心事</div>
     </div>
 
     <div id="tab-friends" class="tab-content" style="display:none;">
@@ -219,16 +206,10 @@
   </div>
 
   <script>
-    const sb = window.supabase?.createClient(
-      'https://oazntpskcghfxzcylnef.supabase.co',
-      'sb_publishable_5i3Z5mF3VCwoEaXPaIJebA_55H6w13g'
-    ) || supabase.createClient(
-      'https://oazntpskcghfxzcylnef.supabase.co',
-      'sb_publishable_5i3Z5mF3VCwoEaXPaIJebA_55H6w13g'
-    );
+    const sb = window.TreeHole.supabase;
 
     let currentUser = null;
-    let newAvatarUrl = null; // 【缝合】用于存储临时头像地址
+    let newAvatarUrl = null;
 
     async function getCurrentUser() {
       if (!sb) return null;
@@ -242,13 +223,14 @@
       return data;
     }
 
-    // 修改了 updateProfile，允许传入 avatar_url 和展示设置
-    async function updateProfile({ nickname, mbti, bio, avatar_url, show_mbti, show_bio, show_join_date, show_hearts, show_favorites, show_posts, show_friends }) {
+    async function updateProfile(dataObj) {
       const { data: { session } } = await sb.auth.getSession();
       if (!session) throw new Error('未登录');
-      const payload = { nickname, mbti, bio, show_mbti, show_bio, show_join_date, show_hearts, show_favorites, show_posts, show_friends };
-      if (avatar_url) payload.avatar_url = avatar_url; // 仅当有新头像时才更新
-
+      // 过滤掉 null 值，避免覆盖已有数据
+      const cleanObj = {};
+      for (const [k, v] of Object.entries(dataObj)) {
+        if (v !== null) cleanObj[k] = v;
+      }
       const response = await fetch(
         `https://oazntpskcghfxzcylnef.supabase.co/rest/v1/profiles?user_id=eq.${session.user.id}`,
         {
@@ -259,7 +241,7 @@
             'Authorization': `Bearer ${session.access_token}`,
             'Prefer': 'return=minimal'
           },
-          body: JSON.stringify(payload)
+          body: JSON.stringify(cleanObj)
         }
       );
       if (!response.ok) { const errText = await response.text(); throw new Error(errText || '更新失败'); }
@@ -270,18 +252,21 @@
       sb.auth.signOut().then(() => { window.location.href = 'welcome.html'; });
     }
 
-    function updateTextSmoothly(elementId, newText) {
-      const element = document.getElementById(elementId);
-      if (!element) return;
-      if (element.textContent === newText) return;
-      element.style.opacity = '0';
-      setTimeout(() => { element.textContent = newText; element.style.opacity = '1'; }, 200);
-    }
+    // escapeHtml, updateTextSmoothly 由 utils.js 全局提供
 
-    async function getNicknameById(userId) {
-      if (!userId) return '匿名树友';
-      const { data } = await sb.from('profiles').select('nickname').eq('user_id', userId).single();
-      return data?.nickname || '匿名树友';
+    function setAvatarDisplay(url) {
+      const placeholder = document.getElementById('avatarPlaceholder');
+      const previewImg = document.getElementById('avatarPreview');
+      if (!placeholder || !previewImg) return;
+      if (url) {
+        placeholder.style.display = 'none';
+        previewImg.style.display = 'block';
+        previewImg.src = url;
+      } else {
+        placeholder.style.display = 'flex';
+        previewImg.style.display = 'none';
+        previewImg.src = '';
+      }
     }
 
     document.querySelectorAll('.tab-btn').forEach(btn => {
@@ -290,30 +275,107 @@
         btn.classList.add('active');
         document.querySelectorAll('.tab-content').forEach(c => c.style.display = 'none');
         document.getElementById(btn.dataset.tab).style.display = 'block';
-        if (btn.dataset.tab === 'tab-favorites') loadFavorites();
+        if (btn.dataset.tab === 'tab-content') loadMyContent();
         if (btn.dataset.tab === 'tab-friends') loadFriendRequests();
       });
     });
 
-    async function loadFavorites() {
+    async function loadMyContent() {
       if (!currentUser) return;
-      const { data: favs } = await sb.from('favorites').select('question_id, created_at, questions(content)').eq('user_id', currentUser.id).order('created_at', { ascending: false });
-      const container = document.getElementById('favoritesList');
-      const empty = document.getElementById('favoritesEmpty');
-      container.innerHTML = '';
-      if (!favs || favs.length === 0) { empty.style.display = 'block'; return; }
-      empty.style.display = 'none';
-      favs.forEach(f => {
-        const q = f.questions;
-        const card = document.createElement('div');
-        card.className = 'item-card';
-        card.innerHTML = `
-          <div class="item-title">${(q?.content || '已删除的心事').substring(0, 40)}...</div>
-          <div class="item-meta">收藏于 ${new Date(f.created_at).toLocaleDateString()}</div>
-        `;
-        card.addEventListener('click', () => { window.location.href = `detail.html?id=${f.question_id}`; });
-        container.appendChild(card);
-      });
+
+      const { data: questions } = await sb.from('questions')
+        .select('id, content, created_at')
+        .eq('user_id', currentUser.id)
+        .order('created_at', { ascending: false });
+
+      const qContainer = document.getElementById('myQuestionsList');
+      const qEmpty = document.getElementById('myQuestionsEmpty');
+      qContainer.innerHTML = '';
+      if (!questions || questions.length === 0) {
+        qEmpty.style.display = 'block';
+      } else {
+        qEmpty.style.display = 'none';
+        questions.forEach(q => {
+          const card = document.createElement('div');
+          card.className = 'item-card';
+          card.style.cursor = 'pointer';
+          card.innerHTML = `
+            <div>
+              <div class="item-title">${escapeHtml(q.content).substring(0, 50)}...</div>
+              <div class="item-meta">${new Date(q.created_at).toLocaleDateString()}</div>
+            </div>
+          `;
+          card.addEventListener('click', () => { window.location.href = `detail.html?id=${q.id}`; });
+          qContainer.appendChild(card);
+        });
+      }
+
+      const { data: answers } = await sb.from('answers')
+        .select('id, content, question_id, created_at, questions(content)')
+        .eq('user_id', currentUser.id)
+        .order('created_at', { ascending: false });
+
+      const aContainer = document.getElementById('myAnswersList');
+      const aEmpty = document.getElementById('myAnswersEmpty');
+      aContainer.innerHTML = '';
+      if (!answers || answers.length === 0) {
+        aEmpty.style.display = 'block';
+      } else {
+        aEmpty.style.display = 'none';
+        answers.forEach(a => {
+          const card = document.createElement('div');
+          card.className = 'item-card';
+          card.style.cursor = 'pointer';
+          card.innerHTML = `
+            <div>
+              <div class="item-title">${escapeHtml(a.content).substring(0, 50)}...</div>
+              <div class="item-meta">回复于 ${new Date(a.created_at).toLocaleDateString()}</div>
+            </div>
+          `;
+          card.addEventListener('click', () => { window.location.href = `detail.html?id=${a.question_id}`; });
+          aContainer.appendChild(card);
+        });
+      }
+
+      const { data: favs } = await sb.from('favorites')
+        .select('question_id, created_at, questions(content)')
+        .eq('user_id', currentUser.id)
+        .order('created_at', { ascending: false });
+
+      const fContainer = document.getElementById('favoritesList');
+      const fEmpty = document.getElementById('favoritesEmpty');
+      fContainer.innerHTML = '';
+      if (!favs || favs.length === 0) {
+        fEmpty.style.display = 'block';
+      } else {
+        fEmpty.style.display = 'none';
+        favs.forEach(f => {
+          const q = f.questions;
+          const card = document.createElement('div');
+          card.className = 'item-card';
+          card.style.cursor = 'pointer';
+          card.innerHTML = `
+            <div>
+              <div class="item-title">${(q?.content || '已删除的心事').substring(0, 50)}...</div>
+              <div class="item-meta">收藏于 ${new Date(f.created_at).toLocaleDateString()}</div>
+            </div>
+          `;
+          card.addEventListener('click', () => { window.location.href = `detail.html?id=${f.question_id}`; });
+          fContainer.appendChild(card);
+        });
+      }
+
+      document.getElementById('statPosts').textContent = (questions?.length || 0);
+      document.getElementById('statComments').textContent = (answers?.length || 0);
+      document.getElementById('statFavorites').textContent = (favs?.length || 0);
+    }
+
+    async function batchGetNicknames(userIds) {
+      const map = {};
+      if (userIds.size === 0) return map;
+      const { data: profiles } = await sb.from('profiles').select('user_id, nickname').in('user_id', [...userIds]);
+      if (profiles) profiles.forEach(p => { map[p.user_id] = p.nickname || '匿名树友'; });
+      return map;
     }
 
     async function loadFriendRequests() {
@@ -323,11 +385,45 @@
       const pendingEmpty = document.getElementById('pendingEmpty');
       pendingContainer.innerHTML = '';
 
-      const { data: pending, error: pendingError } = await sb.from('friend_requests')
-        .select('id, from_user, created_at')
-        .eq('to_user', currentUser.id)
-        .eq('status', 'pending');
+      const friendsContainer = document.getElementById('acceptedFriends');
+      const friendsEmpty = document.getElementById('friendsEmpty');
+      friendsContainer.innerHTML = '';
 
+      // 并行获取待处理申请、已接受好友、token
+      const [pendingResult, sessionResult] = await Promise.all([
+        sb.from('friend_requests').select('id, from_user, created_at').eq('to_user', currentUser.id).eq('status', 'pending'),
+        sb.auth.getSession()
+      ]);
+      const { data: pending, error: pendingError } = pendingResult;
+      const token = sessionResult.data.session?.access_token;
+
+      let records = [];
+      try {
+        const response = await fetch(
+          `https://oazntpskcghfxzcylnef.supabase.co/rest/v1/friend_requests?or=(from_user.eq.${currentUser.id},to_user.eq.${currentUser.id})&status=eq.accepted&select=id,from_user,to_user`,
+          {
+            headers: {
+              'apikey': 'sb_publishable_5i3Z5mF3VCwoEaXPaIJebA_55H6w13g',
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json'
+            }
+          }
+        );
+        if (response.ok) records = await response.json();
+      } catch (err) {
+        console.error('加载树友列表失败:', err);
+      }
+
+      // 收集所有需要查询昵称的用户ID，批量查询一次
+      const userIds = new Set();
+      if (pending) pending.forEach(r => userIds.add(r.from_user));
+      if (records) records.forEach(r => {
+        if (r.from_user !== currentUser.id) userIds.add(r.from_user);
+        if (r.to_user !== currentUser.id) userIds.add(r.to_user);
+      });
+      const nicknameMap = await batchGetNicknames(userIds);
+
+      // 渲染待处理申请
       if (pendingError) {
         console.error('查询好友申请失败:', pendingError);
         pendingEmpty.style.display = 'block';
@@ -338,16 +434,18 @@
       } else {
         pendingEmpty.style.display = 'none';
         for (const req of pending) {
-          const nickname = await getNicknameById(req.from_user);
+          const nickname = nicknameMap[req.from_user] || '匿名树友';
           const card = document.createElement('div');
           card.className = 'item-card';
-          card.style.cursor = 'default';
           card.innerHTML = `
-            <div class="item-title">${nickname} 想加你为树友</div>
-            <div class="item-meta">${new Date(req.created_at).toLocaleDateString()}</div>
+            <div>
+              <div class="item-title">${escapeHtml(nickname)} 想加你为树友</div>
+              <div class="item-meta">${new Date(req.created_at).toLocaleDateString()}</div>
+            </div>
             <div class="item-actions">
               <button class="action-accept" data-id="${req.id}">接受</button>
               <button class="action-reject" data-id="${req.id}">拒绝</button>
+              <button class="action-delete" data-id="${req.id}">删除</button>
             </div>
           `;
           pendingContainer.appendChild(card);
@@ -355,40 +453,100 @@
         pendingContainer.querySelectorAll('.action-accept').forEach(btn => {
           btn.addEventListener('click', async (e) => {
             e.stopPropagation();
-            await sb.from('friend_requests').update({ status: 'accepted' }).eq('id', btn.dataset.id);
-            loadFriendRequests();
+            btn.disabled = true;
+            btn.textContent = '...';
+            try {
+              await sb.from('friend_requests').update({ status: 'accepted' }).eq('id', btn.dataset.id);
+              loadFriendRequests();
+            } catch (err) {
+              btn.disabled = false;
+              btn.textContent = '接受';
+              alert('操作失败，请稍后重试');
+            }
           });
         });
         pendingContainer.querySelectorAll('.action-reject').forEach(btn => {
           btn.addEventListener('click', async (e) => {
             e.stopPropagation();
-            await sb.from('friend_requests').update({ status: 'rejected' }).eq('id', btn.dataset.id);
-            loadFriendRequests();
+            btn.disabled = true;
+            btn.textContent = '...';
+            try {
+              await sb.from('friend_requests').update({ status: 'rejected' }).eq('id', btn.dataset.id);
+              loadFriendRequests();
+            } catch (err) {
+              btn.disabled = false;
+              btn.textContent = '拒绝';
+              alert('操作失败，请稍后重试');
+            }
+          });
+        });
+        pendingContainer.querySelectorAll('.action-delete').forEach(btn => {
+          btn.addEventListener('click', async (e) => {
+            e.stopPropagation();
+            if (!confirm('确定要删除这条申请吗？')) return;
+            btn.disabled = true;
+            btn.textContent = '...';
+            try {
+              await sb.from('friend_requests').delete().eq('id', btn.dataset.id);
+              loadFriendRequests();
+            } catch (err) {
+              btn.disabled = false;
+              btn.textContent = '删除';
+              alert('删除失败，请稍后重试');
+            }
           });
         });
       }
 
-      const friendsContainer = document.getElementById('acceptedFriends');
-      const friendsEmpty = document.getElementById('friendsEmpty');
-      friendsContainer.innerHTML = '';
-
-      const { data: accepted1 } = await sb.from('friend_requests').select('to_user').eq('from_user', currentUser.id).eq('status', 'accepted');
-      const { data: accepted2 } = await sb.from('friend_requests').select('from_user').eq('to_user', currentUser.id).eq('status', 'accepted');
-
-      const friendIds = new Set();
-      if (accepted1) accepted1.forEach(f => friendIds.add(f.to_user));
-      if (accepted2) accepted2.forEach(f => friendIds.add(f.from_user));
-
-      if (friendIds.size === 0) {
+      // 渲染已接受好友
+      if (!records || records.length === 0) {
         friendsEmpty.style.display = 'block';
       } else {
         friendsEmpty.style.display = 'none';
-        for (const id of friendIds) {
-          const nickname = await getNicknameById(id);
+        const friendIds = new Set();
+        records.forEach(r => {
+          if (r.from_user === currentUser.id) friendIds.add(r.to_user);
+          else friendIds.add(r.from_user);
+        });
+
+        for (const fid of friendIds) {
+          const name = nicknameMap[fid] || '匿名树友';
           const card = document.createElement('div');
           card.className = 'item-card';
-          card.style.cursor = 'default';
-          card.innerHTML = `<div class="item-title">🌿 ${nickname}</div>`;
+          card.innerHTML = `
+            <div class="item-title">
+              <span class="user-avatar-placeholder" data-user-id="${fid}" style="width:32px;height:32px;font-size:14px;">🌱</span>
+              ${escapeHtml(name)}
+            </div>
+            <button class="action-delete remove-friend-btn" data-user-id="${fid}">解除</button>
+          `;
+          card.querySelector('.remove-friend-btn').addEventListener('click', async (e) => {
+            e.stopPropagation();
+            if (!confirm('确定要解除与该树友的好友关系吗？')) return;
+            try {
+              const friendRecordIds = records.filter(r => (r.from_user === currentUser.id && r.to_user === fid) || (r.from_user === fid && r.to_user === currentUser.id)).map(r => r.id);
+              if (friendRecordIds.length === 0) {
+                alert('未找到好友关系记录');
+                return;
+              }
+              const deleteResponse = await fetch(
+                `https://oazntpskcghfxzcylnef.supabase.co/rest/v1/friend_requests?id=in.(${friendRecordIds.join(',')})`,
+                {
+                  method: 'DELETE',
+                  headers: {
+                    'apikey': 'sb_publishable_5i3Z5mF3VCwoEaXPaIJebA_55H6w13g',
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                  }
+                }
+              );
+              if (!deleteResponse.ok) throw new Error('删除失败');
+              loadFriendRequests();
+            } catch (err) {
+              console.error('解除好友失败:', err);
+              alert('解除失败，请稍后重试');
+            }
+          });
           friendsContainer.appendChild(card);
         }
       }
@@ -418,9 +576,7 @@
         document.getElementById('profileNickname').value = profile.nickname || '';
         document.getElementById('profileMbti').value = profile.mbti || '';
         document.getElementById('profileBio').value = profile.bio || '';
-        // 加载原有头像
-        if (profile.avatar_url) document.getElementById('avatarPreview').src = profile.avatar_url;
-        // 加载对外展示设置
+        setAvatarDisplay(profile.avatar_url);
         document.getElementById('showMbtiCheck').checked = profile.show_mbti !== false;
         document.getElementById('showBioCheck').checked = profile.show_bio !== false;
         document.getElementById('showJoinDateCheck').checked = profile.show_join_date !== false;
@@ -433,8 +589,8 @@
           const d = new Date(profile.created_at);
           document.getElementById('regDate').textContent = `注册时间：${d.getFullYear()}年${String(d.getMonth()+1).padStart(2,'0')}月${String(d.getDate()).padStart(2,'0')}日`;
         }
-        const { count } = await sb.from('questions').select('*', { count: 'exact', head: true }).eq('user_id', currentUser.id);
-        document.getElementById('questionCount').textContent = `已发表心事：${count || 0} 条`;
+        const { count: qCount } = await sb.from('questions').select('*', { count: 'exact', head: true }).eq('user_id', currentUser.id);
+        document.getElementById('questionCount').textContent = `已发表心事：${qCount || 0} 条`;
         const phq9El = document.getElementById('phq9Status');
         if (profile.phq9_score !== null && profile.phq9_score !== undefined) {
           if (profile.phq9_date) {
@@ -448,12 +604,53 @@
         }
       }
 
-      // 【缝合】头像点击和上传逻辑
-      document.getElementById('avatarPreview').addEventListener('click', () => document.getElementById('avatarInput').click());
+      // ====== 统计获暖心数：先查用户的问题和回答，再统计它们的暖心 ======
+      let heartsCount = 0;
+      let myQuestionsData = [];
+      let myAnswersData = [];
+      try {
+        const { data: qData } = await sb.from('questions').select('id').eq('user_id', currentUser.id);
+        const { data: aData } = await sb.from('answers').select('id').eq('user_id', currentUser.id);
+        myQuestionsData = qData || [];
+        myAnswersData = aData || [];
+        const questionIds = myQuestionsData.map(q => q.id);
+        const answerIds = myAnswersData.map(a => a.id);
+
+        if (questionIds.length > 0) {
+          const { count: qHearts } = await sb.from('reactions').select('*', { count: 'exact', head: true })
+            .eq('target_type', 'question')
+            .in('target_id', questionIds);
+          heartsCount += qHearts || 0;
+        }
+        if (answerIds.length > 0) {
+          const { count: aHearts } = await sb.from('reactions').select('*', { count: 'exact', head: true })
+            .eq('target_type', 'answer')
+            .in('target_id', answerIds);
+          heartsCount += aHearts || 0;
+        }
+      } catch (e) {
+        console.warn('获取暖心数异常', e);
+      }
+      document.getElementById('statHearts').textContent = heartsCount;
+      document.getElementById('statPosts').textContent = myQuestionsData.length;
+      document.getElementById('statComments').textContent = myAnswersData.length;
+
+      try {
+        const { count: favCount } = await sb.from('favorites').select('*', { count: 'exact', head: true }).eq('user_id', currentUser.id);
+        document.getElementById('statFavorites').textContent = favCount || 0;
+      } catch (e) {
+        console.warn('获取收藏数异常', e);
+      }
+
+      const avatarPlaceholder = document.getElementById('avatarPlaceholder');
+      const avatarPreview = document.getElementById('avatarPreview');
+      const triggerUpload = () => document.getElementById('avatarInput').click();
+      if (avatarPlaceholder) avatarPlaceholder.addEventListener('click', triggerUpload);
+      if (avatarPreview) avatarPreview.addEventListener('click', triggerUpload);
+
       document.getElementById('avatarInput').addEventListener('change', async (e) => {
         const file = e.target.files[0];
         if (!file) return;
-        const preview = document.getElementById('avatarPreview');
         try {
           const fileExt = file.name.split('.').pop();
           const fileName = `${currentUser.id}.${fileExt}`;
@@ -461,7 +658,7 @@
           if (uploadError) throw uploadError;
           const { data: urlData } = sb.storage.from('avatars').getPublicUrl(fileName);
           newAvatarUrl = urlData.publicUrl;
-          preview.src = newAvatarUrl;
+          setAvatarDisplay(newAvatarUrl);
         } catch (err) { alert('上传失败: ' + err.message); }
       });
 
@@ -483,7 +680,6 @@
         saveMsg.className = 'smooth-text';
         updateTextSmoothly('saveMsg', '');
         try {
-          // 传入 newAvatarUrl 和展示设置
           await updateProfile({ nickname, mbti, bio, avatar_url: newAvatarUrl, show_mbti: showMbti, show_bio: showBio, show_join_date: showJoinDate, show_hearts: showHearts, show_favorites: showFavorites, show_posts: showPosts, show_friends: showFriends });
           updateTextSmoothly('saveMsg', '✅ 资料已保存');
           saveMsg.className = 'smooth-text success';
@@ -500,8 +696,8 @@
 
       document.getElementById('logoutBtn').addEventListener('click', signOut);
 
-      const { count } = await sb.from('friend_requests').select('*', { count: 'exact', head: true }).eq('to_user', currentUser.id).eq('status', 'pending');
-      if (count > 0) { document.getElementById('friendBadge').style.display = 'inline'; document.getElementById('friendBadge').textContent = count; }
+      const { count: pendingCount } = await sb.from('friend_requests').select('*', { count: 'exact', head: true }).eq('to_user', currentUser.id).eq('status', 'pending');
+      if (pendingCount > 0) { document.getElementById('friendBadge').style.display = 'inline'; document.getElementById('friendBadge').textContent = pendingCount; }
     });
   </script>
 

@@ -1,6 +1,4 @@
 (function() {
-  // 从全局变量读取 API KEY
-  const getApiKey = () => window.AI_FLOAT_API_KEY || window.TreeHole?.config?.DEEPSEEK_API_KEY || '';
   const STORAGE_KEY = 'ai_float_conversation';
   
   let conversationHistory = [];
@@ -68,21 +66,23 @@
     `;
     
     // 添加呼吸动画关键帧
-    if (!document.getElementById('breathe-keyframes')) {
-      const style = document.createElement('style');
-      style.id = 'breathe-keyframes';
-      style.textContent = `
-        @keyframes breathe {
-          0%, 100% {
-            box-shadow: 0 4px 24px var(--accent-glow);
-          }
-          50% {
-            box-shadow: 0 4px 32px var(--accent-glow), 0 0 20px var(--accent-glow);
-          }
+    const oldStyle = document.getElementById('breathe-keyframes');
+    if (oldStyle) oldStyle.remove();
+    const style = document.createElement('style');
+    style.id = 'breathe-keyframes';
+    style.textContent = `
+      @keyframes breathe {
+        0%, 100% {
+          box-shadow: 0 0 8px 4px rgba(255, 180, 100, 0.7), 0 0 20px 8px rgba(255, 150, 60, 0.5), 0 0 40px 12px rgba(255, 130, 30, 0.3), 0 0 80px 20px rgba(255, 100, 20, 0.15);
+          transform: scale(1);
         }
-      `;
-      document.head.appendChild(style);
-    }
+        50% {
+          box-shadow: 0 0 15px 6px rgba(255, 200, 120, 1), 0 0 35px 14px rgba(255, 160, 70, 0.75), 0 0 65px 20px rgba(255, 130, 30, 0.45), 0 0 120px 35px rgba(255, 100, 20, 0.25);
+          transform: scale(1.12);
+        }
+      }
+    `;
+    document.head.appendChild(style);
     
     btn.addEventListener('mouseenter', () => {
       btn.style.transform = 'scale(1.1)';
@@ -518,7 +518,7 @@ async function callDeepSeekAPI(text) {
     messages.push({ role: 'user', content: text });
 
     // 核心改变：改为请求我们自己部署的安全后端接口，不再暴露 API Key
-    const response = await fetch('/api/chat', {
+    const response = await fetch(window.API_BASE + '/api/chat', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
@@ -617,11 +617,7 @@ async function callDeepSeekAPI(text) {
     if (chatArea) chatArea.scrollTop = chatArea.scrollHeight;
   }
 
-  function escapeHtml(text) {
-    const div = document.createElement('div');
-    div.textContent = text;
-    return div.innerHTML;
-  }
+  // escapeHtml 由 utils.js 全局提供
 
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', init);

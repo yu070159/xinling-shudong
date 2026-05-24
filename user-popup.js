@@ -1,23 +1,95 @@
-// ===================== 用户资料弹窗（含统计数据） =====================
+// ===================== 用户资料弹窗（终极懒人包） =====================
 (async function() {
   if (document.readyState === 'loading') {
     await new Promise(resolve => document.addEventListener('DOMContentLoaded', resolve));
   }
 
-  let sb = window.TreeHole?.supabase;
+  const sb = window.TreeHole?.supabase;
   if (!sb) {
-    if (typeof window.supabase !== 'undefined' && window.supabase.createClient) {
-      sb = window.supabase.createClient(
-        'https://oazntpskcghfxzcylnef.supabase.co',
-        'sb_publishable_5i3Z5mF3VCwoEaXPaIJebA_55H6w13g'
+    console.warn('用户弹窗：Supabase 客户端不可用');
+    return;
+  }
+  const SUPABASE_URL = window.TreeHole.config?.SUPABASE_URL || 'https://oazntpskcghfxzcylnef.supabase.co';
+
+  async function getCurrentUserId() {
+    const { data: { user } } = await sb.auth.getUser();
+    return user?.id || null;
+  }
+
+  async function checkFriendStatus(myUserId, targetUserId) {
+    if (!myUserId || !targetUserId) return null;
+    if (myUserId === targetUserId) return 'self';
+
+    const { data: accepted } = await sb
+      .from('friend_requests')
+      .select('id, status')
+      .or(`and(from_user.eq.${myUserId},to_user.eq.${targetUserId}),and(from_user.eq.${targetUserId},to_user.eq.${myUserId})`)
+      .eq('status', 'accepted')
+      .maybeSingle();
+    if (accepted) return 'accepted';
+
+    const { data: pendingSent } = await sb
+      .from('friend_requests')
+      .select('id')
+      .eq('from_user', myUserId)
+      .eq('to_user', targetUserId)
+      .eq('status', 'pending')
+      .maybeSingle();
+    if (pendingSent) return 'pending_sent';
+
+    const { data: pendingReceived } = await sb
+      .from('friend_requests')
+      .select('id')
+      .eq('from_user', targetUserId)
+      .eq('to_user', myUserId)
+      .eq('status', 'pending')
+      .maybeSingle();
+    if (pendingReceived) return 'pending_received';
+
+    const { data: lastRecord } = await sb
+      .from('friend_requests')
+      .select('status')
+      .or(`and(from_user.eq.${myUserId},to_user.eq.${targetUserId}),and(from_user.eq.${targetUserId},to_user.eq.${myUserId})`)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (lastRecord && lastRecord.status === 'rejected') return 'was_rejected';
+
+    return null;
+  }
+
+  async function sendFriendRequest(myUserId, targetUserId) {
+    try {
+      const token = (await sb.auth.getSession()).data.session?.access_token;
+      const response = await fetch(
+        `${SUPABASE_URL}/rest/v1/friend_requests`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'apikey': 'sb_publishable_5i3Z5mF3VCwoEaXPaIJebA_55H6w13g',
+            'Authorization': `Bearer ${token}`,
+            'Prefer': 'return=minimal'
+          },
+          body: JSON.stringify({
+            from_user: myUserId,
+            to_user: targetUserId,
+            status: 'pending'
+          })
+        }
       );
-    } else {
-      console.warn('用户弹窗：Supabase 客户端不可用');
-      return;
+      if (!response.ok) {
+        const errText = await response.text();
+        console.error('发送好友申请失败:', errText);
+        return false;
+      }
+      return true;
+    } catch (err) {
+      console.error('发送好友申请异常:', err);
+      return false;
     }
   }
 
-  // 注入 CSS（只注入一次）
   if (!document.getElementById('popup-style')) {
     const style = document.createElement('style');
     style.id = 'popup-style';
@@ -35,6 +107,12 @@
       .popup-stat-num { font-size:20px; font-weight:700; color:var(--accent); }
       .popup-stat-text { font-size:11px; color:var(--text-secondary); }
       .popup-divider { height:1px; background:var(--border-light, #eee); margin:10px 0; }
+      .popup-friend-btn, .popup-chat-btn { display:inline-block; padding:8px 24px; border-radius:20px; font-size:14px; font-weight:600; cursor:pointer; transition:all 0.2s; margin-top:8px; border:none; margin-left:6px; margin-right:6px; }
+      .popup-friend-btn.add, .popup-chat-btn.chat { background:var(--accent); color:white; }
+      .popup-friend-btn.add:hover, .popup-chat-btn.chat:hover { opacity:0.85; transform:scale(1.03); }
+      .popup-friend-btn.pending, .popup-chat-btn.disabled { background:var(--text-muted, #999); color:white; cursor:not-allowed; }
+      .popup-friend-btn.accepted { background:var(--accent-glow); color:var(--accent); cursor:default; }
+      .popup-friend-btn.self { display:none; }
     `;
     document.head.appendChild(style);
   }
@@ -44,88 +122,71 @@
     if (old) old.remove();
     if (!userId) return;
 
-    // 获取用户资料
-    const { data: profile, error } = await sb
-      .from('profiles')
-      .select('nickname, avatar_url, mbti, bio, created_at, show_mbti, show_bio, show_join_date, show_hearts, show_favorites, show_posts, show_friends')
-      .eq('user_id', userId)
-      .single();
+    const myUserId = await getCurrentUserId();
 
-    if (error || !profile) return;
-
-    // 并行查询统计数据
-    const [
-      { count: heartsCount },
-      { count: favoritesCount },
-      { count: questionsCount },
-      { count: answersCount },
-      { count: friends1 },
-      { count: friends2 }
-    ] = await Promise.all([
-      // 暖心数（收到的）
-      sb.from('reactions').select('*', { count: 'exact', head: true })
-        .eq('target_id', userId)
-        .eq('target_type', 'question'),
-      // 收藏数
-      sb.from('favorites').select('*', { count: 'exact', head: true })
-        .eq('user_id', userId),
-      // 发帖数
-      sb.from('questions').select('*', { count: 'exact', head: true })
-        .eq('user_id', userId),
-      // 回答数
-      sb.from('answers').select('*', { count: 'exact', head: true })
-        .eq('user_id', userId),
-      // 好友数（我发起的）
-      sb.from('friend_requests').select('*', { count: 'exact', head: true })
-        .eq('from_user', userId).eq('status', 'accepted'),
-      // 好友数（接受我的）
-      sb.from('friend_requests').select('*', { count: 'exact', head: true })
-        .eq('to_user', userId).eq('status', 'accepted')
+    const [profileRes, userQuestionsRes, userAnswersRes, favoritesRes, friends1Res, friends2Res, friendStatus] = await Promise.all([
+      sb.from('profiles').select('*').eq('user_id', userId).single(),
+      sb.from('questions').select('id').eq('user_id', userId),
+      sb.from('answers').select('id').eq('user_id', userId),
+      sb.from('favorites').select('*', { count: 'exact', head: true }).eq('user_id', userId),
+      sb.from('friend_requests').select('*', { count: 'exact', head: true }).eq('from_user', userId).eq('status', 'accepted'),
+      sb.from('friend_requests').select('*', { count: 'exact', head: true }).eq('to_user', userId).eq('status', 'accepted'),
+      myUserId ? checkFriendStatus(myUserId, userId) : Promise.resolve(null)
     ]);
 
-    const postsTotal = (questionsCount || 0) + (answersCount || 0);
-    const friendsTotal = (friends1 || 0) + (friends2 || 0);
+    const { data: profile, error } = profileRes;
+    if (error || !profile) return;
 
-    // 头像
+    const questionIds = (userQuestionsRes.data || []).map(q => q.id);
+    const answerIds = (userAnswersRes.data || []).map(a => a.id);
+    let heartsCount = 0;
+    if (questionIds.length > 0) {
+      const { count: qHearts } = await sb.from('reactions').select('*', { count: 'exact', head: true })
+        .eq('target_type', 'question').in('target_id', questionIds);
+      heartsCount += qHearts || 0;
+    }
+    if (answerIds.length > 0) {
+      const { count: aHearts } = await sb.from('reactions').select('*', { count: 'exact', head: true })
+        .eq('target_type', 'answer').in('target_id', answerIds);
+      heartsCount += aHearts || 0;
+    }
+
+    const favoritesCount = favoritesRes.count || 0;
+    const postsTotal = questionIds.length + answerIds.length;
+    const friendsTotal = (friends1Res.count || 0) + (friends2Res.count || 0);
+
     const avatarHTML = profile.avatar_url
       ? `<img src="${profile.avatar_url}" class="popup-avatar-img" alt="头像">`
       : `<div class="popup-avatar-placeholder">🌱</div>`;
 
-    // 基本信息
     let contentHTML = `
       ${avatarHTML}
       <div class="popup-name">${profile.nickname || '匿名用户'}</div>
     `;
 
-    // MBTI
     if (profile.show_mbti && profile.mbti) {
       contentHTML += `<div class="popup-row"><span class="popup-label">MBTI</span>${profile.mbti}</div>`;
     }
-
-    // 简介
     if (profile.show_bio && profile.bio) {
       contentHTML += `<div class="popup-row"><span class="popup-label">简介</span>${profile.bio}</div>`;
     }
-
-    // 注册时间
     if (profile.show_join_date && profile.created_at) {
       const d = new Date(profile.created_at);
       const dateStr = `${d.getFullYear()}年${d.getMonth()+1}月${d.getDate()}日`;
       contentHTML += `<div class="popup-row"><span class="popup-label">注册于</span>${dateStr}</div>`;
     }
 
-    // 统计数据行
     let statsHTML = '';
-    if (profile.show_hearts) {
-      statsHTML += `<div class="popup-stat"><div class="popup-stat-num">${heartsCount || 0}</div><div class="popup-stat-text">暖心</div></div>`;
+    if (profile.show_hearts !== false) {
+      statsHTML += `<div class="popup-stat"><div class="popup-stat-num">${heartsCount}</div><div class="popup-stat-text">暖心</div></div>`;
     }
-    if (profile.show_favorites) {
-      statsHTML += `<div class="popup-stat"><div class="popup-stat-num">${favoritesCount || 0}</div><div class="popup-stat-text">收藏</div></div>`;
+    if (profile.show_favorites !== false) {
+      statsHTML += `<div class="popup-stat"><div class="popup-stat-num">${favoritesCount}</div><div class="popup-stat-text">收藏</div></div>`;
     }
-    if (profile.show_posts) {
+    if (profile.show_posts !== false) {
       statsHTML += `<div class="popup-stat"><div class="popup-stat-num">${postsTotal}</div><div class="popup-stat-text">发帖/回应</div></div>`;
     }
-    if (profile.show_friends) {
+    if (profile.show_friends !== false) {
       statsHTML += `<div class="popup-stat"><div class="popup-stat-num">${friendsTotal}</div><div class="popup-stat-text">树友</div></div>`;
     }
 
@@ -133,7 +194,42 @@
       contentHTML += `<div class="popup-divider"></div><div class="popup-stats">${statsHTML}</div>`;
     }
 
-    // 创建弹窗
+    let actionBtnsHTML = '';
+    if (myUserId && myUserId !== userId) {
+      if (friendStatus === 'accepted') {
+        actionBtnsHTML = `
+          <button class="popup-friend-btn accepted" disabled>已是树友</button>
+          <button class="popup-chat-btn chat" id="popupChatBtn">发送消息</button>
+        `;
+      } else if (friendStatus === 'pending_sent') {
+        actionBtnsHTML = `
+          <button class="popup-friend-btn pending" disabled>已申请，等待对方通过</button>
+          <button class="popup-chat-btn disabled" disabled>请先添加好友</button>
+        `;
+      } else if (friendStatus === 'pending_received') {
+        actionBtnsHTML = `
+          <button class="popup-friend-btn pending" disabled>对方已向你发出申请</button>
+          <button class="popup-chat-btn disabled" disabled>请先添加好友</button>
+        `;
+      } else {
+        actionBtnsHTML = `
+          <button class="popup-friend-btn add" id="popupAddFriendBtn">申请加为树友</button>
+          <button class="popup-chat-btn disabled" disabled>请先添加好友</button>
+        `;
+      }
+    } else if (myUserId === userId) {
+      actionBtnsHTML = `<button class="popup-friend-btn self">这是你自己</button>`;
+    } else {
+      actionBtnsHTML = `
+        <button class="popup-friend-btn pending" disabled>登录后即可添加树友</button>
+        <button class="popup-chat-btn disabled" disabled>请先登录</button>
+      `;
+    }
+
+    if (actionBtnsHTML) {
+      contentHTML += `<div class="popup-divider"></div>${actionBtnsHTML}`;
+    }
+
     const overlay = document.createElement('div');
     overlay.className = 'popup-overlay';
     overlay.innerHTML = `
@@ -150,14 +246,46 @@
     });
 
     document.body.appendChild(overlay);
+
+    const addBtn = overlay.querySelector('#popupAddFriendBtn');
+    if (addBtn && myUserId) {
+      addBtn.addEventListener('click', async function() {
+        this.textContent = '发送中...';
+        this.disabled = true;
+        const success = await sendFriendRequest(myUserId, userId);
+        if (success) {
+          this.textContent = '已申请，等待对方通过';
+          this.className = 'popup-friend-btn pending';
+        } else {
+          this.textContent = '发送失败，请重试';
+          this.disabled = false;
+          setTimeout(() => {
+            this.textContent = '申请加为树友';
+            this.className = 'popup-friend-btn add';
+          }, 2000);
+        }
+      });
+    }
+
+    const chatBtn = overlay.querySelector('#popupChatBtn');
+    if (chatBtn) {
+      chatBtn.addEventListener('click', function() {
+        close();
+        window.location.href = `chat-detail.html?user=${userId}`;
+      });
+    }
   }
 
-  // 全局头像点击事件委托
-  document.body.addEventListener('click', function(e) {
+  // 我是唯一的弹窗入口，谁也别想绕过我！
+  document.addEventListener('click', function(e) {
     const avatar = e.target.closest('[data-user-id]');
     if (!avatar) return;
     const userId = avatar.dataset.userId;
-    if (userId) showPopup(userId);
-  });
+    if (userId) {
+      e.preventDefault();
+      e.stopPropagation();
+      showPopup(userId);
+    }
+  }, true);
 
 })();

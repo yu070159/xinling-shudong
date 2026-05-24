@@ -24,10 +24,11 @@
   
   <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🌳</text></svg>">
   
-  <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+  <link rel="preconnect" href="https://unpkg.com" crossorigin>
   <link rel="preconnect" href="https://oazntpskcghfxzcylnef.supabase.co" crossorigin>
   <link rel="stylesheet" href="style.css">
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+  <script src="utils.js"></script>
   <script src="app.js" defer></script>
 </head>
 <body>
@@ -60,6 +61,10 @@
       <h1>🌳 心灵树洞</h1>
       <p class="subtitle">悄悄话，说给树洞听</p>
     </header>
+
+    <div class="daily-whisper" id="dailyWhisper" style="display:none;">
+      <span class="daily-whisper-text" id="dailyWhisperText"></span>
+    </div>
 
     <section class="submit-form card">
       <p class="form-guide-text">把情绪折成落叶，总有一簇篝火为你而燃</p>
@@ -95,5 +100,41 @@
 
   <script src="ai-float.js"></script>
   <script src="user-popup.js"></script>
+  <script>
+    (async function() {
+      const el = document.getElementById('dailyWhisper');
+      const textEl = document.getElementById('dailyWhisperText');
+      if (!el || !textEl) return;
+
+      const today = new Date().toISOString().slice(0, 10);
+      const cacheKey = 'daily_whisper_' + today;
+      const cached = localStorage.getItem(cacheKey);
+
+      if (cached) {
+        textEl.textContent = cached;
+        el.style.display = 'block';
+        return;
+      }
+
+      try {
+        const res = await fetch(window.API_BASE + '/api/gemini', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            prompt: '请生成一句温暖的治愈语录，风格诗意含蓄、像深夜森林里的轻声细语。不超过30字，不要引号。主题围绕：接纳自己、允许脆弱、慢慢来。'
+          })
+        });
+        const data = await res.json();
+        const text = data.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
+        if (text) {
+          textEl.textContent = text;
+          el.style.display = 'block';
+          localStorage.setItem(cacheKey, text);
+        }
+      } catch (e) {
+        // 静默失败，不影响页面
+      }
+    })();
+  </script>
 </body>
 </html>

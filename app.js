@@ -1,26 +1,12 @@
-(function() {
-  // 防御性检查：确保 Supabase SDK 已加载
-  if (typeof window.supabase === 'undefined' || !window.supabase.createClient) {
-    console.error('Supabase SDK 未加载，请检查 <script> 引入顺序');
+﻿(function() {
+  // Supabase 客户端已由 utils.js 初始化，存放于 window.TreeHole.supabase
+  var sb = window.TreeHole.supabase;
+  if (!sb) {
+    console.error('Supabase 客户端不可用，请检查 utils.js 加载顺序');
   }
-  
-  // 1. 统一的全局配置（将所有密钥收敛于此）
-  const CONFIG = {
-    SUPABASE_URL: 'https://oazntpskcghfxzcylnef.supabase.co',
-    SUPABASE_ANON_KEY: 'sb_publishable_5i3Z5mF3VCwoEaXPaIJebA_55H6w13g',
-  };
-  
+
   window.TreeHole = window.TreeHole || {};
-  window.TreeHole.config = CONFIG;
-  
-  // 初始化 Supabase 客户端（带完整防御性检查）
-  if (typeof window.supabase !== 'undefined' && window.supabase.createClient) {
-    window.TreeHole.supabase = window.supabase.createClient(CONFIG.SUPABASE_URL, CONFIG.SUPABASE_ANON_KEY);
-  } else {
-    window.TreeHole.supabase = null;
-    console.error('Supabase 客户端初始化失败');
-  }
-  const sb = window.TreeHole.supabase;
+  window.TreeHole.pageSize = 20;
 
   // 统一防御性检查函数
   function ensureSb() {
@@ -50,30 +36,49 @@
     }
   }
 
-  function hasReacted(targetType, targetId) {
-    return localStorage.getItem(`reacted_${targetType}_${targetId}`) === '1';
+  // 检查当前登录用户是否已点赞（从数据库查，精确到用户）
+  async function hasReacted(targetType, targetId) {
+    const user = await TreeHole.getCurrentUser();
+    if (!user) return false;
+    try {
+      const { data, error } = await sb
+        .from('reactions')
+        .select('id')
+        .eq('user_id', user.id)
+        .eq('target_type', targetType)
+        .eq('target_id', Number(targetId))
+        .maybeSingle();
+      if (error) return false;
+      return !!data;
+    } catch (err) {
+      return false;
+    }
   }
 
+  async function getUserReactionMap(targetType, targetIds) {
+    var user = await TreeHole.getCurrentUser();
+    if (!user || !targetIds || targetIds.length === 0) return {};
+    try {
+      var { data } = await sb
+        .from('reactions')
+        .select('target_id')
+        .eq('user_id', user.id)
+        .eq('target_type', targetType)
+        .in('target_id', targetIds);
+      var map = {};
+      if (data) data.forEach(function(r) { map[r.target_id] = true; });
+      return map;
+    } catch (err) {
+      return {};
+    }
+  }
+
+  // 废弃的 localStorage 函数，保留空壳避免报错
   function setReactedLocal(targetType, targetId) {
-    localStorage.setItem(`reacted_${targetType}_${targetId}`, '1');
+    // 不再使用
   }
 
-  function formatDate(dateString) {
-    const now = new Date();
-    const date = new Date(dateString);
-    const diff = Math.floor((now - date) / 1000);
-    if (diff < 60) return '刚刚';
-    if (diff < 3600) return Math.floor(diff / 60) + '分钟前';
-    if (diff < 86400) return Math.floor(diff / 3600) + '小时前';
-    if (diff < 2592000) return Math.floor(diff / 86400) + '天前';
-    return date.toLocaleDateString('zh-CN');
-  }
-
-  function escapeHtml(text) {
-    const div = document.createElement('div');
-    div.textContent = text;
-    return div.innerHTML;
-  }
+  // escapeHtml, formatDate, updateTextSmoothly 由 utils.js 全局提供
 
   function showMessage(elementId, message, type, timeout = 2000) {
     const el = document.getElementById(elementId);
@@ -104,17 +109,6 @@
     return { valid: true, trimmed };
   }
 
-  function updateTextSmoothly(elementId, newText, statusClass = '') {
-    const el = document.getElementById(elementId);
-    if (!el) return;
-    el.style.opacity = '0';
-    setTimeout(() => {
-      el.innerText = newText;
-      if (statusClass) el.className = `smooth-text ${statusClass}`;
-      el.style.opacity = '1';
-    }, 200);
-  }
-
   function initEmptyStateCursors() {
     const emptyStates = document.querySelectorAll('.empty-state-text');
     emptyStates.forEach(el => {
@@ -137,9 +131,9 @@
         .select('target_id')
         .eq('target_type', targetType)
         .in('target_id', targetIds);
-      
+
       if (error) throw error;
-      
+
       return data.reduce((counts, r) => {
         counts[r.target_id] = (counts[r.target_id] || 0) + 1;
         return counts;
@@ -150,39 +144,146 @@
     }
   }
 
-  async function addReaction(targetType, targetId) {
-    if (!ensureSb()) return false;
-    if (hasReacted(targetType, targetId)) return true;
+  async function getFavoriteCounts(questionIds) {
+    if (!ensureSb()) return {};
+    if (!questionIds || questionIds.length === 0) return {};
     try {
-      const { error } = await sb.from('reactions').insert({
-        target_type: targetType,
-        target_id: targetId
-      });
+      const { data, error } = await sb
+        .from('favorites')
+        .select('question_id')
+        .in('question_id', questionIds);
       if (error) throw error;
-      
-      setReactedLocal(targetType, targetId);
-      return true;
+      return data.reduce(function(counts, r) {
+        counts[r.question_id] = (counts[r.question_id] || 0) + 1;
+        return counts;
+      }, {});
     } catch (err) {
-      console.error('添加反应失败:', err);
-      return false;
+      console.error('获取收藏计数失败:', err);
+      return {};
     }
   }
 
-  async function fetchQuestions() {
+  // 点赞/取消点赞（统一入口，以数据库实际数据为准）
+  async function toggleReaction(targetType, targetId) {
+    var user = await TreeHole.getCurrentUser();
+    if (!user) return null;
+    var config = window.TreeHole.config;
+    try {
+      var reacted = await hasReacted(targetType, targetId);
+      if (reacted) {
+        // DELETE：使用 REST API（JS 客户端 delete 在部分 RLS 策略下不生效）
+        var session = await sb.auth.getSession();
+        var token = session?.data?.session?.access_token;
+        var tid = Number(targetId);
+        var delUrl = config.SUPABASE_URL + '/rest/v1/reactions?user_id=eq.' + encodeURIComponent(user.id) + '&target_type=eq.' + encodeURIComponent(targetType) + '&target_id=eq.' + tid;
+        var resp = await fetch(delUrl, {
+          method: 'DELETE',
+          headers: {
+            'apikey': config.SUPABASE_ANON_KEY,
+            'Authorization': 'Bearer ' + token,
+            'Content-Type': 'application/json'
+          }
+        });
+        if (!resp.ok) {
+          console.error('DELETE reaction 失败, status:', resp.status);
+          return null;
+        }
+        // 验证是否真正删除
+        var stillReacted = await hasReacted(targetType, targetId);
+        if (stillReacted) {
+          console.error('DELETE 未实际删除记录，请检查 Supabase RLS 策略是否允许 DELETE');
+          return null;
+        }
+        return 'removed';
+      } else {
+        var { error } = await sb.from('reactions').insert({
+          user_id: user.id,
+          target_type: targetType,
+          target_id: Number(targetId)
+        });
+        if (error) throw error;
+        return 'added';
+      }
+    } catch (err) {
+      console.error('切换反应失败:', err);
+      return null;
+    }
+  }
+
+  async function toggleFavorite(questionId) {
+    var user = await TreeHole.getCurrentUser();
+    if (!user) return null;
+    var config = window.TreeHole.config;
+    var qid = Number(questionId);
+    try {
+      var { data: existing } = await sb.from('favorites').select('id').eq('user_id', user.id).eq('question_id', qid).maybeSingle();
+      if (existing) {
+        // DELETE via REST API（JS 客户端 delete 在部分 RLS 策略下不生效）
+        var session = await sb.auth.getSession();
+        var token = session?.data?.session?.access_token;
+        var delUrl = config.SUPABASE_URL + '/rest/v1/favorites?id=eq.' + existing.id;
+        var resp = await fetch(delUrl, {
+          method: 'DELETE',
+          headers: {
+            'apikey': config.SUPABASE_ANON_KEY,
+            'Authorization': 'Bearer ' + token,
+            'Content-Type': 'application/json'
+          }
+        });
+        if (!resp.ok) {
+          console.error('DELETE favorite 失败, status:', resp.status);
+          return null;
+        }
+        // 验证是否真正删除
+        var { data: stillExists } = await sb.from('favorites').select('id').eq('user_id', user.id).eq('question_id', qid).maybeSingle();
+        if (stillExists) {
+          console.error('DELETE 未实际删除收藏记录，请检查 Supabase RLS 策略是否允许 DELETE');
+          return null;
+        }
+        return 'removed';
+      } else {
+        var { error } = await sb.from('favorites').insert({ user_id: user.id, question_id: qid });
+        if (error) throw error;
+        return 'added';
+      }
+    } catch (err) {
+      console.error('切换收藏失败:', err);
+      return null;
+    }
+  }
+
+  async function getUserFavoriteMap(questionIds) {
+    var user = await TreeHole.getCurrentUser();
+    if (!user || !questionIds || questionIds.length === 0) return {};
+    try {
+      var { data } = await sb.from('favorites').select('question_id').eq('user_id', user.id).in('question_id', questionIds);
+      var map = {};
+      if (data) data.forEach(function(r) { map[r.question_id] = true; });
+      return map;
+    } catch (err) { return {}; }
+  }
+
+  async function fetchQuestions(options = {}) {
     if (!ensureSb()) return { success: false, error: 'Supabase 未初始化' };
-    
+
+    var page = options.page || 0;
+    var pageSize = options.pageSize || 20;
+    var from = page * pageSize;
+    var to = from + pageSize - 1;
+
     try {
       const { data, error } = await sb
         .from('questions')
         .select('id, content, nickname, created_at, user_id, answers(count)')
-        .order('created_at', { ascending: false });
+        .order('created_at', { ascending: false })
+        .range(from, to);
 
       if (error) throw error;
-      
+
       const questionIds = data.map(q => q.id);
       const reactionCounts = await getReactionCounts('question', questionIds);
-      
-      return { success: true, data, reactionCounts };
+
+      return { success: true, data, reactionCounts, hasMore: data.length === pageSize };
     } catch (err) {
       console.error('获取心事列表失败:', err);
       return { success: false, error: '网络好像有点问题，请稍后再试' };
@@ -258,41 +359,189 @@
     }
   }
 
+  // 调用 Gemini 审核内容
+  async function moderateContent(content) {
+    try {
+      const response = await fetch(window.API_BASE + '/api/gemini', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          prompt: `你是一个温暖的社区内容审核员。请审核以下用户发布的"心事"内容是否合适。判断标准：
+- 包含暴力、自残、自杀方法描述 → 不合适
+- 包含恶意攻击、仇恨言论、人身攻击 → 不合适
+- 包含色情、性骚扰内容 → 不合适
+- 正常的情绪倾诉、压力表达、寻求安慰 → 合适
+- 日常生活的烦恼、困惑、感悟 → 合适
+
+请只回复"合适"或"不合适"，不要加任何其他文字。
+
+心事内容：${content}`
+        })
+      });
+
+      if (!response.ok) {
+        console.warn('内容审核服务不可用，放行');
+        return { passed: true, reason: '' };
+      }
+
+      const data = await response.json();
+      const text = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+
+      if (text.includes('不合适')) {
+        return { passed: false, reason: '你写的内容可能包含不适宜的表述，请修改后重新提交。树洞是用来安全倾诉的，但请不要包含危险或攻击性内容。' };
+      }
+      return { passed: true, reason: '' };
+    } catch (err) {
+      console.warn('内容审核异常，放行:', err);
+      return { passed: true, reason: '' };
+    }
+  }
+
+  // 情绪标签分析（Gemini，localStorage 缓存）
+  async function analyzeEmotion(questionId, content) {
+    const cacheKey = `emotion_${questionId}`;
+    const cached = localStorage.getItem(cacheKey);
+    if (cached) return cached;
+    try {
+      const res = await fetch(window.API_BASE + '/api/gemini', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          prompt: `分析心事的主要情绪，只返回一个词（从这些选：焦虑、孤独、迷茫、委屈、愤怒、疲惫、无奈、自责、想念、感动、喜悦、期待）。\n心事：${content.substring(0, 200)}`
+        })
+      });
+      const data = await res.json();
+      const emotion = data.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
+      if (emotion) {
+        try { localStorage.setItem(cacheKey, emotion); } catch (e) {}
+        return emotion;
+      }
+    } catch (e) {}
+    return null;
+  }
+
+  // 情绪标签颜色映射
+  function getEmotionColor(emotion) {
+    const map = {
+      '焦虑': '#e07b39', '孤独': '#6b8cce', '迷茫': '#9e9e9e',
+      '委屈': '#b87cb8', '愤怒': '#e05555', '疲惫': '#a08060',
+      '无奈': '#7a8a9a', '自责': '#d4778a', '想念': '#6ea8c8',
+      '感动': '#5ba07a', '喜悦': '#d4a02e', '期待': '#4ea8a0'
+    };
+    return map[emotion] || 'var(--text-muted)';
+  }
+
+  // 情绪标签筛选
+  function updateEmotionFilterBar() {
+    const container = document.getElementById('questions-list');
+    if (!container) return;
+    let bar = document.getElementById('emotionFilterBar');
+
+    if (window.emotionFilter) {
+      if (!bar) {
+        bar = document.createElement('div');
+        bar.id = 'emotionFilterBar';
+        bar.style.cssText = 'display:flex;align-items:center;gap:8px;padding:8px 12px;background:var(--bg-card);border-radius:12px;margin-bottom:12px;font-size:14px;border:1px solid var(--border-light);';
+        container.parentNode.insertBefore(bar, container);
+      }
+      bar.innerHTML = '<span style="color:var(--text-secondary)">筛选情绪：</span>'
+        + '<span style="background:' + getEmotionColor(window.emotionFilter) + ';color:white;padding:2px 10px;border-radius:10px;">' + window.emotionFilter + '</span>'
+        + '<button id="clearEmotionFilterBtn" style="background:none;border:none;color:var(--text-secondary);cursor:pointer;font-size:14px;padding:0 4px;">✕ 清除</button>';
+      document.getElementById('clearEmotionFilterBtn').addEventListener('click', function() {
+        TreeHole.clearEmotionFilter();
+      });
+    } else {
+      if (bar) bar.remove();
+    }
+  }
+
+  async function applyEmotionFilter(emotion) {
+    window.emotionFilter = emotion;
+    window.hasMore = false; // 筛选时禁用无限滚动
+    var searchInput = document.getElementById('searchInput');
+    var keyword = searchInput ? searchInput.value.trim() : '';
+    var filtered = window.allQuestions || [];
+
+    if (emotion) {
+      filtered = filtered.filter(function(q) {
+        var cached = localStorage.getItem('emotion_' + q.id);
+        return cached === emotion;
+      });
+    }
+    if (keyword) {
+      var k = keyword.toLowerCase();
+      filtered = filtered.filter(function(q) {
+        return q.content.toLowerCase().indexOf(k) !== -1 || q.nickname.toLowerCase().indexOf(k) !== -1;
+      });
+    }
+    await renderQuestions(filtered);
+    updateEmotionFilterBar();
+  }
+
+  function clearEmotionFilter() {
+    window.emotionFilter = null;
+    updateEmotionFilterBar();
+    var searchInput = document.getElementById('searchInput');
+    var keyword = searchInput ? searchInput.value.trim() : '';
+    if (keyword) {
+      window.hasMore = false;
+      filterQuestions(keyword).then(function(filtered) { renderQuestions(filtered); });
+    } else {
+      window.hasMore = (window.allQuestions && window.allQuestions.length >= (window.TreeHole.pageSize || 20));
+      renderQuestions(window.allQuestions || []);
+    }
+  }
+
+  function translateAuthError(msg) {
+    if (!msg) return '操作失败，请重试';
+    var m = msg;
+    if (m.includes('Invalid login credentials')) m = '邮箱或密码错误';
+    else if (m.includes('Email not confirmed')) m = '邮箱尚未确认，请前往邮箱确认';
+    else if (m.includes('User already registered')) m = '该邮箱已注册，请直接登录';
+    else if (m.includes('Password should be at least 6 characters')) m = '密码至少需要6位';
+    else if (m.includes('invalid format') || m.includes('Unable to validate email')) m = '邮箱格式不正确';
+    return m;
+  }
+
   async function signUp(email, password, nickname) {
     if (!ensureSb()) return { success: false, error: 'Supabase 未初始化' };
-    
+
     try {
       const finalNickname = nickname.trim() || email.split('@')[0];
       const { data, error } = await sb.auth.signUp({ email, password });
       if (error) throw error;
-      
-      if (data.user) {
+
+      if (data.user && data.session) {
+        // 邮箱验证已关闭，直接登录
         await new Promise(resolve => setTimeout(resolve, 500));
         const { error: updateError } = await sb
           .from('profiles')
           .update({ nickname: finalNickname })
           .eq('user_id', data.user.id);
-          
+
         if (updateError) {
           await sb.from('profiles').insert({ user_id: data.user.id, nickname: finalNickname });
         }
         window.location.href = 'index.html';
+      } else if (data.user && !data.session) {
+        // 需要邮箱验证
+        return { success: false, error: '注册成功！请去邮箱点击确认链接，然后回来登录。' };
       }
       return { success: true, error: null };
     } catch (err) {
-      return { success: false, error: err.message };
+      return { success: false, error: translateAuthError(err.message) };
     }
   }
 
   async function signIn(email, password) {
     if (!ensureSb()) return { success: false, error: 'Supabase 未初始化' };
-    
+
     try {
       const { error } = await sb.auth.signInWithPassword({ email, password });
       if (error) throw error;
       return { success: true, error: null };
     } catch (err) {
-      return { success: false, error: err.message };
+      return { success: false, error: translateAuthError(err.message) };
     }
   }
 
@@ -454,36 +703,50 @@
   // =====================
   // UI 渲染逻辑层
   // =====================
-  async function renderQuestions(questions) {
+  async function renderQuestions(questions, append) {
     const container = document.getElementById('questions-list');
     if (!container) return;
 
-    if (questions.length === 0) {
-      const searchInput = document.getElementById('searchInput');
-      const hasSearchKeyword = searchInput && searchInput.value.trim();
-      
-      container.innerHTML = hasSearchKeyword 
-        ? `<div class="empty-state"><div class="empty-state-icon">🔍</div><p class="empty-state-text">没有找到相关心事</p><p class="empty-state-sub">换一个词试试吧</p></div>`
-        : `<div class="empty-state"><div class="empty-state-icon">🌳</div><p class="empty-state-text">这里还没有人倾诉心事</p><p class="empty-state-sub">你是第一个来到树洞的人，写下你的故事，会有人听见的。</p></div>`;
-      initEmptyStateCursors();
-      return;
+    // 首次加载且无数据时展示空状态
+    if (!append) {
+      if (questions.length === 0) {
+        const searchInput = document.getElementById('searchInput');
+        const hasSearchKeyword = searchInput && searchInput.value.trim();
+
+        container.innerHTML = hasSearchKeyword
+          ? `<div class="empty-state"><div class="empty-state-icon">🔍</div><p class="empty-state-text">没有找到相关心事</p><p class="empty-state-sub">换一个词试试吧</p></div>`
+          : `<div class="empty-state"><div class="empty-state-icon">🌳</div><p class="empty-state-text">这里还没有人倾诉心事</p><p class="empty-state-sub">你是第一个来到树洞的人，写下你的故事，会有人听见的。</p></div>`;
+        initEmptyStateCursors();
+        return;
+      }
+      container.innerHTML = '';
     }
 
+    if (questions.length === 0) return;
+
     const userIds = questions.map(q => q.user_id).filter(id => id);
-    const avatarMap = await getAvatarMap(userIds);
+    const questionIds = questions.map(q => q.id);
+    const [avatarMap, userReactionMap, favoriteCounts, userFavMap] = await Promise.all([
+      getAvatarMap(userIds),
+      getUserReactionMap('question', questionIds),
+      getFavoriteCounts(questionIds),
+      getUserFavoriteMap(questionIds)
+    ]);
 
     const currentUserId = window.currentUserId;
-    container.innerHTML = questions.map(q => {
+    var cardsHtml = questions.map(function(q) {
       const preview = q.content.length > 50 ? q.content.substring(0, 50) + '...' : q.content;
       const answerCount = q.answers[0]?.count || 0;
       const heartCount = window.reactionCounts?.[q.id] || 0;
+      const favCount = favoriteCounts[q.id] || 0;
+      var favorited = userFavMap[q.id];
       const isMine = currentUserId && q.user_id === currentUserId;
-      
-      // 添加 data-user-id 属性
+      var reacted = userReactionMap[q.id];
+
       const avatarHtml = q.user_id && avatarMap[q.user_id]
         ? `<img src="${escapeHtml(avatarMap[q.user_id])}" class="user-avatar" alt="头像" data-user-id="${q.user_id}">`
         : `<div class="user-avatar-placeholder" data-user-id="${q.user_id}">🌱</div>`;
-      
+
       return `
         <a href="detail.html?id=${q.id}" class="question-card">
           ${isMine ? '<span class="my-tag">我的</span>' : ''}
@@ -491,19 +754,91 @@
           <div class="meta">
             <span class="author-info">${avatarHtml}${escapeHtml(q.nickname)}</span>
             <span>${formatDate(q.created_at)}</span>
-            <span class="heart-count">♥ ${heartCount}</span>
+            <span class="heart-btn-inline ${reacted ? 'reacted' : ''}">${reacted ? '♥' : '♡'} <span class="count">${heartCount}</span></span>
+            <span class="fav-btn-inline ${favorited ? 'favorited' : ''}">${favorited ? '★' : '☆'} <span class="count">${favCount}</span></span>
             <span class="answer-count">${answerCount} 回答</span>
           </div>
         </a>
       `;
     }).join('');
+
+    if (append) {
+      container.insertAdjacentHTML('beforeend', cardsHtml);
+    } else {
+      container.innerHTML = cardsHtml;
+    }
+
+    // 异步加载情绪标签（localStorage 缓存，不阻塞渲染）
+    var allCards = container.querySelectorAll('.question-card');
+    var startIndex = append ? allCards.length - questions.length : 0;
+    questions.forEach(async function(q, i) {
+      const emotion = await analyzeEmotion(q.id, q.content);
+      if (emotion) {
+        const card = allCards[startIndex + i];
+        if (card) {
+          const tag = document.createElement('span');
+          tag.className = 'emotion-tag';
+          tag.textContent = emotion;
+          tag.dataset.emotion = emotion;
+          tag.title = '点击筛选该情绪心事';
+          tag.style.cssText = 'background:' + getEmotionColor(emotion) + ';color:white;font-size:12px;padding:2px 8px;border-radius:10px;margin-left:8px;cursor:pointer;';
+          tag.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            TreeHole.applyEmotionFilter(emotion);
+          });
+          const preview = card.querySelector('.content-preview');
+          if (preview) preview.appendChild(tag);
+        }
+      }
+    });
+  }
+
+  async function loadMoreQuestions() {
+    if (window.isLoadingMore || !window.hasMore) return;
+    window.isLoadingMore = true;
+    var nextPage = (window.currentPage || 0) + 1;
+    var pageSize = window.TreeHole.pageSize || 20;
+    var res = await fetchQuestions({ page: nextPage, pageSize: pageSize });
+    if (res.success && res.data.length > 0) {
+      window.currentPage = nextPage;
+      window.hasMore = res.hasMore;
+      window.allQuestions = (window.allQuestions || []).concat(res.data);
+      Object.assign(window.reactionCounts || {}, res.reactionCounts);
+      await renderQuestions(res.data, true);
+    } else {
+      window.hasMore = false;
+    }
+    window.isLoadingMore = false;
+    removeLoadingIndicator();
+  }
+
+  function showLoadingIndicator() {
+    var container = document.getElementById('questions-list');
+    if (!container) return;
+    removeLoadingIndicator();
+    var loader = document.createElement('div');
+    loader.id = 'pagination-loader';
+    loader.style.cssText = 'text-align:center;padding:20px;color:var(--text-secondary);font-size:14px;';
+    loader.textContent = '树叶正在飘落...';
+    container.appendChild(loader);
+  }
+
+  function removeLoadingIndicator() {
+    var loader = document.getElementById('pagination-loader');
+    if (loader) loader.remove();
   }
 
   async function initQuestionsBoard() {
-    const res = await fetchQuestions();
+    window.currentPage = 0;
+    window.hasMore = true;
+    window.isLoadingMore = false;
+    var pageSize = window.TreeHole.pageSize || 20;
+    const res = await fetchQuestions({ page: 0, pageSize: pageSize });
     if (res.success) {
       window.allQuestions = res.data;
       window.reactionCounts = res.reactionCounts;
+      window.hasMore = res.hasMore;
       await renderQuestions(res.data);
     } else {
       const container = document.getElementById('questions-list');
@@ -521,245 +856,6 @@
     );
   }
 
-  async function initQuestionDetailPage(id) {
-    const res = await fetchQuestionDetail(id);
-    if (!res.success) {
-      document.getElementById('question-detail').innerHTML = `<p>${escapeHtml(res.error)}</p>`;
-      return;
-    }
-
-    const { question, answers, answerCounts } = res;
-    const questionReacted = hasReacted('question', id);
-    const currentUserId = window.currentUserId;
-
-    let favoriteCount = 0;
-    let isFavorited = false;
-    let friendStatus = null;
-
-    if (currentUserId) {
-      const { count } = await sb
-        .from('favorites')
-        .select('*', { count: 'exact', head: true })
-        .eq('question_id', id);
-      favoriteCount = count || 0;
-
-      const { data: favData } = await sb
-        .from('favorites')
-        .select('id')
-        .eq('user_id', currentUserId)
-        .eq('question_id', id)
-        .maybeSingle();
-      isFavorited = !!favData;
-
-      if (question.user_id && question.user_id !== currentUserId) {
-        const { data: reqData } = await sb
-          .from('friend_requests')
-          .select('status')
-          .eq('from_user', currentUserId)
-          .eq('to_user', question.user_id)
-          .maybeSingle();
-        friendStatus = reqData?.status || null;
-      }
-    }
-
-    const isOwner = currentUserId && question.user_id === currentUserId;
-
-    const userIds = [question.user_id, ...answers.map(a => a.user_id)].filter(id => id);
-    const avatarMap = await getAvatarMap(userIds);
-
-    const getAvatarHtml = (userId, nickname, size = 36) => {
-      if (!userId) {
-        return `<div class="user-avatar-placeholder" style="width: ${size}px; height: ${size}px; font-size: ${size * 0.4}px;" data-user-id="${userId}">🌱</div>`;
-      }
-      if (avatarMap[userId]) {
-        return `<img src="${escapeHtml(avatarMap[userId])}" class="user-avatar" alt="${escapeHtml(nickname)}" style="width: ${size}px; height: ${size}px;" data-user-id="${userId}">`;
-      }
-      return `<div class="user-avatar-placeholder" style="width: ${size}px; height: ${size}px; font-size: ${size * 0.4}px;" data-user-id="${userId}">🌱</div>`;
-    };
-
-    let actionBtnsHtml = `
-      <div class="action-btns-row">
-        <button class="heart-btn ${questionReacted ? 'reacted' : ''}"
-                data-type="question" data-id="${id}"
-                ${questionReacted ? 'disabled' : ''}>
-          ${questionReacted ? '♡' : '♥'} <span class="count">${question.heartCount}</span>
-        </button>
-    `;
-
-    if (currentUserId) {
-      actionBtnsHtml += `
-        <button class="action-btn favorite-btn" id="favoriteBtn" data-favorited="${isFavorited}">
-          ${isFavorited ? '★ 已收藏' : '☆ 收藏'}<span class="favorite-count">(${favoriteCount})</span>
-        </button>
-      `;
-    }
-
-    if (isOwner) {
-      actionBtnsHtml += `
-        <button class="action-btn delete-btn" id="deleteQuestionBtn">删除</button>
-      `;
-    }
-
-    if (currentUserId && question.user_id && !isOwner) {
-      let friendBtnHtml = '';
-      if (!friendStatus) {
-        friendBtnHtml = '<button class="action-btn friend-btn" id="friendRequestBtn">申请加为树友</button>';
-      } else if (friendStatus === 'pending') {
-        friendBtnHtml = '<button class="action-btn friend-btn" disabled>已申请</button>';
-      } else if (friendStatus === 'accepted') {
-        friendBtnHtml = '<button class="action-btn friend-btn" disabled>已是树友</button>';
-      } else if (friendStatus === 'rejected') {
-        friendBtnHtml = '<button class="action-btn friend-btn" disabled>已拒绝</button>';
-      }
-      actionBtnsHtml += friendBtnHtml;
-    }
-
-    actionBtnsHtml += '</div>';
-
-    document.getElementById('question-detail').innerHTML = `
-      <h2>${escapeHtml(question.content)}</h2>
-      <div class="meta question-meta">
-        <span class="author-info">${getAvatarHtml(question.user_id, question.nickname, 40)}${escapeHtml(question.nickname)}</span>
-        <span>${formatDate(question.created_at)}</span>
-      </div>
-      ${actionBtnsHtml}
-    `;
-
-    const answersContainer = document.getElementById('answers-list');
-    if (answers.length === 0) {
-      answersContainer.innerHTML = '<p class="empty-state-text">还没有人回应这份心事，坐下来陪 ta 一会吧 ✨</p>';
-      initEmptyStateCursors();
-    } else {
-      answersContainer.innerHTML = answers.map(a => {
-        const reacted = hasReacted('answer', a.id);
-        const count = answerCounts[a.id] || 0;
-        const isAnswerOwner = currentUserId && a.user_id === currentUserId;
-        return `
-          <div class="answer-card" data-answer-id="${a.id}">
-            <div class="answer-content">${escapeHtml(a.content)}</div>
-            <div class="answer-meta">
-              <span class="author-info">${getAvatarHtml(a.user_id, a.nickname, 36)}${escapeHtml(a.nickname)}</span>
-              <span>${formatDate(a.created_at)}</span>
-              <button class="heart-btn ${reacted ? 'reacted' : ''}"
-                      data-type="answer" data-id="${a.id}"
-                      ${reacted ? 'disabled' : ''}>
-                ${reacted ? '♡' : '♥'} <span class="count">${count}</span>
-              </button>
-              ${isAnswerOwner ? `<span class="answer-actions"><button class="action-btn delete-btn delete-answer-btn" data-answer-id="${a.id}">删除</button></span>` : ''}
-            </div>
-          </div>
-        `;
-      }).join('');
-    }
-
-    document.querySelectorAll('.heart-btn').forEach(btn => {
-      btn.addEventListener('click', async () => {
-        const type = btn.dataset.type;
-        const targetId = btn.dataset.id;
-        const ok = await addReaction(type, targetId);
-        if (ok) {
-          const countSpan = btn.querySelector('.count');
-          countSpan.textContent = parseInt(countSpan.textContent) + 1;
-          btn.innerHTML = `♡ <span class="count">${countSpan.textContent}</span>`;
-          btn.classList.add('reacted');
-          btn.disabled = true;
-        }
-      });
-    });
-
-    const favoriteBtn = document.getElementById('favoriteBtn');
-    if (favoriteBtn) {
-      favoriteBtn.addEventListener('click', async () => {
-        const btn = favoriteBtn;
-        const favorited = btn.dataset.favorited === 'true';
-        
-        if (favorited) {
-          const { error } = await sb
-            .from('favorites')
-            .delete()
-            .eq('user_id', currentUserId)
-            .eq('question_id', id);
-          if (!error) {
-            btn.dataset.favorited = 'false';
-            btn.innerHTML = '☆ 收藏<span class="favorite-count">(0)</span>';
-            const countSpan = btn.querySelector('.favorite-count');
-            const { count } = await sb
-              .from('favorites')
-              .select('*', { count: 'exact', head: true })
-              .eq('question_id', id);
-            countSpan.textContent = `(${count || 0})`;
-          }
-        } else {
-          const { error } = await sb
-            .from('favorites')
-            .insert({ user_id: currentUserId, question_id: id });
-          if (!error) {
-            btn.dataset.favorited = 'true';
-            btn.innerHTML = '★ 已收藏<span class="favorite-count">(0)</span>';
-            const countSpan = btn.querySelector('.favorite-count');
-            const { count } = await sb
-              .from('favorites')
-              .select('*', { count: 'exact', head: true })
-              .eq('question_id', id);
-            countSpan.textContent = `(${count || 0})`;
-          }
-        }
-      });
-    }
-
-    const deleteQuestionBtn = document.getElementById('deleteQuestionBtn');
-    if (deleteQuestionBtn) {
-      deleteQuestionBtn.addEventListener('click', async () => {
-        if (!confirm('确定要删除这条心事吗？删除后无法恢复。')) return;
-        const { error } = await sb
-          .from('questions')
-          .delete()
-          .eq('id', id);
-        if (!error) {
-          window.location.href = 'index.html';
-        } else {
-          alert('删除失败，请稍后重试');
-        }
-      });
-    }
-
-    const friendRequestBtn = document.getElementById('friendRequestBtn');
-    if (friendRequestBtn) {
-      friendRequestBtn.addEventListener('click', async () => {
-        const { error } = await sb
-          .from('friend_requests')
-          .insert({ from_user: currentUserId, to_user: question.user_id });
-        if (!error) {
-          friendRequestBtn.textContent = '已申请';
-          friendRequestBtn.disabled = true;
-        } else {
-          alert('申请失败，请稍后重试');
-        }
-      });
-    }
-
-    document.querySelectorAll('.delete-answer-btn').forEach(btn => {
-      btn.addEventListener('click', async () => {
-        const answerId = btn.dataset.answerId;
-        if (!confirm('确定要删除这条回答吗？')) return;
-        const { error } = await sb
-          .from('answers')
-          .delete()
-          .eq('id', answerId);
-        if (!error) {
-          const card = btn.closest('.answer-card');
-          if (card) card.remove();
-          const remaining = answersContainer.querySelectorAll('.answer-card');
-          if (remaining.length === 0) {
-            answersContainer.innerHTML = '<p class="empty-state-text">还没有人回应这份心事，坐下来陪 ta 一会吧 ✨</p>';
-            initEmptyStateCursors();
-          }
-        } else {
-          alert('删除失败，请稍后重试');
-        }
-      });
-    });
-  }
 
   // =====================
   // 暴露 API
@@ -767,12 +863,16 @@
   Object.assign(window.TreeHole, {
     getNickname, saveNickname,
     fetchQuestions, submitQuestionAPI,
+    moderateContent, analyzeEmotion, getEmotionColor,
     fetchQuestionDetail, submitAnswerAPI,
-    formatDate, escapeHtml, renderQuestions, filterQuestions,
+    formatDate: window.formatDate, escapeHtml: window.escapeHtml, renderQuestions, filterQuestions,
     signUp, signIn, signOut, getCurrentUser, getUserProfile,
-    initQuestionsBoard, initQuestionDetailPage,
-    updateTextSmoothly, initEmptyStateCursors,
-    showUserPopup // 新增
+    initQuestionsBoard,
+    updateTextSmoothly: window.updateTextSmoothly, initEmptyStateCursors,
+    showUserPopup, loadMoreQuestions,
+    applyEmotionFilter, clearEmotionFilter, updateEmotionFilterBar,
+    toggleReaction, hasReacted, getUserReactionMap, getReactionCounts, getFavoriteCounts,
+    toggleFavorite, getUserFavoriteMap
   });
 
   // =====================
@@ -786,6 +886,14 @@ window.addEventListener('DOMContentLoaded', async () => {
         return;
     }
     // --- 防御检查结束 ---
+
+    // 注入广场卡片爱心按钮样式
+    if (!document.getElementById('heart-btn-inline-style')) {
+      var heartStyle = document.createElement('style');
+      heartStyle.id = 'heart-btn-inline-style';
+      heartStyle.textContent = '.heart-btn-inline{font-size:inherit;color:inherit;}.heart-btn-inline.reacted{color:var(--warm-heart);}.fav-btn-inline{font-size:inherit;color:var(--text-muted);}.fav-btn-inline.favorited{color:#d4a02e;}';
+      document.head.appendChild(heartStyle);
+    }
 
     initEmptyStateCursors();
 
@@ -832,17 +940,55 @@ window.addEventListener('DOMContentLoaded', async () => {
     const searchInput = document.getElementById('searchInput');
     const clearSearch = document.getElementById('clearSearch');
     if (searchInput && clearSearch) {
-      searchInput.addEventListener('input', async () => {
-        const keyword = searchInput.value.trim();
+      var searchTimer = null;
+      searchInput.addEventListener('input', function() {
+        var keyword = searchInput.value.trim();
         clearSearch.classList.toggle('visible', keyword);
-        const filtered = await TreeHole.filterQuestions(keyword);
-        await TreeHole.renderQuestions(filtered);
+        window.hasMore = !!keyword;
+        if (!keyword && !window.emotionFilter) {
+          window.hasMore = (window.allQuestions && window.allQuestions.length >= (window.TreeHole.pageSize || 20));
+        }
+        if (searchTimer) clearTimeout(searchTimer);
+        searchTimer = setTimeout(async function() {
+          var filtered = await TreeHole.filterQuestions(keyword);
+          if (window.emotionFilter && filtered.length > 0) {
+            filtered = filtered.filter(function(q) {
+              var cached = localStorage.getItem('emotion_' + q.id);
+              return cached === window.emotionFilter;
+            });
+          }
+          await TreeHole.renderQuestions(filtered);
+          updateEmotionFilterBar();
+        }, 250);
       });
       clearSearch.addEventListener('click', async () => {
         searchInput.value = '';
         clearSearch.classList.remove('visible');
-        await TreeHole.renderQuestions(window.allQuestions || []);
+        if (window.emotionFilter) {
+          await applyEmotionFilter(window.emotionFilter);
+        } else {
+          window.hasMore = (window.allQuestions && window.allQuestions.length >= (window.TreeHole.pageSize || 20));
+          await TreeHole.renderQuestions(window.allQuestions || []);
+        }
       });
+    }
+
+    // 无限滚动监听（仅广场页）
+    if (document.getElementById('questions-list')) {
+      var scrollTimer = null;
+      window.addEventListener('scroll', function() {
+        if (scrollTimer) clearTimeout(scrollTimer);
+        scrollTimer = setTimeout(function() {
+          if (!window.hasMore || window.isLoadingMore) return;
+          var scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+          var windowHeight = window.innerHeight;
+          var docHeight = document.documentElement.scrollHeight;
+          if (docHeight - scrollTop - windowHeight < 300) {
+            showLoadingIndicator();
+            TreeHole.loadMoreQuestions();
+          }
+        }, 200);
+      }, { passive: true });
     }
 
     const submitBtn = document.getElementById('submit-question-btn');
@@ -854,23 +1000,32 @@ window.addEventListener('DOMContentLoaded', async () => {
           document.getElementById('loginModal').style.display = 'flex';
           return;
         }
-        
+
         const contentInput = document.getElementById('question-content');
         const validation = validateContent(contentInput.value);
-        
+
         if (!validation.valid) {
           showMessage('question-msg', validation.error, 'error');
           return;
         }
-        
+
         hideMessage('question-msg');
         const nicknameInput = document.getElementById('question-nickname');
         saveNickname(nicknameInput.value);
-        
+
+        // 先审核内容
         const originalText = submitBtn.textContent;
-        submitBtn.textContent = '正在发送...';
+        submitBtn.textContent = '审核中...';
         submitBtn.disabled = true;
-        
+        const moderation = await TreeHole.moderateContent(validation.trimmed);
+        if (!moderation.passed) {
+          showMessage('question-msg', moderation.reason, 'error', 4000);
+          submitBtn.textContent = '放回树洞';
+          submitBtn.disabled = false;
+          return;
+        }
+
+        submitBtn.textContent = '正在发送...';
         const res = await TreeHole.submitQuestionAPI(validation.trimmed, nicknameInput.value, window.currentUserId);
         
         submitBtn.textContent = originalText;
@@ -886,56 +1041,6 @@ window.addEventListener('DOMContentLoaded', async () => {
       });
     }
 
-    const answerBtn = document.getElementById('submit-answer-btn');
-    if (answerBtn) {
-      const urlParams = new URLSearchParams(window.location.search);
-      const questionId = urlParams.get('id');
-      if (!questionId) {
-        document.getElementById('question-detail').innerHTML = '<p>缺少问题ID</p>';
-        return;
-      }
-      initQuestionDetailPage(questionId); 
-
-      answerBtn.addEventListener('click', async () => {
-        if (!window.currentUserId) {
-          document.getElementById('loginModal').style.display = 'flex';
-          return;
-        }
-        
-        const contentInput = document.getElementById('answer-content');
-        const validation = validateContent(contentInput.value);
-        
-        if (!validation.valid) {
-          showMessage('answer-msg', validation.error, 'error');
-          return;
-        }
-        
-        hideMessage('answer-msg');
-        const nicknameInput = document.getElementById('answer-nickname');
-        saveNickname(nicknameInput.value);
-
-        const originalText = answerBtn.textContent;
-        answerBtn.textContent = '正在发送...';
-        answerBtn.disabled = true;
-        
-        const res = await TreeHole.submitAnswerAPI(questionId, validation.trimmed, nicknameInput.value);
-        
-        answerBtn.textContent = originalText;
-        answerBtn.disabled = false;
-        
-        if (res.success) {
-          contentInput.value = '';
-          showMessage('answer-msg', '发送成功，已放进树洞 🌿', 'success');
-          await initQuestionDetailPage(questionId); 
-          const answersContainer = document.getElementById('answers-list');
-          if (answersContainer) {
-            answersContainer.scrollIntoView({ behavior: 'smooth', block: 'end' });
-          }
-        } else {
-          showMessage('answer-msg', res.error, 'error', 3000);
-        }
-      });
-    }
 
     // 全局头像点击事件委托
     document.body.addEventListener('click', function(e) {

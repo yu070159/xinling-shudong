@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
   <meta charset="UTF-8">
@@ -24,10 +24,11 @@
   
   <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🌳</text></svg>">
   
-  <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+  <link rel="preconnect" href="https://unpkg.com" crossorigin>
   <link rel="preconnect" href="https://oazntpskcghfxzcylnef.supabase.co" crossorigin>
   <link rel="stylesheet" href="style.css">
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+  <script src="utils.js"></script>
 </head>
 <body>
   <header class="forest-header">
@@ -65,10 +66,7 @@
 
   <script>
     // 优先使用全局实例，不存在则降级创建
-    const sb = window.TreeHole?.supabase || supabase.createClient(
-      'https://oazntpskcghfxzcylnef.supabase.co',
-      'sb_publishable_5i3Z5mF3VCwoEaXPaIJebA_55H6w13g'
-    );
+    const sb = window.TreeHole.supabase;
 
     // 题库：20题，每题选项对应维度
     const questions = [
@@ -176,9 +174,31 @@
         </div>
       `;
       const resultContainer = document.getElementById('resultContainer');
-      resultContainer.innerHTML = html;
+      resultContainer.innerHTML = html + '<div class="ai-interpretation" id="aiInterpretation"><span class="interpretation-loading">🌿 树灵正在为你生成深度解读...</span></div>';
       resultContainer.style.display = 'block';
       document.getElementById('submitTestBtn').style.display = 'none';
+
+      // 调用 Gemini 生成深度性格解读
+      try {
+        const res = await fetch(window.API_BASE + '/api/gemini', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            prompt: `你是一位温暖的心理咨询师。一位用户刚完成了MBTI测试，类型为"${type}"（${desc}）。请用200字左右，以诗意温暖的语言，从以下角度解读这个性格类型：1）核心特质与优势 2）情感需求与人际模式 3）适合的自我成长方向。语气像朋友在深夜聊天，避免说教感。直接回复解读内容，不要加"亲爱的用户"之类的称呼。`
+          })
+        });
+
+        const data = await res.json();
+        const text = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+        if (text) {
+          document.getElementById('aiInterpretation').innerHTML = `<div class="interpretation-content">${text.replace(/\n/g, '<br>')}</div>`;
+        } else {
+          document.getElementById('aiInterpretation').style.display = 'none';
+        }
+      } catch (e) {
+        console.warn('Gemini解读失败:', e);
+        document.getElementById('aiInterpretation').style.display = 'none';
+      }
 
       // 保存按钮事件
       document.getElementById('saveMbtiBtn').addEventListener('click', async () => {
@@ -209,30 +229,7 @@
       });
     });
 
-    function updateTextSmoothly(elementId, newText) {
-      const element = document.getElementById(elementId);
-      if (!element) return;
-      const currentText = element.textContent;
-      if (currentText === newText) return;
-      
-      const duration = 200;
-      const startTime = Date.now();
-      
-      function animate() {
-        const elapsed = Date.now() - startTime;
-        const progress = Math.min(elapsed / duration, 1);
-        
-        if (progress < 1) {
-          element.style.opacity = 1 - progress;
-          requestAnimationFrame(animate);
-        } else {
-          element.textContent = newText;
-          element.style.opacity = 1;
-        }
-      }
-      
-      animate();
-    }
+    // updateTextSmoothly 由 utils.js 全局提供
 
     // 初始化
     window.addEventListener('DOMContentLoaded', async () => {

@@ -24,11 +24,11 @@
   
   <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🌳</text></svg>">
   
-  <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+  <link rel="preconnect" href="https://unpkg.com" crossorigin>
   <link rel="preconnect" href="https://oazntpskcghfxzcylnef.supabase.co" crossorigin>
   <link rel="stylesheet" href="style.css">
-  <!-- 关键修复：恢复正确的 Supabase SDK 地址 -->
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+  <script src="utils.js"></script>
   <style>
     .chat-container { max-width: 680px; margin: 0 auto; padding: 20px; padding-top: 80px; color: var(--text-primary); }
     .page-title { text-align: center; color: var(--accent); margin-bottom: 30px; }
@@ -59,6 +59,10 @@
     .chat-list-right { text-align: right; }
     .chat-time { font-size: 12px; color: var(--text-muted); display: block; }
     .chat-list-unread { background: var(--danger); color: white; border-radius: 50%; width: 20px; height: 20px; display: inline-flex; align-items: center; justify-content: center; font-size: 11px; margin-top: 4px; }
+    .delete-chat-btn { color: var(--danger); background: transparent; border: none; cursor: pointer; font-size: 16px; padding: 4px 8px; border-radius: 4px; opacity: 0; transition: opacity 0.2s; }
+    .chat-list-item:hover .delete-chat-btn { opacity: 1; }
+    .delete-chat-btn:hover { background: rgba(220, 53, 69, 0.1); }
+    .friend-badge { color: var(--accent); font-size: 11px; margin-left: 6px; }
 
     .back-link { color: var(--text-secondary); text-decoration: none; margin-bottom: 20px; display: inline-block; }
     .back-link:hover { color: var(--text-primary); }
@@ -93,7 +97,7 @@
 
   <div class="chat-container">
     <a href="index.html" class="back-link">← 返回树洞</a>
-    <h1 class="page-title">树友对话</h1>
+    <h1 class="page-title">树友对话 <span id="totalUnreadBadge" style="display:none;background:var(--danger);color:white;border-radius:12px;padding:2px 8px;font-size:13px;vertical-align:middle;"></span></h1>
 
     <div class="pinned-section" id="pinnedSection">
       <div class="section-title">✨ 树洞管理员</div>
@@ -110,21 +114,36 @@
   </div>
 
   <script>
-    const sb = supabase.createClient('https://oazntpskcghfxzcylnef.supabase.co', 'sb_publishable_5i3Z5mF3VCwoEaXPaIJebA_55H6w13g');
-    const MY_USER_ID = 'fafab57d-9188-4de8-ab53-c0802edfe73c'; 
+    const sb = window.TreeHole.supabase;
+    // 管理员用户ID — 部署后请改为你的管理员账号UUID（在 Supabase → Authentication → Users 查看）
+    const ADMIN_USER_ID = 'fafab57d-9188-4de8-ab53-c0802edfe73c';
+
+    // escapeHtml 由 utils.js 全局提供
 
     async function loadChats() {
       const { data: { user } } = await sb.auth.getUser();
       if (!user) { window.location.href = 'welcome.html'; return; }
 
-      const { data: sent, error: err1 } = await sb.from('messages').select('receiver_id').eq('sender_id', user.id);
-      const { data: received, error: err2 } = await sb.from('messages').select('sender_id').eq('receiver_id', user.id);
-      if (err1 || err2) { console.error(err1, err2); return; }
+      // 1. 获取有过聊天记录的用户
+      const { data: sent } = await sb.from('messages').select('receiver_id').eq('sender_id', user.id);
+      const { data: received } = await sb.from('messages').select('sender_id').eq('receiver_id', user.id);
 
-      const allPartnerIds = new Set();
-      sent.forEach(m => allPartnerIds.add(m.receiver_id));
-      received.forEach(m => allPartnerIds.add(m.sender_id));
-      const uniquePartnerIds = Array.from(allPartnerIds).filter(id => id !== user.id);
+      const messagePartnerIds = new Set();
+      if (sent) sent.forEach(m => messagePartnerIds.add(m.receiver_id));
+      if (received) received.forEach(m => messagePartnerIds.add(m.sender_id));
+
+      // 2. 获取当前已接受的好友（每次都重新查询，确保实时性）
+      const { data: friends1 } = await sb.from('friend_requests').select('to_user').eq('from_user', user.id).eq('status', 'accepted');
+      const { data: friends2 } = await sb.from('friend_requests').select('from_user').eq('to_user', user.id).eq('status', 'accepted');
+
+      const friendIds = new Set();
+      if (friends1) friends1.forEach(f => friendIds.add(f.to_user));
+      if (friends2) friends2.forEach(f => friendIds.add(f.from_user));
+
+      // 3. 只显示有过聊天记录的用户（不再强行展示所有好友）
+      const allPartnerIds = new Set(messagePartnerIds);
+      allPartnerIds.delete(user.id);
+      const uniquePartnerIds = Array.from(allPartnerIds);
 
       if (uniquePartnerIds.length === 0) {
         document.getElementById('otherChatsList').innerHTML = '';
@@ -134,6 +153,7 @@
       }
       document.getElementById('emptyOtherChats').style.display = 'none';
 
+      // 4. 获取所有伙伴的昵称和头像
       const { data: profiles } = await sb.from('profiles').select('user_id, nickname, avatar_url').in('user_id', uniquePartnerIds);
       const nicknameMap = {};
       const avatarMap = {};
@@ -145,58 +165,138 @@
       const otherChatsContainer = document.getElementById('otherChatsList');
       otherChatsContainer.innerHTML = '';
 
+      // 批量获取所有伙伴的最后一条消息和未读数，避免 N+1
+      const [sentResult, receivedResult, unreadResult] = await Promise.all([
+        sb.from('messages').select('content, created_at, sender_id, receiver_id')
+          .eq('sender_id', user.id).in('receiver_id', uniquePartnerIds)
+          .order('created_at', { ascending: false }),
+        sb.from('messages').select('content, created_at, sender_id, receiver_id')
+          .eq('receiver_id', user.id).in('sender_id', uniquePartnerIds)
+          .order('created_at', { ascending: false }),
+        sb.from('messages').select('sender_id')
+          .eq('receiver_id', user.id).in('sender_id', uniquePartnerIds).eq('is_read', false)
+      ]);
+
+      // 从批量结果中提取每个伙伴的最后一条消息（忽略个别查询错误，优雅降级）
+      const lastMsgMap = {};
+      const allMessages = [
+        ...(sentResult.data && !sentResult.error ? sentResult.data : []),
+        ...(receivedResult.data && !receivedResult.error ? receivedResult.data : [])
+      ];
+      allMessages
+        .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
+        .forEach(msg => {
+          const pid = msg.sender_id === user.id ? msg.receiver_id : msg.sender_id;
+          if (!lastMsgMap[pid]) lastMsgMap[pid] = msg;
+        });
+
+      // 从批量结果中计算每个伙伴的未读数
+      const unreadMap = {};
+      if (unreadResult.data) unreadResult.data.forEach(m => {
+        unreadMap[m.sender_id] = (unreadMap[m.sender_id] || 0) + 1;
+      });
+
       for (const partnerId of uniquePartnerIds) {
-        const { data: lastMsg } = await sb.from('messages')
-          .select('content, created_at, sender_id')
-          .or(`and(sender_id.eq.${user.id},receiver_id.eq.${partnerId}),and(sender_id.eq.${partnerId},receiver_id.eq.${user.id})`)
-          .order('created_at', { ascending: false }).limit(1).single();
-
-        const { count: unreadCount } = await sb.from('messages')
-          .select('*', { count: 'exact', head: true })
-          .eq('sender_id', partnerId).eq('receiver_id', user.id).eq('is_read', false);
-
-        const partnerName = nicknameMap[partnerId] || '未知树友';
+        const lastMsg = lastMsgMap[partnerId];
+        const unreadCount = unreadMap[partnerId] || 0;
+        const partnerName = escapeHtml(nicknameMap[partnerId] || '未知树友');
         const isMine = lastMsg && lastMsg.sender_id === user.id;
-        const lastMsgText = lastMsg ? (isMine ? `我: ${lastMsg.content}` : lastMsg.content) : '开始聊天吧';
+        const lastMsgText = lastMsg ? (isMine ? `我: ${escapeHtml(lastMsg.content)}` : escapeHtml(lastMsg.content)) : '开始聊天吧';
 
         const avatarUrl = avatarMap[partnerId];
-        // 统一使用 user-avatar 和 user-avatar-placeholder 类名，并添加 data-user-id 属性
-        const avatarHtml = avatarUrl 
+        const avatarHtml = avatarUrl
           ? `<img src="${avatarUrl}" class="user-avatar" alt="${partnerName}" data-user-id="${partnerId}" style="width:40px;height:40px;">`
           : `<div class="user-avatar-placeholder" data-user-id="${partnerId}" style="width:40px;height:40px;font-size:16px;">🌱</div>`;
-          
+
+        const isFriend = friendIds.has(partnerId);
+        const friendBadge = isFriend ? ' <span class="friend-badge">🌿树友</span>' : '';
+
         const item = document.createElement('div');
         item.className = 'chat-list-item';
         item.innerHTML = `
           ${avatarHtml}
           <div class="chat-info">
-            <div class="chat-partner-name">${partnerName}</div>
+            <div class="chat-partner-name">${partnerName}${friendBadge}</div>
             <div class="chat-last-msg">${lastMsgText}</div>
           </div>
           <div class="chat-list-right">
             <span class="chat-time">${lastMsg ? new Date(lastMsg.created_at).toLocaleDateString() : ''}</span>
             ${unreadCount > 0 ? `<span class="chat-list-unread">${unreadCount}</span>` : ''}
           </div>
+          <button class="delete-chat-btn" data-user-id="${partnerId}" title="删除聊天记录">✕</button>
         `;
-        item.addEventListener('click', () => { window.location.href = `chat-detail.html?user=${partnerId}`; });
+        item.addEventListener('click', (e) => {
+          if (e.target.classList.contains('delete-chat-btn')) return;
+          window.location.href = `chat-detail.html?user=${partnerId}`;
+        });
         otherChatsContainer.appendChild(item);
       }
 
-      loadPinnedStatus();
+      var pinnedCount = await loadPinnedStatus();
+
+      // 汇总所有未读数并显示在标题旁
+      var totalUnread = 0;
+      if (unreadResult.data) unreadResult.data.forEach(function() { totalUnread++; });
+      totalUnread += pinnedCount;
+      var totalBadge = document.getElementById('totalUnreadBadge');
+      if (totalUnread > 0) {
+        totalBadge.style.display = 'inline';
+        totalBadge.textContent = totalUnread + ' 条未读';
+      } else {
+        totalBadge.style.display = 'none';
+      }
     }
+
+    document.getElementById('otherChatsList').addEventListener('click', async (e) => {
+      const deleteBtn = e.target.closest('.delete-chat-btn');
+      if (!deleteBtn) return;
+      
+      const partnerId = deleteBtn.getAttribute('data-user-id');
+      const chatItem = deleteBtn.closest('.chat-list-item');
+      const { data: { user } } = await sb.auth.getUser();
+      
+      if (!user) return;
+      
+      if (!confirm('确定要删除与该树友的全部聊天记录吗？此操作不可恢复。')) return;
+
+      deleteBtn.disabled = true;
+      deleteBtn.textContent = '...';
+      try {
+        const results = await Promise.all([
+          sb.from('messages').delete().eq('sender_id', user.id).eq('receiver_id', partnerId),
+          sb.from('messages').delete().eq('sender_id', partnerId).eq('receiver_id', user.id)
+        ]);
+        const error = results[0].error || results[1].error;
+
+        if (error) throw error;
+
+        chatItem.remove();
+        
+        const remainingItems = document.querySelectorAll('#otherChatsList .chat-list-item');
+        if (remainingItems.length === 0) {
+          document.getElementById('emptyOtherChats').style.display = 'block';
+        }
+      } catch (err) {
+        console.error('删除聊天记录失败:', err);
+        deleteBtn.disabled = false;
+        deleteBtn.textContent = '✕';
+        alert('删除失败，请稍后重试');
+      }
+    });
 
     async function loadPinnedStatus() {
       const { data: { user } } = await sb.auth.getUser();
-      if (!user) return;
+      if (!user) return 0;
       const { count } = await sb.from('messages').select('*', { count: 'exact', head: true })
-        .eq('sender_id', MY_USER_ID).eq('receiver_id', user.id).eq('is_read', false);
+        .eq('sender_id', ADMIN_USER_ID).eq('receiver_id', user.id).eq('is_read', false);
       const badge = document.getElementById('pinnedUnreadBadge');
-      if (count > 0) { badge.style.display = 'inline'; badge.textContent = count; } 
+      if (count > 0) { badge.style.display = 'inline'; badge.textContent = count; }
       else { badge.style.display = 'none'; }
+      return count || 0;
     }
 
     document.getElementById('pinnedChatBtn').addEventListener('click', () => {
-      window.location.href = `chat-detail.html?user=${MY_USER_ID}`;
+      window.location.href = `chat-detail.html?user=${ADMIN_USER_ID}`;
     });
 
     window.addEventListener('DOMContentLoaded', async () => {

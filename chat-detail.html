@@ -21,10 +21,11 @@
   <meta name="twitter:description" content="一个匿名倾诉与互助的温暖社区。在深夜森林里，写下你的心事，有人会温柔地倾听。">
   <meta name="twitter:image" content="https://xinling-shudong.vercel.app/images/og-image.jpg">
   <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🌳</text></svg>">
-  <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+  <link rel="preconnect" href="https://unpkg.com" crossorigin>
   <link rel="preconnect" href="https://oazntpskcghfxzcylnef.supabase.co" crossorigin>
   <link rel="stylesheet" href="style.css">
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+  <script src="utils.js"></script>
   <style>
     .detail-container { max-width: 680px; margin: 0 auto; padding: 20px; padding-top: 80px; display: flex; flex-direction: column; height: calc(100vh - 80px); color: var(--text-primary); }
     .msg-header { display: flex; align-items: center; padding-bottom: 15px; border-bottom: 1px solid var(--border-light); margin-bottom: 15px; }
@@ -83,70 +84,153 @@
   </div>
 
   <script>
-    const sb = supabase.createClient('https://oazntpskcghfxzcylnef.supabase.co', 'sb_publishable_5i3Z5mF3VCwoEaXPaIJebA_55H6w13g');
+    const sb = window.TreeHole.supabase;
     const urlParams = new URLSearchParams(window.location.search);
     const partnerId = urlParams.get('user');
 
     let myAvatar = null;
     let partnerAvatar = null;
+    let currentUserId = null;
+    let channel = null;
 
-    async function loadAvatars(userId) {
-      const { data: myProfile } = await sb.from('profiles').select('avatar_url').eq('user_id', userId).single();
-      const { data: partnerProfile } = await sb.from('profiles').select('avatar_url').eq('user_id', partnerId).single();
-      myAvatar = myProfile?.avatar_url || null;
-      partnerAvatar = partnerProfile?.avatar_url || null;
+    async function loadProfiles(userId) {
+      document.getElementById('navNickname').textContent = '树友';
+      document.getElementById('partnerName').textContent = '未知树友';
+      const { data: profiles } = await sb.from('profiles')
+        .select('user_id, nickname, avatar_url')
+        .in('user_id', [userId, partnerId]);
+      if (profiles) {
+        profiles.forEach(p => {
+          if (p.user_id === userId) {
+            myAvatar = p.avatar_url || null;
+            document.getElementById('navNickname').textContent = p.nickname || '树友';
+          } else if (p.user_id === partnerId) {
+            partnerAvatar = p.avatar_url || null;
+            document.getElementById('partnerName').textContent = p.nickname || '未知树友';
+          }
+        });
+      }
     }
+
+    // escapeHtml 由 utils.js 全局提供
 
     function getAvatarHtml(avatarUrl, userId = null) {
       const dataAttr = userId ? ` data-user-id="${userId}"` : '';
       if (avatarUrl) {
-        return `<img src="${avatarUrl}" class="msg-avatar" alt="头像"${dataAttr}>`;
+        return `<img src="${escapeHtml(avatarUrl)}" class="msg-avatar" alt="头像"${dataAttr}>`;
       }
       return `<div class="msg-avatar-placeholder"${dataAttr}>🌱</div>`;
     }
 
-    async function loadMessages() {
-      const { data: { user } } = await sb.auth.getUser();
-      if (!user || !partnerId) { window.location.href = 'chat.html'; return; }
+    function updateMsgUI(container, msg, userId) {
+      const isSent = msg.sender_id === userId;
+      const avatar = isSent ? myAvatar : partnerAvatar;
+      const senderId = msg.sender_id;
+      const avatarHtml = getAvatarHtml(avatar, senderId);
+      const contentHTML = escapeHtml(msg.content);
 
-      await loadAvatars(user.id);
+      container.className = 'msg-container ' + (isSent ? 'sent' : 'received');
+      container.setAttribute('data-msg-id', msg.id);
 
-      await sb.from('messages').update({ is_read: true }).eq('sender_id', partnerId).eq('receiver_id', user.id);
+      if (!isSent) {
+        container.innerHTML = avatarHtml + '<div class="msg-content">' + contentHTML + '<div class="msg-time">' + new Date(msg.created_at).toLocaleTimeString() + '</div></div>';
+      } else {
+        container.innerHTML = '<div class="msg-content">' + contentHTML + '<div class="msg-time">' + new Date(msg.created_at).toLocaleTimeString() + '</div></div>' + avatarHtml;
+      }
+    }
 
-      const { data: messages } = await sb.from('messages').select('*')
-        .or(`and(sender_id.eq.${user.id},receiver_id.eq.${partnerId}),and(sender_id.eq.${partnerId},receiver_id.eq.${user.id})`)
-        .order('created_at', { ascending: true });
-
+    function appendMessageUI(msg, userId) {
       const list = document.getElementById('msgList');
-      list.innerHTML = '';
-      if (messages) messages.forEach(msg => {
-        const isSent = msg.sender_id === user.id;
-        const avatar = isSent ? myAvatar : partnerAvatar;
-        const senderId = msg.sender_id;
-        const avatarHtml = getAvatarHtml(avatar, senderId);
-        
-        const container = document.createElement('div');
-        container.className = `msg-container ${isSent ? 'sent' : 'received'}`;
-        
-        if (!isSent) {
-          container.innerHTML = `${avatarHtml}<div class="msg-content">${msg.content}<div class="msg-time">${new Date(msg.created_at).toLocaleTimeString()}</div></div>`;
-        } else {
-          container.innerHTML = `<div class="msg-content">${msg.content}<div class="msg-time">${new Date(msg.created_at).toLocaleTimeString()}</div></div>${avatarHtml}`;
-        }
-        list.appendChild(container);
-      });
+      // 去重：查找已有元素，有则更新，无则创建
+      const existing = list.querySelector(`[data-msg-id="${msg.id}"]`);
+      if (existing) {
+        updateMsgUI(existing, msg, userId);
+        return;
+      }
+
+      const container = document.createElement('div');
+      updateMsgUI(container, msg, userId);
+      list.appendChild(container);
       list.scrollTop = list.scrollHeight;
+    }
+
+    async function loadMessages() {
+      if (!currentUserId || !partnerId) { window.location.href = 'chat.html'; return; }
+
+      // 标记已读
+      try {
+        await sb.from('messages').update({ is_read: true })
+          .eq('sender_id', partnerId).eq('receiver_id', currentUserId);
+      } catch (e) { console.warn('标记已读失败:', e.message); }
+
+      // 拆成两个简单查询，避免复杂 or 语法导致 400
+      try {
+        var sentResult, receivedResult;
+        await Promise.all([
+          sb.from('messages').select('*').eq('sender_id', currentUserId).eq('receiver_id', partnerId)
+            .then(function(r) { sentResult = r; }),
+          sb.from('messages').select('*').eq('sender_id', partnerId).eq('receiver_id', currentUserId)
+            .then(function(r) { receivedResult = r; })
+        ]);
+
+        var sentMessages = (sentResult && sentResult.data) ? sentResult.data : [];
+        var receivedMessages = (receivedResult && receivedResult.data) ? receivedResult.data : [];
+
+        var allMessages = sentMessages.concat(receivedMessages)
+          .sort(function(a, b) { return new Date(a.created_at) - new Date(b.created_at); });
+
+        var list = document.getElementById('msgList');
+        list.innerHTML = '';
+        allMessages.forEach(function(msg) { appendMessageUI(msg, currentUserId); });
+        list.scrollTop = list.scrollHeight;
+      } catch (e) {
+        console.error('加载消息失败:', e.message);
+      }
+    }
+
+    // 本地敏感词过滤
+    var SENSITIVE_WORDS = [
+      '傻逼', '操你', '草泥马', '艹你', '你妈', '他妈', '去你妈',
+      'sb', 'SB', 'fuck', 'FUCK', 'shit', 'SHIT',
+      '去死', '废物', '白痴', '脑残', '智障', '弱智',
+      '杂种', '贱人', '骚货', '婊子', '狗屁', '混蛋', '王八蛋'
+    ];
+
+    function filterMessage(content) {
+      var filtered = content;
+      SENSITIVE_WORDS.forEach(function(word) {
+        var stars = '';
+        for (var i = 0; i < word.length; i++) { stars += '*'; }
+        var escaped = word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        filtered = filtered.replace(new RegExp(escaped, 'g'), stars);
+      });
+      return filtered;
     }
 
     document.getElementById('sendBtn').addEventListener('click', async () => {
       const input = document.getElementById('msgInput');
-      const content = input.value.trim();
-      if (!content) return;
-      const { data: { user } } = await sb.auth.getUser();
-      if (!user) return;
-      await sb.from('messages').insert([{ sender_id: user.id, receiver_id: partnerId, content }]);
-      input.value = '';
-      loadMessages();
+      const rawContent = input.value.trim();
+      if (!rawContent || !currentUserId) return;
+      var content = filterMessage(rawContent);
+      const btn = document.getElementById('sendBtn');
+      btn.disabled = true;
+      btn.textContent = '...';
+      try {
+        const { data, error } = await sb.from('messages').insert([{
+          sender_id: currentUserId,
+          receiver_id: partnerId,
+          content: content
+        }]).select();
+        if (error) throw error;
+        input.value = '';
+        if (data && data[0]) {
+          appendMessageUI(data[0], currentUserId);
+        }
+      } catch (e) {
+        alert('发送失败，请重试');
+      }
+      btn.disabled = false;
+      btn.textContent = '发送';
     });
 
     window.addEventListener('DOMContentLoaded', async () => {
@@ -157,19 +241,45 @@
 
       const { data: { user } } = await sb.auth.getUser();
       if (!user) { window.location.href = 'welcome.html'; return; }
+      currentUserId = user.id;
 
-      // 更新导航栏状态
+      if (!partnerId) { window.location.href = 'chat.html'; return; }
+
       navGuest.style.display = 'none';
       navLoggedIn.style.display = 'inline';
-      const { data: myProfile } = await sb.from('profiles').select('nickname').eq('user_id', user.id).single();
-      navNickname.textContent = myProfile?.nickname || '树友';
       navLogout.addEventListener('click', (e) => { e.preventDefault(); sb.auth.signOut().then(() => window.location.href='welcome.html'); });
 
-      // 加载对方昵称和消息
-      const { data: partnerProfile } = await sb.from('profiles').select('nickname').eq('user_id', partnerId).single();
-      document.getElementById('partnerName').textContent = partnerProfile?.nickname || '未知树友';
-      loadMessages();
+      // 批量加载双方资料（昵称+头像），一次查询替代原来的4次
+      await loadProfiles(user.id);
+
+      // 首次加载消息
+      await loadMessages();
+
+      // Supabase Realtime 订阅（需在 Supabase → Database → Replication 中启用 messages 表）
+      channel = sb.channel('chat-detail')
+        .on('postgres_changes', {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'messages'
+        }, async (payload) => {
+          const msg = payload.new;
+          if ((msg.sender_id === currentUserId && msg.receiver_id === partnerId) ||
+              (msg.sender_id === partnerId && msg.receiver_id === currentUserId)) {
+            appendMessageUI(msg, currentUserId);
+            if (msg.sender_id === partnerId) {
+              await sb.from('messages').update({ is_read: true }).eq('id', msg.id);
+            }
+          }
+        })
+        .subscribe();
+
+      // 兜底轮询：Realtime 未开启时靠轮询刷新消息
       setInterval(loadMessages, 5000);
+    });
+
+    // 页面关闭时清理 Realtime 订阅
+    window.addEventListener('beforeunload', () => {
+      if (channel) { sb.removeChannel(channel); }
     });
   </script>
 

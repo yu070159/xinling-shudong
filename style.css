@@ -1151,6 +1151,39 @@ textarea.profile-input {
   }
 }
 
+/* AI 解读区域 */
+.ai-interpretation {
+  margin-top: 16px;
+  padding: 16px;
+  background: var(--bg-card, #fdf8f3);
+  border: 1px solid var(--border-light, #e5ddd5);
+  border-radius: 12px;
+}
+.interpretation-loading {
+  color: var(--text-muted, #999);
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.interpretation-loading::before {
+  content: '';
+  width: 12px;
+  height: 12px;
+  border: 2px solid var(--accent);
+  border-top-color: transparent;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+.interpretation-content {
+  color: var(--text-primary);
+  font-size: 14px;
+  line-height: 1.8;
+}
+
 /* ========== 全局动效 ========== */
 
 /* 全局文案平滑切换 */
@@ -1537,4 +1570,49 @@ body {
   font-size: 16px;
   line-height: 30px;
   text-align: center;
+}
+
+/* 每日树语卡片 */
+.daily-whisper {
+  max-width: 680px;
+  margin: 0 auto 16px;
+  padding: 14px 20px;
+  background: linear-gradient(135deg, rgba(139, 169, 143, 0.08), rgba(139, 169, 143, 0.04));
+  border: 1px solid var(--border-light);
+  border-radius: 12px;
+  text-align: center;
+  animation: gentleFadeInUp 0.6s ease;
+}
+.daily-whisper-text {
+  color: var(--accent);
+  font-size: 14px;
+  line-height: 1.7;
+  font-style: italic;
+}
+.daily-whisper-text::before {
+  content: '🌿 ';
+}
+.daily-whisper-text::after {
+  content: ' 🌿';
+}
+
+/* 加载状态指示器 */
+.loading-state {
+  text-align: center;
+  padding: 40px 20px;
+  color: var(--text-muted);
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+.loading-state::before {
+  content: '';
+  width: 16px;
+  height: 16px;
+  border: 2px solid var(--border-medium);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
 }

@@ -24,10 +24,12 @@
   
   <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🌳</text></svg>">
   
-  <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+  <link rel="preconnect" href="https://unpkg.com" crossorigin>
   <link rel="preconnect" href="https://oazntpskcghfxzcylnef.supabase.co" crossorigin>
   <link rel="stylesheet" href="style.css">
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+  <script src="utils.js"></script>
+  <script src="app.js"></script>
   <style>
     .action-btns-row {
       display: flex;
@@ -52,13 +54,23 @@
       cursor: not-allowed;
     }
     .action-btn.favorite-btn {
-      color: var(--warm-heart);
+      color: #d4a02e;
+      border: 1px solid rgba(212, 160, 46, 0.3);
+      border-radius: 20px;
+      padding: 6px 14px;
+      background: rgba(212, 160, 46, 0.1);
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .action-btn.favorite-btn:hover {
+      transform: scale(1.08);
+      background: rgba(212, 160, 46, 0.2);
+      text-decoration: none;
     }
     .action-btn.delete-btn {
       color: var(--danger);
-    }
-    .action-btn.friend-btn {
-      color: var(--text-secondary);
     }
     .favorite-count {
       font-size: 12px;
@@ -145,6 +157,7 @@
       <div id="answer-msg" class="form-message"></div>
       <div class="form-row">
         <input type="text" id="answer-nickname" placeholder="匿名树友" maxlength="20">
+        <button id="ai-help-btn" style="background:var(--warm-heart);border:none;color:white;padding:0 14px;border-radius:10px;cursor:pointer;font-size:14px;white-space:nowrap;">🤖 AI 帮我想想</button>
         <button id="submit-answer-btn">💌 送出回应</button>
       </div>
     </section>
@@ -163,70 +176,33 @@
   <script src="ai-float.js"></script>
   
   <script>
-    const sb = window.supabase.createClient(
-      'https://oazntpskcghfxzcylnef.supabase.co',
-      'sb_publishable_5i3Z5mF3VCwoEaXPaIJebA_55H6w13g'
-    );
+    const sb = window.TreeHole.supabase;
 
-    function formatDate(dateString) {
-      const now = new Date();
-      const date = new Date(dateString);
-      const diff = Math.floor((now - date) / 1000);
-      if (diff < 60) return '刚刚';
-      if (diff < 3600) return Math.floor(diff / 60) + '分钟前';
-      if (diff < 86400) return Math.floor(diff / 3600) + '小时前';
-      if (diff < 2592000) return Math.floor(diff / 86400) + '天前';
-      return date.toLocaleDateString('zh-CN');
-    }
+    // escapeHtml, formatDate 由 utils.js 全局提供
 
-    function escapeHtml(text) {
-      const div = document.createElement('div');
-      div.textContent = text;
-      return div.innerHTML;
-    }
-
-    function hasReacted(targetType, targetId) {
-      return localStorage.getItem(`reacted_${targetType}_${targetId}`) === '1';
-    }
-
-    function setReactedLocal(targetType, targetId) {
-      localStorage.setItem(`reacted_${targetType}_${targetId}`, '1');
-    }
-
-    async function addReaction(targetType, targetId) {
-      if (hasReacted(targetType, targetId)) return true;
+    async function analyzeEmotion(questionId, content) {
+      const cacheKey = `emotion_${questionId}`;
+      const cached = localStorage.getItem(cacheKey);
+      if (cached) return cached;
       try {
-        const { error } = await sb.from('reactions').insert({
-          target_type: targetType,
-          target_id: targetId
+        const res = await fetch(window.API_BASE + '/api/gemini', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            prompt: `分析心事的主要情绪，只返回一个词（从这些选：焦虑、孤独、迷茫、委屈、愤怒、疲惫、无奈、自责、想念、感动、喜悦、期待）。\n心事：${content.substring(0, 200)}`
+          })
         });
-        if (error) throw error;
-        setReactedLocal(targetType, targetId);
-        return true;
-      } catch (err) {
-        console.error('添加反应失败:', err);
-        return false;
-      }
+        const data = await res.json();
+        const emotion = data.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
+        if (emotion) {
+          try { localStorage.setItem(cacheKey, emotion); } catch (e) {}
+          return emotion;
+        }
+      } catch (e) {}
+      return null;
     }
 
-    async function getReactionCounts(targetType, targetIds) {
-      if (!targetIds || targetIds.length === 0) return {};
-      try {
-        const { data, error } = await sb
-          .from('reactions')
-          .select('target_id')
-          .eq('target_type', targetType)
-          .in('target_id', targetIds);
-        if (error) throw error;
-        return data.reduce((counts, r) => {
-          counts[r.target_id] = (counts[r.target_id] || 0) + 1;
-          return counts;
-        }, {});
-      } catch (err) {
-        console.error('获取反应计数失败:', err);
-        return {};
-      }
-    }
+    // hasReacted, toggleReaction, getReactionCounts 由 app.js 统一提供（window.TreeHole.*）
 
     // 批量获取用户头像
     async function getAvatarMap(userIds) {
@@ -272,6 +248,8 @@
         return;
       }
 
+      questionDetailEl.innerHTML = '<div class="loading-state">正在打开这份心事...</div>';
+
       const { data: { user } } = await sb.auth.getUser();
       const currentUserId = user?.id || null;
 
@@ -310,14 +288,14 @@
         .eq('question_id', questionId)
         .order('created_at', { ascending: true });
 
-      const qCounts = await getReactionCounts('question', [questionId]);
+      const qCounts = await window.TreeHole.getReactionCounts('question', [questionId]);
       const questionHeartCount = qCounts[questionId] || 0;
-      const questionReacted = hasReacted('question', questionId);
+      const questionReacted = await window.TreeHole.hasReacted('question', questionId);
 
       let answerCounts = {};
       if (answers && answers.length > 0) {
         const answerIds = answers.map(a => a.id);
-        answerCounts = await getReactionCounts('answer', answerIds);
+        answerCounts = await window.TreeHole.getReactionCounts('answer', answerIds);
       }
 
       let favoriteCount = 0;
@@ -337,17 +315,6 @@
         isFavorited = !!favData;
       }
 
-      let friendStatus = null;
-      if (currentUserId && question.user_id && question.user_id !== currentUserId) {
-        const { data: reqData } = await sb
-          .from('friend_requests')
-          .select('status')
-          .eq('from_user', currentUserId)
-          .eq('to_user', question.user_id)
-          .maybeSingle();
-        friendStatus = reqData?.status || null;
-      }
-
       const isOwner = currentUserId && question.user_id === currentUserId;
 
       // 收集所有需要头像的用户 ID，批量获取头像
@@ -357,33 +324,19 @@
       let actionBtnsHtml = `<div class="action-btns-row">`;
       actionBtnsHtml += `
         <button class="heart-btn ${questionReacted ? 'reacted' : ''}"
-                data-type="question" data-id="${questionId}"
-                ${questionReacted ? 'disabled' : ''}>
-          ${questionReacted ? '♡' : '♥'} <span class="count">${questionHeartCount}</span>
+                data-type="question" data-id="${questionId}">
+          ${questionReacted ? '♥' : '♡'} <span class="count">${questionHeartCount}</span>
         </button>
       `;
       if (currentUserId) {
         actionBtnsHtml += `
           <button class="action-btn favorite-btn" id="favoriteBtn" data-favorited="${isFavorited}">
-            ${isFavorited ? '★ 已收藏' : '☆ 收藏'}<span class="favorite-count">(${favoriteCount})</span>
+            ${isFavorited ? '★' : '☆'} <span class="count">${favoriteCount}</span>
           </button>
         `;
       }
       if (isOwner) {
         actionBtnsHtml += `<button class="action-btn delete-btn" id="deleteQuestionBtn">删除</button>`;
-      }
-      if (currentUserId && question.user_id && !isOwner) {
-        let friendBtnHtml = '';
-        if (!friendStatus) {
-          friendBtnHtml = '<button class="action-btn friend-btn" id="friendRequestBtn">申请加为树友</button>';
-        } else if (friendStatus === 'pending') {
-          friendBtnHtml = '<button class="action-btn friend-btn" disabled>已申请</button>';
-        } else if (friendStatus === 'accepted') {
-          friendBtnHtml = '<button class="action-btn friend-btn" disabled>已是树友</button>';
-        } else if (friendStatus === 'rejected') {
-          friendBtnHtml = '<button class="action-btn friend-btn" disabled>已拒绝</button>';
-        }
-        actionBtnsHtml += friendBtnHtml;
       }
       actionBtnsHtml += `</div>`;
 
@@ -396,18 +349,28 @@
           <span class="author-info">${qAvatarHtml}${escapeHtml(question.nickname)}</span>
           <span>${formatDate(question.created_at)}</span>
         </div>
+        <div id="emotion-tag-area"></div>
         ${actionBtnsHtml}
       `;
+
+      // 加载情绪标签
+      (async () => {
+        const emo = await analyzeEmotion(questionId, question.content);
+        const area = document.getElementById('emotion-tag-area');
+        if (emo && area) {
+          const colors = { '焦虑':'#e07b39','孤独':'#6b8cce','迷茫':'#9e9e9e','委屈':'#b87cb8','愤怒':'#e05555','疲惫':'#a08060','无奈':'#7a8a9a','自责':'#d4778a','想念':'#6ea8c8','感动':'#5ba07a','喜悦':'#d4a02e','期待':'#4ea8a0' };
+          area.innerHTML = `<span style="display:inline-block;background:${colors[emo]||'var(--text-muted)'};color:white;font-size:12px;padding:3px 12px;border-radius:12px;">${emo}</span>`;
+        }
+      })();
 
       const answersContainer = document.getElementById('answers-list');
       if (!answers || answers.length === 0) {
         answersContainer.innerHTML = '<p class="empty-state-text">还没有人回应这份心事，坐下来陪 ta 一会吧 ✨</p>';
       } else {
-        answersContainer.innerHTML = answers.map(a => {
-          const reacted = hasReacted('answer', a.id);
+        const answerCards = await Promise.all(answers.map(async a => {
+          const reacted = await window.TreeHole.hasReacted('answer', a.id);
           const count = answerCounts[a.id] || 0;
           const isAnswerOwner = currentUserId && a.user_id === currentUserId;
-          // 回答作者头像
           const aAvatarHtml = getAvatarHtml(a.user_id, avatarMap, 36);
           return `
             <div class="answer-card" data-answer-id="${a.id}">
@@ -416,63 +379,57 @@
                 <span class="author-info">${aAvatarHtml}${escapeHtml(a.nickname)}</span>
                 <span>${formatDate(a.created_at)}</span>
                 <button class="heart-btn ${reacted ? 'reacted' : ''}"
-                        data-type="answer" data-id="${a.id}"
-                        ${reacted ? 'disabled' : ''}>
-                  ${reacted ? '♡' : '♥'} <span class="count">${count}</span>
+                        data-type="answer" data-id="${a.id}">
+                  ${reacted ? '♥' : '♡'} <span class="count">${count}</span>
                 </button>
                 ${isAnswerOwner ? `<span class="answer-actions"><button class="action-btn delete-btn delete-answer-btn" data-answer-id="${a.id}">删除</button></span>` : ''}
               </div>
             </div>
           `;
-        }).join('');
+        }));
+        answersContainer.innerHTML = answerCards.join('');
       }
 
       document.querySelectorAll('.heart-btn').forEach(btn => {
         btn.addEventListener('click', async () => {
+          if (btn.disabled) return;
+          btn.disabled = true;
           const type = btn.dataset.type;
           const targetId = btn.dataset.id;
-          const ok = await addReaction(type, targetId);
-          if (ok) {
-            const countSpan = btn.querySelector('.count');
-            countSpan.textContent = parseInt(countSpan.textContent) + 1;
-            btn.innerHTML = `♡ <span class="count">${countSpan.textContent}</span>`;
-            btn.classList.add('reacted');
-            btn.disabled = true;
+          try {
+            const result = await window.TreeHole.toggleReaction(type, targetId);
+            if (!result) return;
+            // 重新从数据库查询真实计数
+            const freshCounts = await window.TreeHole.getReactionCounts(type, [targetId]);
+            const realCount = freshCounts[targetId] || 0;
+            btn.innerHTML = (result === 'added' ? '♥' : '♡') + ' <span class="count">' + realCount + '</span>';
+            btn.classList.toggle('reacted', result === 'added');
+          } finally {
+            btn.disabled = false;
           }
         });
       });
 
+      // toggleFavorite 由 app.js 统一提供（window.TreeHole.toggleFavorite）
+
       const favoriteBtn = document.getElementById('favoriteBtn');
       if (favoriteBtn) {
         favoriteBtn.addEventListener('click', async () => {
-          const btn = favoriteBtn;
-          const favorited = btn.dataset.favorited === 'true';
-          if (favorited) {
-            const { error } = await sb
+          if (favoriteBtn.disabled) return;
+          favoriteBtn.disabled = true;
+          try {
+            const result = await window.TreeHole.toggleFavorite(questionId);
+            if (!result) return;
+            // 重新从数据库查询真实计数
+            const { count } = await sb
               .from('favorites')
-              .delete()
-              .eq('user_id', currentUserId)
+              .select('*', { count: 'exact', head: true })
               .eq('question_id', questionId);
-            if (!error) {
-              btn.dataset.favorited = 'false';
-              const { count } = await sb
-                .from('favorites')
-                .select('*', { count: 'exact', head: true })
-                .eq('question_id', questionId);
-              btn.innerHTML = `☆ 收藏<span class="favorite-count">(${count || 0})</span>`;
-            }
-          } else {
-            const { error } = await sb
-              .from('favorites')
-              .insert({ user_id: currentUserId, question_id: questionId });
-            if (!error) {
-              btn.dataset.favorited = 'true';
-              const { count } = await sb
-                .from('favorites')
-                .select('*', { count: 'exact', head: true })
-                .eq('question_id', questionId);
-              btn.innerHTML = `★ 已收藏<span class="favorite-count">(${count || 0})</span>`;
-            }
+            const isFav = result === 'added';
+            favoriteBtn.dataset.favorited = String(isFav);
+            favoriteBtn.innerHTML = (isFav ? '★' : '☆') + ' <span class="count">' + (count || 0) + '</span>';
+          } finally {
+            favoriteBtn.disabled = false;
           }
         });
       }
@@ -481,29 +438,19 @@
       if (deleteQuestionBtn) {
         deleteQuestionBtn.addEventListener('click', async () => {
           if (!confirm('确定要删除这条心事吗？删除后无法恢复。')) return;
-          const { error } = await sb
-            .from('questions')
-            .delete()
-            .eq('id', questionId);
-          if (!error) {
+          deleteQuestionBtn.disabled = true;
+          deleteQuestionBtn.textContent = '删除中...';
+          try {
+            const { error } = await sb
+              .from('questions')
+              .delete()
+              .eq('id', questionId);
+            if (error) throw error;
             window.location.href = 'index.html';
-          } else {
+          } catch (err) {
+            deleteQuestionBtn.disabled = false;
+            deleteQuestionBtn.textContent = '🗑️ 删除';
             alert('删除失败，请稍后重试');
-          }
-        });
-      }
-
-      const friendRequestBtn = document.getElementById('friendRequestBtn');
-      if (friendRequestBtn) {
-        friendRequestBtn.addEventListener('click', async () => {
-          const { error } = await sb
-            .from('friend_requests')
-            .insert({ from_user: currentUserId, to_user: question.user_id });
-          if (!error) {
-            friendRequestBtn.textContent = '已申请';
-            friendRequestBtn.disabled = true;
-          } else {
-            alert('申请失败，请稍后重试');
           }
         });
       }
@@ -512,21 +459,53 @@
         btn.addEventListener('click', async () => {
           const answerId = btn.dataset.answerId;
           if (!confirm('确定要删除这条回答吗？')) return;
-          const { error } = await sb
-            .from('answers')
-            .delete()
-            .eq('id', answerId);
-          if (!error) {
+          btn.disabled = true;
+          btn.textContent = '...';
+          try {
+            const { error } = await sb
+              .from('answers')
+              .delete()
+              .eq('id', answerId);
+            if (error) throw error;
             const card = btn.closest('.answer-card');
             if (card) card.remove();
             const remaining = answersContainer.querySelectorAll('.answer-card');
             if (remaining.length === 0) {
               answersContainer.innerHTML = '<p class="empty-state-text">还没有人回应这份心事，坐下来陪 ta 一会吧 ✨</p>';
             }
-          } else {
+          } catch (err) {
+            btn.disabled = false;
+            btn.textContent = '🗑️';
             alert('删除失败，请稍后重试');
           }
         });
+      });
+
+      // AI 回应建议按钮
+      document.getElementById('ai-help-btn').addEventListener('click', async () => {
+        const btn = document.getElementById('ai-help-btn');
+        const contentInput = document.getElementById('answer-content');
+        btn.disabled = true;
+        btn.textContent = 'AI 思考中...';
+        try {
+          const res = await fetch(window.API_BASE + '/api/gemini', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              prompt: `你是一位温暖有同理心的树洞倾听者。下面是某位匿名用户的心事，请以第一人称写一段温暖的回应（80-150字），表达共情和陪伴。不要评价、不要说教、不要给建议，只是温暖地接住ta的情绪。语气像朋友间的轻声细语。\n\n心事内容：${question.content}\n\n请直接输出回应文字，不要加引号。`
+            })
+          });
+          const data = await res.json();
+          const text = data.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
+          if (text) {
+            contentInput.value = text;
+            contentInput.focus();
+          }
+        } catch (e) {
+          // 静默失败
+        }
+        btn.disabled = false;
+        btn.textContent = '🤖 AI 帮我想想';
       });
 
       document.getElementById('submit-answer-btn').addEventListener('click', async () => {
@@ -543,8 +522,21 @@
         const nicknameInput = document.getElementById('answer-nickname');
         const nickname = nicknameInput.value.trim() || '匿名树友';
         const btn = document.getElementById('submit-answer-btn');
-        btn.textContent = '正在发送...';
+
+        // AI 内容审核
+        btn.textContent = '审核中...';
         btn.disabled = true;
+        const moderation = await moderateContent(content);
+        if (!moderation.passed) {
+          document.getElementById('answer-msg').textContent = moderation.reason;
+          document.getElementById('answer-msg').className = 'form-message error';
+          document.getElementById('answer-msg').style.display = 'block';
+          btn.textContent = '💌 送出回应';
+          btn.disabled = false;
+          return;
+        }
+
+        btn.textContent = '正在发送...';
         const { error } = await sb.from('answers').insert({
           question_id: questionId,
           content: content,

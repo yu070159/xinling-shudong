@@ -25,3 +25,9 @@ Thumbs.db
 
 .vercel
 .env*
+
+# 测试输出
+test-results/
+
+# Claude Code 本地配置
+.claude/
