@@ -305,3 +305,30 @@ npx playwright test --grep "广场"    # 按名称筛选用例
 - [ ] 重启 Claude Code 使新 Hooks（MessageBox + echo ^G）生效
 - [ ] 在 Vercel 控制台配置 `RESEND_API_KEY`、`SUPABASE_SERVICE_KEY`（离线邮件生效）
 - [ ] 长期路线图剩余 4 项
+
+## 2026-05-25（三次会话）对话总结
+
+### 解决了什么问题
+- CLAUDE.md 多处引用过时（moderateContent 位置、showUserPopup 已删除、危机关键词未集中、books.html 标记未完成）
+- 通知方案经历多轮演化：MessageBox → msg.exe（不可用）→ WScript.Shell SendKeys（不工作）→ keybd_event API（可靠）
+- 键盘无 Scroll Lock 键，最终锁定 Caps Lock（VK 码 0x14）
+
+### 做了哪些修改
+- **CLAUDE.md 修正**：moderateContent 归属 utils.js、删除 showUserPopup 死代码引用、危机关键词集中管理标注、books.html 标记完成、补 add_resources.sql 迁移条目
+- **CLAUDE.md 新增**：强制中文交互规则（所有环节必须中文，永久生效）
+- **通知方案最终态**：Stop 事件 → Caps Lock 闪烁 1 次（亮 500ms 灭）+ 保存/恢复原始状态；使用 user32.dll `keybd_event` API（非 SendKeys）；base64 编码命令存入 settings.json 规避 JSON 转义
+- **Hooks 配置更新**：全局 + 项目本地 `settings.json` 同步，移除所有旧方案（Elicitation/MessageBox/echo ^G），仅保留 Stop + SessionStart
+- **一次性提交**：33 个文件的未提交改动全部入库（危机通知倾听者、书洞资源动态化、通知铃铛样式、移动端触摸、代码清理等）
+
+### 达成的共识
+- `WScript.Shell.SendKeys` 无法可靠控制键盘硬件指示灯，必须用 `user32.dll` 的 `keybd_event` API
+- base64 编码是 hooks JSON 配置中处理复杂 PowerShell 命令的最佳方案，彻底消除引号转义问题
+- 该键盘无独立 Scroll Lock 键，全部使用 Caps Lock（0x14）
+- Elicitation 事件不设置闪烁，避免用户阅读确认对话框时分心
+- Hook 配置文件中途修改需重启 Claude Code 才生效
+- `.claude/` 目录被 gitignore，项目本地 settings 不入库
+
+### 当前待办
+- [ ] 重启 Claude Code 使新 Hooks（Caps Lock 闪烁 Stop 事件）生效
+- [ ] 在 Vercel 控制台配置 `RESEND_API_KEY`、`SUPABASE_SERVICE_KEY`（离线邮件生效）
+- [ ] 长期路线图剩余 4 项
