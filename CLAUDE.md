@@ -10,19 +10,22 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 **强制中文交互**：在所有与用户的交互环节（包括但不限于 AskUserQuestion、确认提示、选项列表、任务进度汇报、错误提示、代码注释、commit message 等），必须使用中文。不允许使用英文提问或展示选项。此规则永久生效。
 
-**任务通知**：通过 Claude Code Hooks 实现系统级弹窗提示，彻底替代原有声音提示方案：
+**任务通知**：通过 Claude Code Hooks + PowerShell 控制键盘指示灯闪烁，永久替换所有声音和弹窗方案：
 
 ### Elicitation 事件（AskUserQuestion 触发，即等待用户确认操作前）
-弹出 **同步阻塞式** MessageBox，程序必须等待用户手动点击"确定"按钮关闭弹窗后，才会继续下一步或发送提示词。此为硬性前置动作。
-
-- **Windows**：`PowerShell -Command "Add-Type -AssemblyName PresentationFramework;[System.Windows.MessageBox]::Show('Claude 任务等待确认中，请查看终端','任务通知','OK','Information')"`
-- **macOS**：`osascript -e 'display dialog "Claude 任务等待确认中，请查看终端" with title "任务通知" buttons {"OK"} default button "OK"'`
+执行 Scroll Lock 键闪烁 3 次（每次亮 300ms、灭 300ms）：
+```powershell
+PowerShell -Command "$wsh = New-Object -ComObject WScript.Shell; for ($i = 0; $i -lt 3; $i++) { $wsh.SendKeys('{SCROLLLOCK}'); Start-Sleep -Milliseconds 300; $wsh.SendKeys('{SCROLLLOCK}'); Start-Sleep -Milliseconds 300 }"
+```
 
 ### Stop 事件（任务完成/回答问题后）
-`echo ^G` 响铃提醒（输出 BEL 字符，ASCII 7）。
+执行 Scroll Lock 键闪烁 1 次（亮 300ms、灭 300ms）：
+```powershell
+PowerShell -Command "$wsh = New-Object -ComObject WScript.Shell; $wsh.SendKeys('{SCROLLLOCK}'); Start-Sleep -Milliseconds 300; $wsh.SendKeys('{SCROLLLOCK}')"
+```
 
-- **Windows**：`PowerShell -Command "[System.Console]::Write([char]7)"`
-- **macOS**：`printf "\a"`
+### 备用方案
+如果键盘没有 Scroll Lock 键，将所有 `{SCROLLLOCK}` 替换为 `{CAPSLOCK}`（闪烁 Caps Lock 键）。
 
 ### 配置位置（两处同步）
 - 全局：`C:\Users\YU\.claude\settings.json`
