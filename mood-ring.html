@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>情绪年轮 - 心灵树洞</title>
+  <meta name="description" content="用银杏叶记录每日心情，聚合成属于你的情绪年轮树。">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🌳</text></svg>">
+  <link rel="stylesheet" href="style.css">
+  <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+  <script src="utils.js"></script>
+  <style>
+    .mood-container { max-width: 680px; margin: 0 auto; padding: 20px; color: var(--text-primary); }
+    .mood-title { text-align: center; color: var(--accent); font-size: 28px; margin: 30px 0 8px; }
+    .mood-subtitle { text-align: center; color: var(--text-secondary); font-size: 14px; margin-bottom: 24px; }
+
+    /* 每日签到区 */
+    .mood-checkin {
+      background: var(--bg-card); border: 1px solid var(--border-light);
+      border-radius: 16px; padding: 24px; margin-bottom: 24px;
+      box-shadow: var(--shadow-sm); text-align: center;
+    }
+    .mood-checkin-title { color: var(--accent); font-size: 16px; margin-bottom: 16px; }
+    .mood-checkin-done { color: var(--text-secondary); font-size: 15px; }
+    .mood-checkin-done .today-mood { font-size: 20px; margin: 8px 0; }
+    .mood-options { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; margin-bottom: 16px; }
+    .mood-option {
+      width: 64px; height: 64px; border-radius: 50%; border: 2px solid transparent;
+      cursor: pointer; display: flex; flex-direction: column; align-items: center;
+      justify-content: center; font-size: 28px; transition: all 0.2s;
+      background: var(--bg-input); position: relative;
+    }
+    .mood-option:hover { transform: scale(1.1); box-shadow: var(--shadow-md); }
+    .mood-option.selected { border-color: var(--accent); box-shadow: 0 0 12px var(--accent-glow); transform: scale(1.08); }
+    .mood-option .mood-emoji { line-height: 1; }
+    .mood-option .mood-label { font-size: 11px; color: var(--text-secondary); margin-top: 2px; }
+    .mood-note {
+      width: 100%; max-width: 400px; padding: 10px 14px; border: 1px solid var(--border-medium);
+      border-radius: 10px; background: var(--bg-input); color: var(--text-primary);
+      font-size: 14px; outline: none; resize: none; height: 40px; margin-bottom: 12px;
+      transition: border-color 0.2s;
+    }
+    .mood-note:focus { border-color: var(--accent); box-shadow: 0 0 8px var(--accent-glow); }
+    .mood-submit-btn {
+      background: var(--accent); color: white; border: none; border-radius: 20px;
+      padding: 10px 32px; font-size: 15px; cursor: pointer; transition: 0.2s;
+    }
+    .mood-submit-btn:hover:not(:disabled) { transform: scale(1.02); box-shadow: 0 4px 16px var(--accent-glow); }
+    .mood-submit-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+    .mood-modify-btn {
+      background: none; border: 1px solid var(--border-medium); color: var(--text-secondary);
+      border-radius: 20px; padding: 6px 20px; font-size: 13px; cursor: pointer; margin-top: 8px;
+    }
+    .mood-modify-btn:hover { border-color: var(--accent); color: var(--accent); }
+    .mood-msg { font-size: 13px; margin-top: 8px; min-height: 20px; }
+    .mood-msg.success { color: var(--accent); }
+    .mood-msg.error { color: var(--danger); }
+
+    /* 年轮树区域 */
+    .ring-section { text-align: center; margin-bottom: 24px; }
+    .ring-nav { display: flex; align-items: center; justify-content: center; gap: 16px; margin-bottom: 8px; }
+    .ring-nav-arrow {
+      background: none; border: 1px solid var(--border-medium); color: var(--text-secondary);
+      border-radius: 50%; width: 32px; height: 32px; cursor: pointer; font-size: 16px;
+      display: flex; align-items: center; justify-content: center; transition: 0.2s;
+    }
+    .ring-nav-arrow:hover { border-color: var(--accent); color: var(--accent); }
+    .ring-nav-label { color: var(--accent); font-size: 16px; font-weight: 600; min-width: 60px; }
+    .ring-svg-wrap { display: flex; justify-content: center; overflow: hidden; }
+    .ring-svg-wrap svg { max-width: 100%; height: auto; }
+
+    /* 图例和统计 */
+    .mood-legend { display: flex; gap: 16px; justify-content: center; flex-wrap: wrap; margin-bottom: 16px; }
+    .mood-legend-item { display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--text-secondary); }
+    .mood-legend-dot { width: 14px; height: 14px; border-radius: 50%; flex-shrink: 0; }
+    .mood-stats { text-align: center; color: var(--text-secondary); font-size: 13px; }
+
+    /* 叶子 hover tooltip */
+    .leaf-tooltip {
+      position: fixed; background: var(--bg-card); border: 1px solid var(--border-light);
+      border-radius: 8px; padding: 8px 12px; font-size: 13px; color: var(--text-primary);
+      box-shadow: var(--shadow-md); pointer-events: none; z-index: 500;
+      opacity: 0; transition: opacity 0.2s;
+    }
+    .leaf-tooltip.show { opacity: 1; }
+
+    .mood-empty { text-align: center; color: var(--text-muted); padding: 40px 20px; font-size: 14px; }
+  </style>
+</head>
+<body>
+  <header class="forest-header">
+    <a href="index.html" class="forest-logo">
+      <span class="logo-icon">🌳</span>
+      <span class="logo-text">心灵树洞</span>
+    </a>
+    <nav class="forest-nav">
+      <a href="index.html">广场</a>
+      <a href="books.html">书洞</a>
+      <a href="shuling.html">树灵</a>
+      <a href="chat.html">树友对话</a>
+      <a href="mood-ring.html" class="active">年轮</a>
+    </nav>
+    <div class="forest-user-actions" id="navUserArea">
+      <span id="navGuest">
+        <a href="login.html">登录</a>
+        <a href="register.html">注册</a>
+      </span>
+      <span id="navLoggedIn" style="display:none">
+        <span class="user-greeting" id="navNickname"></span>
+        <a href="profile.html">个人中心</a>
+        <a href="#" class="logout-btn" id="navLogout">退出</a>
+      </span>
+    </div>
+  </header>
+
+  <div class="mood-container">
+    <h1 class="mood-title">🍂 情绪年轮</h1>
+    <p class="mood-subtitle">每天选一片银杏叶，记录当下的心情</p>
+
+    <div class="mood-checkin" id="checkinSection"></div>
+
+    <div class="ring-section" id="ringSection">
+      <div class="ring-nav">
+        <button class="ring-nav-arrow" id="ringPrev" title="上一年">◀</button>
+        <span class="ring-nav-label" id="ringYearLabel">2026年</span>
+        <button class="ring-nav-arrow" id="ringNext" title="下一年">▶</button>
+      </div>
+      <div class="ring-svg-wrap" id="ringSvgWrap"></div>
+    </div>
+
+    <div class="mood-legend" id="moodLegend"></div>
+    <div class="mood-stats" id="moodStats"></div>
+  </div>
+
+  <div class="leaf-tooltip" id="leafTooltip"></div>
+
+  <script>
+    const sb = window.TreeHole.supabase;
+
+    // 心情配色与表情映射
+    const MOOD_CONFIG = {
+      '开心': { color: '#f0c040', emoji: '😊' },
+      '平静': { color: '#7ba878', emoji: '😌' },
+      '难过': { color: '#6b8cce', emoji: '😢' },
+      '焦虑': { color: '#e07b39', emoji: '😰' },
+      '生气': { color: '#e05555', emoji: '😤' }
+    };
+    const MOOD_TYPES = Object.keys(MOOD_CONFIG);
+
+    // 银杏叶 SVG path（简化扇形，带裂口）
+    const GINKGO_PATH = 'M 0,-18 C 8,-18 12,-10 14,-5 C 16,-2 16,2 14,5 C 12,10 8,16 0,18 C -8,16 -12,10 -14,5 C -16,2 -16,-2 -14,-5 C -12,-10 -8,-18 0,-18 Z M 0,-18 L 0,2';
+
+    let currentUser = null;
+    let currentYear = new Date().getFullYear();
+    let todayRecord = null;
+
+    async function getCurrentUser() {
+      const { data: { user } } = await sb.auth.getUser();
+      return user;
+    }
+
+    function formatDate(dateStr) {
+      const d = new Date(dateStr + 'T00:00:00');
+      return `${d.getMonth() + 1}月${d.getDate()}日`;
+    }
+
+    // 加载今日记录
+    async function loadTodayRecord() {
+      if (!currentUser) return;
+      const today = new Date().toISOString().slice(0, 10);
+      const { data } = await sb.from('mood_logs')
+        .select('mood_type, note')
+        .eq('user_id', currentUser.id)
+        .eq('created_at', today)
+        .maybeSingle();
+      todayRecord = data;
+      return data;
+    }
+
+    // 渲染签到区
+    function renderCheckin() {
+      const section = document.getElementById('checkinSection');
+      if (!section) return;
+
+      if (todayRecord) {
+        const cfg = MOOD_CONFIG[todayRecord.mood_type];
+        section.innerHTML = `
+          <div class="mood-checkin-done">
+            今日心情
+            <div class="today-mood">
+              <span style="font-size:32px">${cfg.emoji}</span>
+              <span style="color:${cfg.color};font-weight:600;margin-left:8px">${todayRecord.mood_type}</span>
+            </div>
+            ${todayRecord.note ? `<div style="font-size:13px;color:var(--text-muted);margin-top:4px">"${escapeHtml(todayRecord.note)}"</div>` : ''}
+            <button class="mood-modify-btn" id="modifyMoodBtn">修改心情</button>
+          </div>`;
+        document.getElementById('modifyMoodBtn').addEventListener('click', () => {
+          todayRecord = null;
+          renderCheckin();
+        });
+      } else {
+        let selectedMood = null;
+        section.innerHTML = `
+          <div class="mood-checkin-title">今天你的心情是？</div>
+          <div class="mood-options" id="moodOptions"></div>
+          <textarea class="mood-note" id="moodNote" placeholder="想说点什么...（选填）" maxlength="100"></textarea>
+          <br>
+          <button class="mood-submit-btn" id="moodSubmitBtn" disabled>记录今日心情</button>
+          <div class="mood-msg" id="moodMsg"></div>`;
+
+        const optionsContainer = document.getElementById('moodOptions');
+        MOOD_TYPES.forEach(type => {
+          const cfg = MOOD_CONFIG[type];
+          const btn = document.createElement('div');
+          btn.className = 'mood-option';
+          btn.innerHTML = `<span class="mood-emoji">${cfg.emoji}</span><span class="mood-label">${type}</span>`;
+          btn.addEventListener('click', () => {
+            optionsContainer.querySelectorAll('.mood-option').forEach(o => o.classList.remove('selected'));
+            btn.classList.add('selected');
+            selectedMood = type;
+            document.getElementById('moodSubmitBtn').disabled = false;
+          });
+          optionsContainer.appendChild(btn);
+        });
+
+        document.getElementById('moodSubmitBtn').addEventListener('click', async () => {
+          if (!selectedMood) return;
+          const btn = document.getElementById('moodSubmitBtn');
+          const msg = document.getElementById('moodMsg');
+          const note = document.getElementById('moodNote').value.trim();
+          btn.disabled = true;
+          btn.textContent = '正在记录...';
+          msg.className = 'mood-msg';
+          msg.textContent = '';
+
+          const today = new Date().toISOString().slice(0, 10);
+          const { data: existing } = await sb.from('mood_logs')
+            .select('id').eq('user_id', currentUser.id).eq('created_at', today).maybeSingle();
+
+          let error;
+          if (existing) {
+            const { error: e } = await sb.from('mood_logs')
+              .update({ mood_type: selectedMood, note })
+              .eq('id', existing.id);
+            error = e;
+          } else {
+            const { error: e } = await sb.from('mood_logs')
+              .insert({ user_id: currentUser.id, mood_type: selectedMood, note, created_at: today });
+            error = e;
+          }
+
+          if (error) {
+            msg.className = 'mood-msg error';
+            msg.textContent = '记录失败，请稍后重试';
+            btn.disabled = false;
+            btn.textContent = '记录今日心情';
+          } else {
+            msg.className = 'mood-msg success';
+            msg.textContent = '叶子已经放进年轮啦 🌿';
+            todayRecord = { mood_type: selectedMood, note };
+            setTimeout(() => { renderCheckin(); renderRing(); renderLegend(); }, 600);
+          }
+        });
+      }
+    }
+
+    // SVG 年轮树渲染
+    async function renderRing() {
+      const wrap = document.getElementById('ringSvgWrap');
+      const label = document.getElementById('ringYearLabel');
+      if (!wrap || !label) return;
+      label.textContent = currentYear + '年';
+
+      if (!currentUser) {
+        wrap.innerHTML = '<div class="mood-empty">请先登录以查看情绪年轮</div>';
+        return;
+      }
+
+      const startDate = `${currentYear}-01-01`;
+      const endDate = `${currentYear}-12-31`;
+      const { data, error } = await sb.from('mood_logs')
+        .select('mood_type, note, created_at')
+        .eq('user_id', currentUser.id)
+        .gte('created_at', startDate)
+        .lte('created_at', endDate)
+        .order('created_at', { ascending: true });
+
+      if (error) {
+        wrap.innerHTML = '<div class="mood-empty">加载失败，请刷新重试</div>';
+        return;
+      }
+
+      const moodMap = {};
+      if (data) data.forEach(r => { moodMap[r.created_at] = { mood_type: r.mood_type, note: r.note }; });
+
+      const yearRecords = [];
+      for (let m = 0; m < 12; m++) {
+        const daysInMonth = new Date(currentYear, m + 1, 0).getDate();
+        const monthData = [];
+        for (let d = 1; d <= daysInMonth; d++) {
+          const dateStr = `${currentYear}-${String(m + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+          monthData.push(moodMap[dateStr] || null);
+        }
+        yearRecords.push(monthData);
+      }
+
+      const hasAnyRecord = data && data.length > 0;
+      if (!hasAnyRecord) {
+        wrap.innerHTML = `<div class="mood-empty">${currentYear}年还没有记录心情<br>从今天开始，种下你的第一片叶子吧 🌱</div>`;
+        return;
+      }
+
+      // SVG 参数
+      const svgSize = 500;
+      const cx = svgSize / 2;
+      const cy = svgSize / 2;
+      const outerRadius = 220;
+      const ringGap = 3;
+      const ringWidth = (outerRadius - 30) / 12 - ringGap;
+
+      let svg = `<svg width="${svgSize}" height="${svgSize}" viewBox="0 0 ${svgSize} ${svgSize}">`;
+      svg += `<circle cx="${cx}" cy="${cy}" r="22" fill="var(--bg-card)" stroke="var(--border-light)" stroke-width="1"/>`;
+      svg += `<text x="${cx}" y="${cy + 4}" text-anchor="middle" font-size="11" fill="var(--accent)">${currentYear}</text>`;
+
+      yearRecords.forEach((monthData, monthIndex) => {
+        const ringR = 30 + (monthIndex + 1) * (ringWidth + ringGap);
+        const daysCount = monthData.length;
+
+        monthData.forEach((record, dayIndex) => {
+          const angle = (dayIndex / daysCount) * 2 * Math.PI - Math.PI / 2;
+          const lx = cx + ringR * Math.cos(angle);
+          const ly = cy + ringR * Math.sin(angle);
+          const deg = (angle * 180) / Math.PI + 90;
+
+          const color = record
+            ? MOOD_CONFIG[record.mood_type].color
+            : 'rgba(180, 170, 155, 0.2)';
+          const opacity = record ? 0.9 : 0.3;
+          const dateStr = `${currentYear}-${String(monthIndex + 1).padStart(2, '0')}-${String(dayIndex + 1).padStart(2, '0')}`;
+
+          svg += `<g transform="translate(${lx},${ly}) rotate(${deg}) scale(0.5)" style="cursor:pointer;transition:transform 0.2s ease"`;
+          if (record) {
+            const tipDate = formatDate(dateStr);
+            const tipText = record.note ? `${tipDate} · ${record.mood_type}\n"${escapeHtml(record.note)}"` : `${tipDate} · ${record.mood_type}`;
+            svg += ` onmouseenter="var t=document.getElementById('leafTooltip');t.textContent='${tipText.replace(/'/g, "\\'")}';t.classList.add('show')"`;
+            svg += ` onmousemove="var t=document.getElementById('leafTooltip');t.style.left=(event.clientX+12)+'px';t.style.top=(event.clientY-10)+'px'"`;
+            svg += ` onmouseleave="document.getElementById('leafTooltip').classList.remove('show')"`;
+          }
+          svg += '>';
+          svg += `<path d="${GINKGO_PATH}" fill="${color}" opacity="${opacity}"/>`;
+          svg += '</g>';
+        });
+
+        // 月份标签（在每圈起始位置）
+        const labelAngle = -Math.PI / 2;
+        const labelR = ringR + ringWidth / 2;
+        const labelX = cx + labelR * Math.cos(labelAngle) - 16;
+        const labelY = cy + labelR * Math.sin(labelAngle) + 4;
+        svg += `<text x="${labelX}" y="${labelY}" font-size="10" fill="var(--text-muted)">${monthIndex + 1}月</text>`;
+      });
+
+      svg += '</svg>';
+      wrap.innerHTML = svg;
+    }
+
+    // 渲染图例
+    function renderLegend() {
+      const legend = document.getElementById('moodLegend');
+      if (!legend) return;
+      let html = '';
+      MOOD_TYPES.forEach(type => {
+        const cfg = MOOD_CONFIG[type];
+        html += `<div class="mood-legend-item"><span class="mood-legend-dot" style="background:${cfg.color}"></span>${cfg.emoji} ${type}</div>`;
+      });
+      legend.innerHTML = html;
+    }
+
+    // 统计信息
+    async function loadAndRenderStats() {
+      if (!currentUser) return;
+      const yearStart = `${currentYear}-01-01`;
+      const yearEnd = `${currentYear}-12-31`;
+      const { data } = await sb.from('mood_logs')
+        .select('mood_type')
+        .eq('user_id', currentUser.id)
+        .gte('created_at', yearStart)
+        .lte('created_at', yearEnd);
+
+      const stats = document.getElementById('moodStats');
+      if (!stats) return;
+      if (!data || data.length === 0) {
+        stats.textContent = '';
+        return;
+      }
+      const counts = {};
+      data.forEach(r => { counts[r.mood_type] = (counts[r.mood_type] || 0) + 1; });
+      const total = data.length;
+      const parts = MOOD_TYPES.filter(t => counts[t]).map(t => `${MOOD_CONFIG[t].emoji}${t} ${counts[t]}天`);
+      stats.textContent = `${currentYear}年已记录 ${total} 天 · ` + parts.join(' · ');
+    }
+
+    // 页面初始化
+    window.addEventListener('DOMContentLoaded', async () => {
+      const navGuest = document.getElementById('navGuest');
+      const navLoggedIn = document.getElementById('navLoggedIn');
+      const navNickname = document.getElementById('navNickname');
+      const navLogout = document.getElementById('navLogout');
+
+      currentUser = await getCurrentUser();
+
+      if (currentUser) {
+        navGuest.style.display = 'none';
+        navLoggedIn.style.display = 'inline';
+        const { data: profile } = await sb.from('profiles').select('nickname').eq('user_id', currentUser.id).single();
+        navNickname.textContent = profile?.nickname || '树友';
+        navLogout.addEventListener('click', (e) => {
+          e.preventDefault();
+          sb.auth.signOut().then(() => { window.location.href = 'welcome.html'; });
+        });
+
+        await loadTodayRecord();
+        renderCheckin();
+        await renderRing();
+        renderLegend();
+        await loadAndRenderStats();
+      } else {
+        navGuest.style.display = 'inline';
+        navLoggedIn.style.display = 'none';
+        document.getElementById('checkinSection').innerHTML = `<div class="mood-empty">请先登录以记录心情</div>`;
+        document.getElementById('ringSection').innerHTML = `<div class="mood-empty" style="padding:60px 20px">登录后查看你的情绪年轮 🌳</div>`;
+      }
+
+      // 年份切换
+      document.getElementById('ringPrev').addEventListener('click', async () => {
+        currentYear--;
+        await renderRing();
+        await loadAndRenderStats();
+      });
+      document.getElementById('ringNext').addEventListener('click', async () => {
+        currentYear++;
+        await renderRing();
+        await loadAndRenderStats();
+      });
+    });
+  </script>
+  <script src="ai-float.js"></script>
+</body>
+</html>
