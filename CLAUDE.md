@@ -10,28 +10,19 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 **强制中文交互**：在所有与用户的交互环节（包括但不限于 AskUserQuestion、确认提示、选项列表、任务进度汇报、错误提示、代码注释、commit message 等），必须使用中文。不允许使用英文提问或展示选项。此规则永久生效。
 
-**任务通知**：通过 Claude Code Hooks + PowerShell `keybd_event` API 控制键盘指示灯闪烁，永久替换所有声音和弹窗方案。
-
-### 技术方案
-使用 Windows `user32.dll` 的 `keybd_event` 函数直接控制键盘硬件指示灯（非 SendKeys 窗口消息，可靠），每次闪烁=按下+释放（切换 LED 亮灭），偶数次自动恢复原状态。
-
-- **Scroll Lock**（VK 码 `0x91`）：默认方案
-- **Caps Lock**（VK 码 `0x14`）：备用方案，无 Scroll Lock 键时使用
-
-### Elicitation 事件（AskUserQuestion 触发，即等待用户确认操作前）
-闪烁 3 次，每次亮 300ms 灭 300ms：
-```powershell
-PowerShell -Command "Add-Type -TypeDefinition 'using System;using System.Runtime.InteropServices;public class KL{[DllImport(\"user32.dll\")]public static extern void keybd_event(byte bVk,byte bScan,uint dwFlags,UIntPtr dwExtraInfo);}'; for($i=0;$i -lt 3;$i++){[KL]::keybd_event(0x91,0,0,[UIntPtr]::Zero);[KL]::keybd_event(0x91,0,2,[UIntPtr]::Zero);Start-Sleep -Milliseconds 300;[KL]::keybd_event(0x91,0,0,[UIntPtr]::Zero);[KL]::keybd_event(0x91,0,2,[UIntPtr]::Zero);Start-Sleep -Milliseconds 300}"
-```
+**任务通知**：通过 Caps Lock 指示灯闪烁作为任务完成信号，永久替换所有声音和弹窗方案。使用 Windows `user32.dll` 的 `keybd_event` API 直接控制键盘硬件（非 SendKeys 窗口消息，可靠），闪烁前后保存/恢复 Caps Lock 原始状态。
 
 ### Stop 事件（任务完成/回答问题后）
-闪烁 1 次，亮 300ms 灭 300ms：
+闪烁 Caps Lock 1 次（亮 500ms、灭），完成后自动恢复原始状态：
 ```powershell
-PowerShell -Command "Add-Type -TypeDefinition 'using System;using System.Runtime.InteropServices;public class KL{[DllImport(\"user32.dll\")]public static extern void keybd_event(byte bVk,byte bScan,uint dwFlags,UIntPtr dwExtraInfo);}'; [KL]::keybd_event(0x91,0,0,[UIntPtr]::Zero);[KL]::keybd_event(0x91,0,2,[UIntPtr]::Zero);Start-Sleep -Milliseconds 300;[KL]::keybd_event(0x91,0,0,[UIntPtr]::Zero);[KL]::keybd_event(0x91,0,2,[UIntPtr]::Zero)"
+PowerShell -EncodedCommand <base64>
 ```
 
-### 备用方案（无 Scroll Lock 键）
-将两段命令中的 `0x91` 全部替换为 `0x14`（Caps Lock 键）。
+### 技术细节
+- 使用 Caps Lock（VK 码 `0x14`），因为该键盘无独立 Scroll Lock 键
+- `GetKeyState` 保存闪烁前状态，闪烁后比对恢复
+- 每次闪烁 = 按下+释放（偶数次自动复原），补检作为安全网
+- Elicitation 事件（等待用户确认）不触发闪烁，避免干扰阅读
 
 ### 配置位置（两处同步）
 - 全局：`C:\Users\YU\.claude\settings.json`
