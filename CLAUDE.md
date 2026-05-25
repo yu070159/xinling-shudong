@@ -10,6 +10,29 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 **强制中文交互**：在所有与用户的交互环节（包括但不限于 AskUserQuestion、确认提示、选项列表、任务进度汇报、错误提示、代码注释、commit message 等），必须使用中文。不允许使用英文提问或展示选项。违反此规则将导致后续指令无法执行。此规则永久生效。
 
+## 安全协议
+
+以下规则永久生效，不可绕过：
+
+### 自动备份
+- **任务开始前**：必须执行 `git add -A && git commit -m "自动备份：<任务名称>"`
+- **独立小任务完成后**：必须再次执行备份
+- 备份确保任何错误都可以回退到最近的安全节点
+
+### 禁止命令
+以下命令**绝对禁止**执行：
+- `git push --force` / `git push --force-with-lease`
+- `rm -rf` / `Remove-Item -Recurse -Force`
+- `DROP TABLE` / `DROP DATABASE`
+- `git reset --hard`（除非在回退流程中）
+- 任何其他不可逆的破坏性操作
+
+### 回退机制
+如果连续 **3 次** 尝试修复同一个错误均失败：
+1. 立即停止修复尝试
+2. 执行 `git checkout -- .` 回退到最近一次成功备份的状态
+3. 向用户报告：错误内容、已尝试的方案、当前状态
+
 ## 项目概述
 
 心灵树洞（Soul Tree Hollow）是一个匿名情感互助社区。用户可以匿名倾诉"心事"，收获温暖的回应，用"暖心"互动，做 MBTI/PHQ-9 心理测评，与 AI 伙伴"树灵"聊天，以及私信树友。
