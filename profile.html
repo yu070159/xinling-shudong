@@ -108,6 +108,28 @@
     .phq9-bar-date { width: 52px; text-align: right; color: var(--text-secondary); flex-shrink: 0; }
     .phq9-bar-wrap { flex: 1; background: var(--bg-input); border-radius: 4px; overflow: hidden; }
     .phq9-bar-fill { height: 18px; border-radius: 4px; min-width: 3px; display: flex; align-items: center; padding-left: 6px; color: white; font-size: 11px; white-space: nowrap; transition: width 0.5s; }
+
+    /* 回音壁卡片 */
+    .echo-wall { margin-bottom: 20px; }
+    .echo-wall-title { color: var(--accent); font-size: 16px; margin-bottom: 12px; }
+    .echo-card {
+      background: linear-gradient(135deg, rgba(212,160,46,0.08), rgba(122,168,120,0.08));
+      border: 1px solid var(--border-light); border-left: 4px solid var(--warm-heart);
+      border-radius: 12px; padding: 14px 16px; margin-bottom: 10px;
+      position: relative;
+    }
+    .echo-card-message { font-size: 14px; color: var(--text-primary); line-height: 1.6; margin-bottom: 8px; }
+    .echo-card-music { font-size: 13px; margin-bottom: 4px; }
+    .echo-card-music a { color: var(--accent); text-decoration: none; }
+    .echo-card-music a:hover { text-decoration: underline; }
+    .echo-card-time { font-size: 11px; color: var(--text-muted); }
+    .echo-card-delete {
+      position: absolute; top: 8px; right: 12px; background: none; border: none;
+      color: var(--text-muted); cursor: pointer; font-size: 14px; padding: 2px 6px;
+    }
+    .echo-card-delete:hover { color: var(--danger); }
+    .echo-empty { text-align: center; color: var(--text-muted); padding: 20px; font-size: 13px; }
+    .echo-empty a { color: var(--accent); text-decoration: none; }
   </style>
 </head>
 <body>
@@ -185,7 +207,14 @@
         <label class="show-setting-item"><input type="checkbox" id="showPostsCheck"> 允许展示发帖/回应数量</label>
         <label class="show-setting-item"><input type="checkbox" id="showFriendsCheck"> 允许展示树友数量</label>
       </div>
-      
+
+      <div class="echo-wall" id="echoWall" style="display:none;">
+        <div class="profile-info-divider"></div>
+        <h3 class="echo-wall-title">💌 收到的回音</h3>
+        <div id="echoCardsList"></div>
+        <div id="echoEmpty" class="echo-empty" style="display:none;">还没有收到回音，<a href="index.html">去广场</a>给别人送去温暖吧</div>
+      </div>
+
       <button id="logoutBtn">退出树洞</button>
     </div>
 
@@ -766,6 +795,51 @@
 
       const { count: pendingCount } = await sb.from('friend_requests').select('*', { count: 'exact', head: true }).eq('to_user', currentUser.id).eq('status', 'pending');
       if (pendingCount > 0) { document.getElementById('friendBadge').style.display = 'inline'; document.getElementById('friendBadge').textContent = pendingCount; }
+
+      // 回音壁：加载收到的回音卡
+      try {
+        const { data: echoCards } = await sb.from('echo_cards')
+          .select('id, message, music_url, created_at')
+          .eq('to_user_id', currentUser.id)
+          .order('created_at', { ascending: false });
+        if (echoCards && echoCards.length > 0) {
+          document.getElementById('echoWall').style.display = 'block';
+          document.getElementById('echoEmpty').style.display = 'none';
+          const list = document.getElementById('echoCardsList');
+          echoCards.forEach(function(card) {
+            const div = document.createElement('div');
+            div.className = 'echo-card';
+            div.innerHTML =
+              '<button class="echo-card-delete" data-id="' + card.id + '">✕</button>' +
+              '<div class="echo-card-message">' + escapeHtml(card.message) + '</div>' +
+              (card.music_url ? '<div class="echo-card-music">🎵 <a href="' + escapeHtml(card.music_url) + '" target="_blank" rel="noopener">' + escapeHtml(card.music_url) + '</a></div>' : '') +
+              '<div class="echo-card-time">' + formatDate(card.created_at) + '</div>';
+            list.appendChild(div);
+          });
+          // 删除按钮
+          list.querySelectorAll('.echo-card-delete').forEach(function(btn) {
+            btn.addEventListener('click', async function() {
+              if (!confirm('确定要移除这张回音卡吗？')) return;
+              btn.disabled = true;
+              try {
+                await sb.from('echo_cards').delete().eq('id', btn.dataset.id);
+                btn.closest('.echo-card').remove();
+                if (list.querySelectorAll('.echo-card').length === 0) {
+                  document.getElementById('echoEmpty').style.display = 'block';
+                }
+              } catch (err) {
+                btn.disabled = false;
+                alert('删除失败，请稍后重试');
+              }
+            });
+          });
+        } else {
+          document.getElementById('echoWall').style.display = 'block';
+          document.getElementById('echoEmpty').style.display = 'block';
+        }
+      } catch (err) {
+        console.warn('加载回音卡失败:', err);
+      }
     });
   </script>
 

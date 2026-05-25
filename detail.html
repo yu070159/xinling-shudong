@@ -115,6 +115,38 @@
       background: var(--bg-input); color: var(--text-secondary);
     }
 
+    /* 回音壁寄送 */
+    .echo-section { margin-top: 16px; }
+    .echo-toggle-btn {
+      width: 100%; background: none; border: 1px dashed var(--border-medium);
+      color: var(--text-secondary); padding: 12px; border-radius: 12px;
+      cursor: pointer; font-size: 14px; transition: 0.2s;
+    }
+    .echo-toggle-btn:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-glow); }
+    .echo-form { display: none; margin-top: 12px; }
+    .echo-form.show { display: block; }
+    .echo-textarea {
+      width: 100%; background: var(--bg-input); border: 1px solid var(--border-medium);
+      color: var(--text-primary); border-radius: 12px; padding: 14px; font-size: 15px;
+      resize: vertical; min-height: 80px; outline: none; box-sizing: border-box;
+      margin-bottom: 10px;
+    }
+    .echo-textarea:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-glow); }
+    .echo-input {
+      width: 100%; background: var(--bg-input); border: 1px solid var(--border-medium);
+      color: var(--text-primary); border-radius: 10px; padding: 10px 14px; font-size: 14px;
+      outline: none; box-sizing: border-box; margin-bottom: 10px;
+    }
+    .echo-input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-glow); }
+    .echo-submit-btn {
+      width: 100%; background: linear-gradient(135deg, var(--warm-heart), var(--accent));
+      color: white; padding: 12px; border-radius: 25px; border: none; cursor: pointer;
+      font-size: 15px; transition: 0.2s;
+    }
+    .echo-submit-btn:hover:not(:disabled) { transform: scale(1.02); }
+    .echo-submit-btn:disabled { opacity: 0.7; cursor: not-allowed; }
+    .echo-hint { font-size: 12px; color: var(--text-muted); margin-bottom: 10px; }
+
   </style>
 </head>
 <body>
@@ -161,6 +193,16 @@
         <input type="text" id="answer-nickname" placeholder="匿名树友" maxlength="20">
         <button id="ai-help-btn" style="background:var(--warm-heart);border:none;color:white;padding:0 14px;border-radius:10px;cursor:pointer;font-size:14px;white-space:nowrap;">🤖 AI 帮我想想</button>
         <button id="submit-answer-btn">💌 送出回应</button>
+      </div>
+    </section>
+    <section class="echo-section" id="echoSection" style="display:none;">
+      <button class="echo-toggle-btn" id="echoToggleBtn">🎁 寄送情绪急救包</button>
+      <div class="echo-form" id="echoForm">
+        <div class="echo-hint">送一段温暖的话和一首治愈的歌给这位树友，你的身份不会透露。</div>
+        <textarea class="echo-textarea" id="echoMessage" placeholder="写一段温暖的话..." maxlength="500"></textarea>
+        <input type="url" class="echo-input" id="echoMusicUrl" placeholder="治愈音乐链接（选填，如网易云音乐）">
+        <div id="echo-msg" class="form-message"></div>
+        <button class="echo-submit-btn" id="echoSubmitBtn">🕊️ 寄出回音</button>
       </div>
     </section>
   </div>
@@ -260,6 +302,11 @@
       }
 
       const isOwner = currentUserId && question.user_id === currentUserId;
+
+      // 回音壁寄送入口（登录用户且非作者本人）
+      if (currentUserId && !isOwner) {
+        document.getElementById('echoSection').style.display = 'block';
+      }
 
       // 收集所有需要头像的用户 ID，批量获取头像
       const userIds = [question.user_id, ...answers.map(a => a.user_id)].filter(id => id);
@@ -546,6 +593,65 @@
           location.reload();
         } else {
           alert('回应失败，请重试');
+        }
+      });
+
+      // 回音壁：折叠表单切换
+      const echoToggleBtn = document.getElementById('echoToggleBtn');
+      const echoForm = document.getElementById('echoForm');
+      if (echoToggleBtn && echoForm) {
+        echoToggleBtn.addEventListener('click', function() {
+          echoForm.classList.toggle('show');
+          echoToggleBtn.textContent = echoForm.classList.contains('show') ? '🎁 收起' : '🎁 寄送情绪急救包';
+        });
+      }
+
+      // 回音壁：寄送
+      document.getElementById('echoSubmitBtn').addEventListener('click', async function() {
+        if (!currentUserId) return;
+        const messageInput = document.getElementById('echoMessage');
+        const musicUrlInput = document.getElementById('echoMusicUrl');
+        const message = messageInput.value.trim();
+        if (!message) {
+          updateTextSmoothly('echo-msg', '请写下你想说的话', 'error');
+          document.getElementById('echo-msg').style.display = 'block';
+          return;
+        }
+        const btn = document.getElementById('echoSubmitBtn');
+        btn.disabled = true;
+        btn.textContent = '寄送中...';
+        try {
+          const { error } = await sb.from('echo_cards').insert({
+            from_user_id: currentUserId,
+            to_user_id: question.user_id,
+            question_id: questionId,
+            message: message,
+            music_url: musicUrlInput.value.trim() || null
+          });
+          if (error) throw error;
+          messageInput.value = '';
+          musicUrlInput.value = '';
+          echoForm.classList.remove('show');
+          echoToggleBtn.textContent = '🎁 寄送情绪急救包';
+          updateTextSmoothly('echo-msg', '✅ 回音已寄出，对方会在个人中心看到', 'success');
+          document.getElementById('echo-msg').style.display = 'block';
+          // 通知收件人
+          if (question.user_id && window.TreeHole.Notifications) {
+            window.TreeHole.Notifications.create({
+              userId: question.user_id,
+              type: 'echo',
+              fromUserId: currentUserId,
+              entityId: String(questionId),
+              link: 'profile.html',
+              contentPreview: '一位树友给你寄来了情绪急救包'
+            }).catch(function(){});
+          }
+        } catch (err) {
+          updateTextSmoothly('echo-msg', '寄送失败，请稍后重试', 'error');
+          document.getElementById('echo-msg').style.display = 'block';
+        } finally {
+          btn.disabled = false;
+          btn.textContent = '🕊️ 寄出回音';
         }
       });
     });

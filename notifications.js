@@ -17,7 +17,8 @@
     friend_request: '🤝',
     friend_accept: '✅',
     peer_support: '🆘',
-    match_letter: '📮'
+    match_letter: '📮',
+    echo: '💌'
   };
 
   function $(id) { return document.getElementById(id); }
