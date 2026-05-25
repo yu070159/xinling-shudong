@@ -352,3 +352,23 @@ npx playwright test --grep "广场"    # 按名称筛选用例
 ### 当前待办
 - [x] 在 Vercel 控制台配置 `RESEND_API_KEY`、`SUPABASE_SERVICE_KEY`（离线邮件生效）
 - [x] 长期路线图全部完成
+
+## 2026-05-25（九十次会话）树洞回音壁 + 关怀代币闭环完成，路线图清空
+
+### 解决的问题
+- 路线图最后 2 项长期任务一次性清空，项目从"有规划"进入"全功能"状态
+- 离线邮件环境变量配置完成，cron 邮件摘要可正常工作
+
+### 做的修改
+- 树洞回音壁：`migrations/add_echo_cards.sql`（echo_cards 表 + RLS + echo 通知类型）、`detail.html`（折叠式寄送入口，非作者登录用户可见）、`profile.html`（回音壁卡片展示 + 删除）、`notifications.js`（echo: 💌 图标）
+- 关怀代币闭环：`migrations/add_glimmer.sql`（glimmer_ledger 表 + profiles 扩展 glimmer_themes/glimmer_donated + RLS 禁止删除修改）、`app.js`（暖心+1微光去重 + 发帖+1微光日限5条 + awardGlimmerForPost函数）、`mood-ring.html`（连续签到7天+5微光周去重）、`shuling.html`（3套主题CSS变量覆盖 + 解锁面板 + 20微光/套）、`profile.html`（统计区微光余额 + 公益捐赠100/500/1000 + 3级徽章）、`user-popup.js`（弹窗捐赠徽章）
+- 回音壁设计决策：所有心事均可接收回音不限制、发送者匿名显示"一位树友寄来的回音"、折叠式UI避免干扰回应流程
+- 微光防刷机制：暖心利用reactions表UNIQUE约束去重、签到利用mood_logs每日UNIQUE去重、发帖日限5条前端校验、glimmer_ledger无DELETE/UPDATE RLS策略
+- CLAUDE.md 更新：路线图全部标记完成、最后一条待办标记完成、追记本次会话总结
+
+### 达成的共识
+- 获取途径"全都要"（暖心+签到+发帖），消费方式"主题外观+公益捐赠"（不含书洞资源）
+- 当前无待办事项，后续新需求从零开始规划
+
+### 当前待办
+- 无
