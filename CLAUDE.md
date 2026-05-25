@@ -271,9 +271,12 @@ npx playwright test --grep "广场"    # 按名称筛选用例
 - 导航栏各页面需新增"年轮"入口链接
 
 ### 已完成的准备
-- 设计文档写入 `docs/superpowers/specs/2026-05-25-mood-ring-design.md` 并提交
-- 实现计划正在通过 writing-plans 技能编写
+- 设计文档 `docs/superpowers/specs/2026-05-25-mood-ring-design.md` 已提交
+- 实现计划 `docs/superpowers/plans/2026-05-25-mood-ring.md` 已提交，含 4 个 Task：数据库迁移、HTML 骨架、JS 逻辑、全站导航栏入口
+
+### 下一步
+- 执行实现计划（数据库迁移 → mood-ring.html 页面 → 全站导航栏更新 → 测试）
 
 ### 上下文占比检查机制
-- 每个独立任务完成后检查上下文占比，到达 60% 时执行 /compact
+- 每个独立任务完成后检查上下文占比，到达 60% 时先追加 CLAUDE.md 总结，再执行 /compact
 - CLAUDE.md 会话总结需追加，不覆盖已有内容
