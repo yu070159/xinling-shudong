@@ -297,10 +297,14 @@
       if (error) throw error;
 
       // 异步检测危机内容并通知倾听者（不阻塞返回）
+      // 异步提取语义标签用于共振匹配（不阻塞返回）
       if (userId) {
-        // 获取刚插入的心事ID用于通知链接
+        // 获取刚插入的心事ID
         sb.from('questions').select('id').eq('user_id', userId).eq('content', content).order('created_at', { ascending: false }).limit(1).single().then(function(r) {
-          if (r.data) notifyPeerSupportersForCrisis(content, r.data.id, userId).catch(function(){});
+          if (r.data) {
+            notifyPeerSupportersForCrisis(content, r.data.id, userId).catch(function(){});
+            extractAndSaveTags(content, r.data.id).catch(function(){});
+          }
         }).catch(function(){});
       }
 
@@ -441,6 +445,33 @@
       }
     } catch (e) {}
     return null;
+  }
+
+  // 心事语义共振：异步提取标签数组并写入 questions.tags
+  async function extractAndSaveTags(content, questionId) {
+    try {
+      const prompt = `你是一个中文情绪标签提取器。阅读以下心事，提取3-8个语义主题标签（如"考研焦虑""原生家庭""友情裂痕""孤独感""自我怀疑"等），只返回JSON数组，不要其他文字。\n\n心事内容：\n${content.substring(0, 500)}`;
+      const res = await fetch(window.API_BASE + '/api/gemini', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ prompt })
+      });
+      const data = await res.json();
+      const text = data.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
+      if (!text) return;
+      // 提取 JSON 数组
+      const match = text.match(/\[[\s\S]*\]/);
+      if (!match) return;
+      const tags = JSON.parse(match[0]);
+      if (!Array.isArray(tags) || tags.length === 0) return;
+      // 去重并限制标签数
+      const cleanTags = [...new Set(tags.map(t => String(t).trim()).filter(Boolean))].slice(0, 8);
+      if (cleanTags.length === 0) return;
+      await sb.from('questions').update({ tags: cleanTags }).eq('id', questionId);
+    } catch (e) {
+      // 标签提取失败不阻塞任何流程
+      console.warn('标签提取失败:', e.message);
+    }
   }
 
   // 情绪标签颜色映射
@@ -813,7 +844,8 @@
     applyEmotionFilter, clearEmotionFilter, updateEmotionFilterBar,
     toggleReaction, hasReacted, getUserReactionMap, getReactionCounts, getFavoriteCounts,
     toggleFavorite, getUserFavoriteMap, getAvatarMap,
-    notifyPeerSupportersForCrisis
+    notifyPeerSupportersForCrisis,
+    extractAndSaveTags
   });
 
   // =====================
