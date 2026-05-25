@@ -8,6 +8,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## 交互规则
 
+**强制中文交互**：在所有与用户的交互环节（包括但不限于 AskUserQuestion、确认提示、选项列表、任务进度汇报、错误提示、代码注释、commit message 等），必须使用中文。不允许使用英文提问或展示选项。此规则永久生效。
+
 **任务通知**：通过 Claude Code Hooks 实现系统级弹窗提示，彻底替代原有声音提示方案：
 
 ### Elicitation 事件（AskUserQuestion 触发，即等待用户确认操作前）
