@@ -9,6 +9,9 @@ Disallow: /login.html
 Disallow: /register.html
 Disallow: /profile.html
 Disallow: /feedback.html
+Disallow: /chat.html
+Disallow: /chat-detail.html
+Disallow: /detail.html
 
 # 告诉爬虫网站地图的位置
 Sitemap: https://xinling-shudong.vercel.app/sitemap.xml

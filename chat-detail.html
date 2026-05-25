@@ -92,6 +92,7 @@
     let partnerAvatar = null;
     let currentUserId = null;
     let channel = null;
+    let knownMessageIds = new Set();
 
     async function loadProfiles(userId) {
       document.getElementById('navNickname').textContent = '树友';
@@ -140,15 +141,16 @@
     }
 
     function appendMessageUI(msg, userId) {
-      const list = document.getElementById('msgList');
-      // 去重：查找已有元素，有则更新，无则创建
-      const existing = list.querySelector(`[data-msg-id="${msg.id}"]`);
-      if (existing) {
-        updateMsgUI(existing, msg, userId);
+      var list = document.getElementById('msgList');
+      // 去重：已渲染的消息只更新，不重复创建
+      if (knownMessageIds.has(msg.id)) {
+        var existing = list.querySelector('[data-msg-id="' + msg.id + '"]');
+        if (existing) updateMsgUI(existing, msg, userId);
         return;
       }
+      knownMessageIds.add(msg.id);
 
-      const container = document.createElement('div');
+      var container = document.createElement('div');
       updateMsgUI(container, msg, userId);
       list.appendChild(container);
       list.scrollTop = list.scrollHeight;
@@ -179,10 +181,13 @@
         var allMessages = sentMessages.concat(receivedMessages)
           .sort(function(a, b) { return new Date(a.created_at) - new Date(b.created_at); });
 
-        var list = document.getElementById('msgList');
-        list.innerHTML = '';
-        allMessages.forEach(function(msg) { appendMessageUI(msg, currentUserId); });
-        list.scrollTop = list.scrollHeight;
+        // 只追加未知消息，避免 innerHTML 全量重绘造成的闪烁
+        var newMessages = allMessages.filter(function(msg) { return !knownMessageIds.has(msg.id); });
+        if (newMessages.length > 0) {
+          var list = document.getElementById('msgList');
+          newMessages.forEach(function(msg) { appendMessageUI(msg, currentUserId); });
+          list.scrollTop = list.scrollHeight;
+        }
       } catch (e) {
         console.error('加载消息失败:', e.message);
       }
@@ -225,6 +230,14 @@
         input.value = '';
         if (data && data[0]) {
           appendMessageUI(data[0], currentUserId);
+        }
+        // 通知收件人
+        if (currentUserId !== partnerId && window.TreeHole.Notifications) {
+          window.TreeHole.Notifications.upsertMessage({
+            userId: partnerId,
+            fromUserId: currentUserId,
+            contentPreview: content.substring(0, 50)
+          }).catch(function(){});
         }
       } catch (e) {
         alert('发送失败，请重试');

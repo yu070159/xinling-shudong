@@ -109,7 +109,7 @@
         const nickname = regNickname.value.trim();
         const password = regPassword.value.trim();
         
-        regError.style.display = 'none';
+        regError && (regError.style.display = 'none');
         
         if (!email) {
           updateTextSmoothly('regError', '请填写邮箱');

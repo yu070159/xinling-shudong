@@ -57,7 +57,7 @@
       <a href="chat.html" class="welcome-secondary-link">💬 树友对话</a>
       <a href="books.html" class="welcome-secondary-link">📚 探索书洞</a>
     </div>
-    <div class="welcome-links">
+    <div class="welcome-links" id="welcomeLinks">
       <a href="login.html">登录</a>
       <a href="register.html">注册</a>
     </div>
@@ -105,6 +105,12 @@
           const welcomeActions = document.getElementById('welcomeActions');
           if (welcomeActions) {
             welcomeActions.style.display = 'flex';
+          }
+
+          // 隐藏登录/注册链接
+          const welcomeLinks = document.getElementById('welcomeLinks');
+          if (welcomeLinks) {
+            welcomeLinks.style.display = 'none';
           }
         }
       } catch (error) {

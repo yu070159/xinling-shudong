@@ -300,6 +300,27 @@
     const EMOTION_KEYWORDS_KEY = 'shuling_emotion_keywords';
     let emotionKeywords = '';
 
+    // 危机干预关键词由 utils.js 统一提供（window.TreeHole.CRISIS_KEYWORDS / CRISIS_HOTLINE）
+
+    var CRISIS_KEYWORDS = window.TreeHole.CRISIS_KEYWORDS || [];
+    var CRISIS_HOTLINE = window.TreeHole.CRISIS_HOTLINE || '';
+
+    function detectCrisis(text) {
+      var lower = text.toLowerCase();
+      for (var i = 0; i < CRISIS_KEYWORDS.length; i++) {
+        if (lower.indexOf(CRISIS_KEYWORDS[i]) !== -1) return true;
+      }
+      return false;
+    }
+
+    function showCrisisAlert() {
+      var chatMessages = document.getElementById('chatMessages');
+      var alert = document.createElement('div');
+      alert.style.cssText = 'background:#fff3e0;border:1px solid #ff9800;border-radius:12px;padding:12px 14px;margin:8px 0;font-size:14px;line-height:1.6;color:#e65100;text-align:center;';
+      alert.innerHTML = '<strong>树灵不愿失去你这片叶子。</strong><br>请让专业的人帮帮你，这非常重要：<br><strong>' + CRISIS_HOTLINE + '</strong>';
+      chatMessages.appendChild(alert);
+    }
+
     function loadEmotionKeywords() {
       try {
         const cached = localStorage.getItem(EMOTION_KEYWORDS_KEY);
@@ -327,8 +348,8 @@
         if (!res.ok) return;
         var data = await res.json();
         var text = data.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
-        if (text && text.length < 100) {
-          emotionKeywords = text;
+        if (text && text.length < 80) {
+          emotionKeywords = text.substring(0, 80);
           localStorage.setItem(EMOTION_KEYWORDS_KEY, JSON.stringify({
             keywords: text,
             timestamp: Date.now()
@@ -461,6 +482,11 @@
       sendBtn.disabled = true;
       updateTextSmoothly(sendBtn, '思考中...');
 
+      var isCrisis = detectCrisis(text);
+      if (isCrisis) {
+        showCrisisAlert();
+      }
+
       addMessage('user', text);
       renderMessages();
       trimContext();
@@ -478,7 +504,11 @@
         addMessage('assistant', response);
       } catch (e) {
         hideTypingIndicator();
-        addMessage('assistant', '树灵正在打盹，请稍后再试...');
+        if (isCrisis) {
+          addMessage('assistant', '树灵感受到了你沉重的情绪。请一定记得，你并不孤单。' + CRISIS_HOTLINE);
+        } else {
+          addMessage('assistant', '树灵正在打盹，请稍后再试...');
+        }
         console.error('API调用失败:', e);
       }
 
@@ -497,7 +527,7 @@
 
 async function callDeepSeekAPI(text) {
       const messages = [{ role: 'system', content: buildSystemPrompt() }];
-      
+
       conversationHistory.forEach(msg => {
         if (msg.type === 'user') {
           messages.push({ role: 'user', content: msg.text });
@@ -505,24 +535,35 @@ async function callDeepSeekAPI(text) {
           messages.push({ role: 'assistant', content: msg.text });
         }
       });
-      
+
       messages.push({ role: 'user', content: text });
 
-      // 核心改变：改为请求我们自己部署的安全后端接口，不再暴露 API Key
-      const response = await fetch(window.API_BASE + '/api/chat', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ messages: messages })
-      });
+      const controller = new AbortController();
+      const timeout = setTimeout(function() { controller.abort(); }, 30000);
 
-      if (!response.ok) {
-        throw new Error('树灵正在打盹，请稍后再试...');
+      try {
+        const response = await fetch(window.API_BASE + '/api/chat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ messages: messages }),
+          signal: controller.signal
+        });
+
+        clearTimeout(timeout);
+
+        if (!response.ok) {
+          throw new Error('树灵正在打盹，请稍后再试...');
+        }
+
+        const data = await response.json();
+        return data.choices?.[0]?.message?.content || '树灵感受到了你的心声...';
+      } catch (e) {
+        clearTimeout(timeout);
+        if (e.name === 'AbortError') {
+          throw new Error('树灵思考的时间有点长，请稍后再试...');
+        }
+        throw e;
       }
-
-      const data = await response.json();
-      return data.choices?.[0]?.message?.content || '树灵感受到了你的心声...';
     }
     function addMessage(type, text) {
       conversationHistory.push({

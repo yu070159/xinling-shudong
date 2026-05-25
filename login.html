@@ -113,6 +113,13 @@
           loginError.style.display = 'block';
           return;
         }
+
+        var emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(email)) {
+          updateTextSmoothly('loginError', '请输入正确的邮箱格式');
+          loginError.style.display = 'block';
+          return;
+        }
         
         const originalText = loginBtn.textContent;
         loginBtn.textContent = '正在进入...';

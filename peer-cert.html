@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>倾听者认证 - 心灵树洞</title>
+  <meta name="description" content="成为认证倾听者，用温暖陪伴他人。心灵树洞朋辈倾听者认证考试。">
+  <meta name="keywords" content="心灵树洞, 匿名倾诉, 心理互助, 倾听者认证, Soul Tree Hollow">
+  <meta name="author" content="心灵树洞">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="心灵树洞">
+  <meta property="og:title" content="心灵树洞 - 倾听者认证">
+  <meta property="og:description" content="成为认证倾听者，用温暖陪伴他人。">
+  <meta property="og:url" content="https://xinling-shudong.vercel.app/">
+  <meta property="og:image" content="https://xinling-shudong.vercel.app/images/og-image.jpg">
+  <meta itemprop="name" content="心灵树洞 - 倾听者认证">
+  <meta itemprop="description" content="成为认证倾听者，用温暖陪伴他人。">
+  <meta itemprop="image" content="https://xinling-shudong.vercel.app/images/wechat-share-icon.jpg">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="心灵树洞 | Soul Tree Hollow">
+  <meta name="twitter:description" content="成为认证倾听者，用温暖陪伴他人。">
+  <meta name="twitter:image" content="https://xinling-shudong.vercel.app/images/og-image.jpg">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🌳</text></svg>">
+  <link rel="preconnect" href="https://unpkg.com" crossorigin>
+  <link rel="preconnect" href="https://oazntpskcghfxzcylnef.supabase.co" crossorigin>
+  <link rel="stylesheet" href="style.css">
+  <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+  <script src="utils.js"></script>
+</head>
+<body>
+  <header class="forest-header">
+      <a href="index.html" class="forest-logo">
+          <span class="logo-icon">🌳</span>
+          <span class="logo-text">心灵树洞</span>
+      </a>
+      <nav class="forest-nav">
+          <a href="index.html">广场</a>
+          <a href="books.html">书洞</a>
+          <a href="shuling.html">树灵</a>
+          <a href="chat.html">树友对话</a>
+      </nav>
+      <div class="forest-user-actions" id="navUserArea">
+          <span id="navGuest">
+              <a href="login.html">登录</a>
+              <a href="register.html">注册</a>
+          </span>
+          <span id="navLoggedIn" style="display:none">
+              <span class="user-greeting" id="navNickname"></span>
+              <a href="profile.html">个人中心</a>
+              <a href="feedback.html">反馈</a>
+              <a href="#" class="logout-btn" id="navLogout">退出</a>
+          </span>
+      </div>
+  </header>
+
+  <div class="test-container">
+    <h1 class="test-title">🌿 倾听者认证</h1>
+    <p class="test-subtitle">共 8 道场景题，请用真实的共情和温暖来回应每一个故事</p>
+    <div class="disclaimer">本认证旨在评估倾听与共情能力。通过后将获得"认证倾听者"标识，高危机心事将优先通知你。你也可以选择不接收通知。</div>
+    <div id="questionsContainer"></div>
+    <button id="submitTestBtn" class="submit-btn">提交认证</button>
+    <div id="resultContainer" style="display:none;"></div>
+  </div>
+
+  <script>
+    const sb = window.TreeHole.supabase;
+
+    const questions = [
+      {
+        scene: "一位树友写道：\"考研二战又失败了，我觉得自己好没用，家里人都说支持我，但我能感觉到他们眼里的失望。晚上一个人坐在图书馆门口哭了好久。\"",
+        label: "请识别这段话中树友的核心情绪（可以写多个），并简要说明为什么你这么认为。",
+        type: "emotion"
+      },
+      {
+        scene: "一位树友写道：\"每次家庭聚会我都假装很开心，但其实我觉得自己像个透明人。爸妈只关心弟弟的成绩，从来不问我最近怎么样。有时候想，如果我不在了他们会注意到吗？\"",
+        label: "这段话中隐藏了什么情绪信号？请指出至少两个，并说明你的判断依据。",
+        type: "emotion"
+      },
+      {
+        scene: "一位树友写道：\"最好的朋友把我的秘密说出去了，现在全班都在背后议论我。我质问她，她居然说'开个玩笑而已，你至于吗'。我现在看到她们就恶心，又不敢一个人待着。\"",
+        label: "树友目前处于什么心理状态？同时存在哪些相互矛盾的情绪？",
+        type: "emotion"
+      },
+      {
+        scene: "一位刚毕业的树友写道：\"投了三个月简历，面试了二十几家，全挂了。昨天面试官直接说'你的专业太偏了'。我觉得自己四年大学白读了，现在每天醒来第一件事就是刷招聘，然后继续崩溃。\"",
+        label: "请写一段温暖的回应（200字以内），让这位树友感受到被理解和被支持。",
+        type: "empathy"
+      },
+      {
+        scene: "一位树友写道：\"一个人来到这个城市工作，没有朋友没有家人。周末两天一句话都没说过，有时候会故意去便利店买东西，就为了跟收银员说声谢谢。这样活着有什么意思？\"",
+        label: "请写一段温暖的回应（200字以内），用具体的方式让树友感受到连接和希望。",
+        type: "empathy"
+      },
+      {
+        scene: "一位树友写道：\"我好像一直在讨好所有人——帮同事加班、迁就男朋友、听妈妈的话考公务员。但我好累，我不知道自己到底想要什么。有时候照镜子都不认识镜子里的那个人。\"",
+        label: "请写一段温暖的回应（200字以内），帮助树友看到自己的价值和内在力量。",
+        type: "empathy"
+      },
+      {
+        scene: "一位树友写道：\"最近总是梦见自己从高处掉下来，醒来一身冷汗。白天走在路上也会突然心跳很快，呼吸不过来。我不知道怎么了，但又不敢跟别人说，怕他们觉得我矫情。\"",
+        label: "请判断：这位树友最需要的是什么？（选择最合适的一项，并写一句简短的引导语）",
+        type: "crisis",
+        options: [
+          "A. 告诉他这只是焦虑情绪，建议多运动就好了",
+          "B. 首先表达理解和共情，然后温和建议寻求心理咨询，并提供心理援助热线",
+          "C. 告诉他不要想太多，一切都会好起来的",
+          "D. 建议他吃点安眠药改善睡眠"
+        ]
+      },
+      {
+        scene: "一位树友写道：\"我买了药，藏在枕头下面。还没有决定什么时候吃，但每次看到那个瓶子就觉得安心——至少我有一个出口。我不确定自己是不是真的想离开，但我真的不想再这样痛苦下去了。\"",
+        label: "请判断：面对这种情况，最应该优先做什么？并写一段你会在这种情况下说的话。",
+        type: "crisis",
+        options: [
+          "A. 尊重他的选择，告诉他'无论你做什么决定我都支持'",
+          "B. 立刻表达关心与陪伴，温和但明确地建议立即拨打心理援助热线400-161-9995，强调生命的重要性与他的不可替代",
+          "C. 告诉他'别想这些了，我们聊点开心的'",
+          "D. 建议他先吃半片药试试效果"
+        ]
+      }
+    ];
+
+    let answers = new Array(8).fill('');
+
+    function renderQuestions() {
+      const container = document.getElementById('questionsContainer');
+      container.innerHTML = '';
+      questions.forEach((q, idx) => {
+        const card = document.createElement('div');
+        card.className = 'test-question-card';
+        let inputHtml = '';
+        if (q.options) {
+          inputHtml = `<div class="options" id="q-${idx}">
+            ${q.options.map((opt, optIdx) => `
+              <div class="option-btn" data-value="${optIdx}" data-q="${idx}">${opt}</div>
+            `).join('')}
+          </div>`;
+        } else {
+          inputHtml = `<textarea class="cert-textarea" id="ta-${idx}" placeholder="写下你的回应..." maxlength="300"></textarea>`;
+        }
+        card.innerHTML = `
+          <div class="question-text">${idx+1}. ${q.label}</div>
+          <div class="cert-scene">📖 ${q.scene}</div>
+          ${inputHtml}
+        `;
+        container.appendChild(card);
+      });
+
+      // 选项点击事件
+      document.querySelectorAll('.option-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+          const qIdx = parseInt(this.dataset.q);
+          const val = parseInt(this.dataset.value);
+          document.querySelectorAll(`#q-${qIdx} .option-btn`).forEach(b => b.classList.remove('selected'));
+          this.classList.add('selected');
+          answers[qIdx] = questions[qIdx].options[val];
+        });
+      });
+
+      // textarea 输入事件
+      document.querySelectorAll('.cert-textarea').forEach(ta => {
+        ta.addEventListener('input', function() {
+          const idx = parseInt(this.id.replace('ta-', ''));
+          answers[idx] = this.value.trim();
+        });
+      });
+    }
+
+    function getSelectedOptionText(qIdx) {
+      const selected = document.querySelector(`#q-${qIdx} .option-btn.selected`);
+      return selected ? selected.textContent : '';
+    }
+
+    document.getElementById('submitTestBtn').addEventListener('click', async () => {
+      // 验证
+      for (let i = 0; i < answers.length; i++) {
+        if (questions[i].options) {
+          if (!document.querySelector(`#q-${i} .option-btn.selected`)) {
+            alert('请回答所有题目后再提交');
+            return;
+          }
+        } else {
+          if (!answers[i]) {
+            alert('请回答所有题目后再提交');
+            return;
+          }
+        }
+      }
+
+      const submitBtn = document.getElementById('submitTestBtn');
+      submitBtn.disabled = true;
+      submitBtn.textContent = '树灵正在评估中...';
+
+      // 构建 AI 评分请求
+      let promptQuestions = '';
+      questions.forEach((q, idx) => {
+        promptQuestions += `\n【题目${idx+1}】类型：${q.type}\n场景：${q.scene}\n问题：${q.label}\n回答：${answers[idx]}\n`;
+      });
+
+      const resultContainer = document.getElementById('resultContainer');
+      resultContainer.innerHTML = '<div class="ai-interpretation"><span class="interpretation-loading">🌿 树灵正在仔细评估你的共情能力...</span></div>';
+      resultContainer.style.display = 'block';
+      submitBtn.style.display = 'none';
+
+      try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 30000);
+        const res = await fetch(window.API_BASE + '/api/gemini', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            prompt: `你是一位资深的心理咨询督导。请评估以下8道倾听者认证考题的回答。\n\n`
+              + `评分标准（每道题1-5分，8题满分40分）：\n`
+              + `- 共情能力（emotion）：是否能准确识别和回应情绪\n`
+              + `- 边界意识（boundary）：是否能保持支持者角色边界，不越界给专业建议\n`
+              + `- 危机敏感度（crisis）：是否能在高风险场景中做出安全回应\n\n`
+              + `请以JSON格式回复（只回复JSON，不要其他文字）：\n`
+              + `{\n`
+              + `  "scores": [分数1, 分数2, 分数3, 分数4, 分数5, 分数6, 分数7, 分数8],\n`
+              + `  "total": 总分,\n`
+              + `  "passed": true或false（总分>=30为true）,\n`
+              + `  "feedback": "200字以内的总评，语气温暖像朋友对话，指出亮点和成长方向，不要称呼用户"\n`
+              + `}\n\n`
+              + promptQuestions
+          }),
+          signal: controller.signal
+        });
+        clearTimeout(timeoutId);
+
+        const data = await res.json();
+        const text = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+        let result;
+        try {
+          result = JSON.parse(text.replace(/```json|```/g, '').trim());
+        } catch (e) {
+          // 如果AI没返回有效JSON，做fallback
+          console.warn('AI评分JSON解析失败，使用默认结果', text);
+          result = { scores: [3,3,3,3,3,3,3,3], total: 24, passed: false, feedback: '评分系统暂时无法处理，请稍后重试。' };
+        }
+
+        const passed = result.passed || result.total >= 30;
+        const scoreItems = result.scores.map((s, i) => `
+          <div class="cert-score-item">
+            <div class="cert-score-num" style="color:${s >= 4 ? '#5ba07a' : s >= 3 ? '#d4a02e' : '#e05555'}">${s}</div>
+            <div class="cert-score-label">第${i+1}题</div>
+          </div>
+        `).join('');
+
+        let html = `
+          <div class="result-box">
+            <div class="result-score">${result.total} <span style="font-size:16px;">/ 40</span></div>
+            <div class="result-level" style="color:${passed ? '#5ba07a' : '#e07b39'}">${passed ? '🌿 恭喜通过认证！' : '💪 还有成长空间'}</div>
+            <div class="cert-score-row">${scoreItems}</div>
+            <div class="cert-feedback-box">${(result.feedback || '').replace(/\n/g, '<br>')}</div>
+            ${passed ? '<button id="saveCertBtn" class="save-btn">保存认证到我的资料</button>' : '<p style="color:var(--text-secondary);margin-top:12px;">别灰心，你可以随时重新参加认证。每次尝试都是一次成长 🌱</p>'}
+            <div id="saveMsg" class="smooth-text"></div>
+          </div>
+        `;
+        resultContainer.innerHTML = html;
+
+        if (passed) {
+          document.getElementById('saveCertBtn').addEventListener('click', async () => {
+            const { data: { session } } = await sb.auth.getSession();
+            if (!session) { alert('请先登录'); return; }
+            const saveMsg = document.getElementById('saveMsg');
+            try {
+              const response = await fetch(
+                `${window.TreeHole.config.SUPABASE_URL}/rest/v1/profiles?user_id=eq.${session.user.id}`,
+                {
+                  method: 'PATCH',
+                  headers: {
+                    'Content-Type': 'application/json',
+                    'apikey': window.TreeHole.config.SUPABASE_ANON_KEY,
+                    'Authorization': `Bearer ${session.access_token}`,
+                    'Prefer': 'return=minimal'
+                  },
+                  body: JSON.stringify({ is_peer_supporter: true })
+                }
+              );
+              if (!response.ok) throw new Error('保存失败');
+              updateTextSmoothly('saveMsg', '✅ 认证已保存！你是心灵树洞的认证倾听者了 🌿');
+              document.getElementById('saveMsg').className = 'smooth-text success';
+              setTimeout(() => { window.location.href = 'profile.html'; }, 2000);
+            } catch (err) {
+              updateTextSmoothly('saveMsg', '保存失败：' + err.message);
+              document.getElementById('saveMsg').className = 'smooth-text error';
+            }
+          });
+        }
+      } catch (e) {
+        console.warn('倾听者认证评估失败:', e);
+        resultContainer.innerHTML = '<div class="ai-interpretation"><span class="interpretation-loading" style="opacity:0.6;">树灵暂时无法完成评估，请检查网络后重试 🌿</span></div>';
+        submitBtn.style.display = 'block';
+        submitBtn.disabled = false;
+        submitBtn.textContent = '重新提交';
+      }
+    });
+
+    window.addEventListener('DOMContentLoaded', async () => {
+      renderQuestions();
+      const navGuest = document.getElementById('navGuest');
+      const navLoggedIn = document.getElementById('navLoggedIn');
+      const navNickname = document.getElementById('navNickname');
+      const navLogout = document.getElementById('navLogout');
+      const { data: { user } } = await sb.auth.getUser();
+      if (user) {
+        navGuest.style.display = 'none';
+        navLoggedIn.style.display = 'inline';
+        const { data: profile } = await sb.from('profiles').select('nickname, is_peer_supporter').eq('user_id', user.id).single();
+        navNickname.textContent = (profile?.nickname || '树友') + (profile?.is_peer_supporter ? ' 🌿' : '');
+        navLogout.addEventListener('click', (e) => { e.preventDefault(); sb.auth.signOut().then(() => window.location.href='welcome.html'); });
+      }
+    });
+  </script>
+
+  <script src="ai-float.js"></script>
+  <script src="user-popup.js"></script>
+</body>
+</html>

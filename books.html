@@ -231,6 +231,82 @@
             50% { opacity: 0; }
         }
 
+        .recommend-btn {
+            background: transparent;
+            border: 1px dashed var(--accent);
+            color: var(--accent);
+            padding: 8px 20px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: all 0.3s ease;
+            display: none;
+        }
+        .recommend-btn:hover {
+            background: var(--accent-glow);
+            border-style: solid;
+        }
+
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+        .modal-overlay.active { display: flex; }
+
+        .modal-panel {
+            background: var(--bg-card);
+            border-radius: 16px;
+            padding: 32px;
+            width: 90%;
+            max-width: 480px;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+        .modal-title {
+            font-size: 1.3rem;
+            color: var(--text-primary);
+            margin: 0 0 20px;
+            text-align: center;
+        }
+        .modal-field { margin-bottom: 16px; }
+        .modal-field label {
+            display: block;
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            margin-bottom: 6px;
+        }
+        .modal-field input, .modal-field textarea, .modal-field select {
+            width: 100%;
+            padding: 10px 14px;
+            border-radius: 8px;
+            background: var(--bg-input);
+            border: 1px solid var(--border-medium);
+            color: var(--text-primary);
+            font-size: 0.95rem;
+            outline: none;
+            box-sizing: border-box;
+            font-family: inherit;
+        }
+        .modal-field textarea { resize: vertical; min-height: 80px; }
+        .modal-field input:focus, .modal-field textarea:focus, .modal-field select:focus {
+            border-color: var(--accent);
+        }
+        .modal-actions { display: flex; gap: 12px; justify-content: flex-end; margin-top: 24px; }
+        .btn-cancel {
+            background: var(--bg-input); border: 1px solid var(--border-medium);
+            color: var(--text-secondary); padding: 10px 24px; border-radius: 24px; cursor: pointer;
+        }
+        .btn-submit {
+            background: var(--accent); border: none; color: white;
+            padding: 10px 24px; border-radius: 24px; cursor: pointer; font-weight: bold;
+        }
+        .btn-submit:disabled { opacity: 0.5; cursor: not-allowed; }
+
         @media (max-width: 900px) {
             .grid-container {
                 grid-template-columns: repeat(2, 1fr);
@@ -283,6 +359,7 @@
         <div class="search-box">
             <input type="text" id="searchInput" placeholder="寻找相似的回声... (搜索书名或作者)">
         </div>
+        <button id="showRecommendBtn" class="recommend-btn">+ 推荐资源</button>
         <div class="category-filters" id="filterContainer">
             <button class="filter-btn active" data-category="全部">全部</button>
             <button class="filter-btn" data-category="经典入门">经典入门</button>
@@ -476,14 +553,42 @@
 
         let currentCategory = "全部";
         let currentSearchQuery = "";
+        let allResources = [];
 
         const booksGrid = document.getElementById('booksGrid');
         const emptyState = document.getElementById('emptyState');
         const searchInput = document.getElementById('searchInput');
         const filterBtns = document.querySelectorAll('.filter-btn');
+        const showRecommendBtn = document.getElementById('showRecommendBtn');
+        const recommendModal = document.getElementById('recommendModal');
+
+        // 从 Supabase 加载资源，失败则降级到静态数据
+        async function loadResources() {
+            try {
+                const { data, error } = await sb
+                    .from('resources')
+                    .select('title,author,description,reason,category,link')
+                    .order('created_at', { ascending: false });
+                if (error) throw error;
+                if (data && data.length > 0) {
+                    allResources = data.map(r => ({
+                        title: r.title,
+                        author: r.author,
+                        desc: r.description,
+                        reason: r.reason,
+                        category: r.category,
+                        link: r.link
+                    }));
+                    return;
+                }
+            } catch (err) {
+                console.warn('Supabase 资源加载失败，使用静态数据:', err.message);
+            }
+            allResources = libraryData;
+        }
 
         function renderCards() {
-            const filteredData = libraryData.filter(item => {
+            const filteredData = allResources.filter(item => {
                 const matchCategory = currentCategory === "全部" || item.category === currentCategory;
                 const matchSearch = item.title.toLowerCase().includes(currentSearchQuery) || 
                                     item.author.toLowerCase().includes(currentSearchQuery);
@@ -532,21 +637,85 @@
             });
         });
 
+        let searchDebounceTimer = null;
         searchInput.addEventListener('input', (e) => {
             currentSearchQuery = e.target.value.toLowerCase().trim();
-            renderCards();
+            clearTimeout(searchDebounceTimer);
+            searchDebounceTimer = setTimeout(() => renderCards(), 300);
         });
 
-        // 导航栏登录状态
+        // 推荐弹窗逻辑
+        showRecommendBtn.addEventListener('click', () => {
+            recommendModal.classList.add('active');
+        });
+
+        document.getElementById('cancelRecommend').addEventListener('click', () => {
+            recommendModal.classList.remove('active');
+        });
+
+        recommendModal.addEventListener('click', (e) => {
+            if (e.target === recommendModal) recommendModal.classList.remove('active');
+        });
+
+        document.getElementById('submitRecommend').addEventListener('click', async function() {
+            const title = document.getElementById('recTitle').value.trim();
+            const author = document.getElementById('recAuthor').value.trim();
+            const category = document.getElementById('recCategory').value;
+            const desc = document.getElementById('recDesc').value.trim();
+            const reason = document.getElementById('recReason').value.trim();
+            const link = document.getElementById('recLink').value.trim();
+
+            if (!title || !author || !category || !desc || !reason || !link) {
+                alert('请填写所有必填字段');
+                return;
+            }
+
+            const btn = this;
+            btn.disabled = true;
+            btn.textContent = '提交中...';
+
+            try {
+                const { data: { user } } = await sb.auth.getUser();
+                if (!user) { alert('请先登录'); btn.disabled = false; btn.textContent = '提交推荐'; return; }
+
+                const { error } = await sb.from('resources').insert({
+                    title, author, category,
+                    description: desc, reason, link,
+                    submitted_by: user.id
+                });
+
+                if (error) throw error;
+
+                allResources.unshift({ title, author, desc, reason, category, link });
+                recommendModal.classList.remove('active');
+                ['recTitle','recAuthor','recCategory','recDesc','recReason','recLink'].forEach(id => {
+                    document.getElementById(id).value = '';
+                });
+                currentCategory = '全部';
+                document.querySelector('.filter-btn.active')?.classList.remove('active');
+                document.querySelector('.filter-btn[data-category="全部"]')?.classList.add('active');
+                renderCards();
+            } catch (err) {
+                alert('推荐失败: ' + err.message);
+            } finally {
+                btn.disabled = false;
+                btn.textContent = '提交推荐';
+            }
+        });
+
+        // 导航栏登录状态 + 加载资源
         window.addEventListener('DOMContentLoaded', async () => {
             const navGuest = document.getElementById('navGuest');
             const navLoggedIn = document.getElementById('navLoggedIn');
             const navNickname = document.getElementById('navNickname');
             const navLogout = document.getElementById('navLogout');
 
+            let isLoggedIn = false;
+
             try {
                 const { data: { user } } = await sb.auth.getUser();
                 if (user) {
+                    isLoggedIn = true;
                     navGuest.style.display = 'none';
                     navLoggedIn.style.display = 'inline';
                     const { data: profile } = await sb.from('profiles').select('nickname').eq('user_id', user.id).single();
@@ -560,9 +729,55 @@
                 console.warn('导航栏状态检查失败:', err.message);
             }
 
+            if (isLoggedIn) {
+                showRecommendBtn.style.display = 'inline-block';
+            }
+
+            await loadResources();
             renderCards();
         });
     </script>
+
+    <div class="modal-overlay" id="recommendModal">
+        <div class="modal-panel">
+            <h3 class="modal-title">推荐资源</h3>
+            <div class="modal-field">
+                <label>资源名称 *</label>
+                <input type="text" id="recTitle" placeholder="书名或资源名称" maxlength="100">
+            </div>
+            <div class="modal-field">
+                <label>作者/来源 *</label>
+                <input type="text" id="recAuthor" placeholder="作者或机构名称" maxlength="50">
+            </div>
+            <div class="modal-field">
+                <label>分类 *</label>
+                <select id="recCategory">
+                    <option value="">请选择</option>
+                    <option value="经典入门">经典入门</option>
+                    <option value="自我成长">自我成长</option>
+                    <option value="认知行为">认知行为</option>
+                    <option value="免费资源">免费资源</option>
+                    <option value="公开课">公开课</option>
+                </select>
+            </div>
+            <div class="modal-field">
+                <label>简介 *</label>
+                <textarea id="recDesc" placeholder="一句话介绍这个资源" maxlength="200"></textarea>
+            </div>
+            <div class="modal-field">
+                <label>推荐理由 *</label>
+                <textarea id="recReason" placeholder="为什么推荐给树友？" maxlength="300"></textarea>
+            </div>
+            <div class="modal-field">
+                <label>链接 *</label>
+                <input type="url" id="recLink" placeholder="https://..." maxlength="500">
+            </div>
+            <div class="modal-actions">
+                <button class="btn-cancel" id="cancelRecommend">取消</button>
+                <button class="btn-submit" id="submitRecommend">提交推荐</button>
+            </div>
+        </div>
+    </div>
 
     <script src="ai-float.js"></script>
     <script src="user-popup.js"></script>

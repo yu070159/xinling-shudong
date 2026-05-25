@@ -73,11 +73,6 @@
     }
   }
 
-  // 废弃的 localStorage 函数，保留空壳避免报错
-  function setReactedLocal(targetType, targetId) {
-    // 不再使用
-  }
-
   // escapeHtml, formatDate, updateTextSmoothly 由 utils.js 全局提供
 
   function showMessage(elementId, message, type, timeout = 2000) {
@@ -292,7 +287,7 @@
 
   async function submitQuestionAPI(content, nickname, userId = null) {
     if (!ensureSb()) return { success: false, error: 'Supabase 未初始化' };
-    
+
     try {
       const finalNickname = nickname.trim() || DEFAULT_NICKNAME;
       const payload = { content, nickname: finalNickname };
@@ -300,10 +295,73 @@
 
       const { error } = await sb.from('questions').insert(payload);
       if (error) throw error;
+
+      // 异步检测危机内容并通知倾听者（不阻塞返回）
+      if (userId) {
+        // 获取刚插入的心事ID用于通知链接
+        sb.from('questions').select('id').eq('user_id', userId).eq('content', content).order('created_at', { ascending: false }).limit(1).single().then(function(r) {
+          if (r.data) notifyPeerSupportersForCrisis(content, r.data.id, userId).catch(function(){});
+        }).catch(function(){});
+      }
+
       return { success: true };
     } catch (err) {
       console.error('提交心事失败:', err);
       return { success: false, error: '倾诉失败，请再试一次' };
+    }
+  }
+
+  // 检测危机内容并通知所有认证倾听者
+  async function notifyPeerSupportersForCrisis(content, questionId, authorUserId) {
+    var crisisWords = window.TreeHole.CRISIS_KEYWORDS || [];
+    var hitKeyword = null;
+    for (var i = 0; i < crisisWords.length; i++) {
+      if (content.indexOf(crisisWords[i]) !== -1) {
+        hitKeyword = crisisWords[i];
+        break;
+      }
+    }
+    if (!hitKeyword) {
+      // 无本地关键词命中，尝试 AI 情绪分析
+      try {
+        var emotion = await window.TreeHole.analyzeEmotion(content);
+        if (!emotion || !emotion.label) return;
+        var highCrisisLabels = ['绝望', '自伤', '严重焦虑', '自杀倾向', '严重抑郁'];
+        var isHighCrisis = false;
+        for (var j = 0; j < highCrisisLabels.length; j++) {
+          if (emotion.label.indexOf(highCrisisLabels[j]) !== -1) {
+            isHighCrisis = true;
+            break;
+          }
+        }
+        if (!isHighCrisis) return;
+      } catch (e) {
+        return;
+      }
+    }
+
+    // 查询所有认证倾听者
+    try {
+      var { data: supporters } = await sb.from('profiles')
+        .select('user_id')
+        .eq('is_peer_supporter', true)
+        .neq('user_id', authorUserId);
+      if (!supporters || supporters.length === 0) return;
+
+      if (window.TreeHole.Notifications) {
+        for (var k = 0; k < supporters.length; k++) {
+          window.TreeHole.Notifications.create({
+            userId: supporters[k].user_id,
+            type: 'peer_support',
+            fromUserId: authorUserId,
+            entityId: String(questionId),
+            link: 'detail.html?id=' + questionId,
+            contentPreview: '有树友需要紧急支持，点击查看 →'
+          }).catch(function(){});
+        }
+      }
+    } catch (e) {
+      console.warn('通知倾听者失败:', e);
     }
   }
 
@@ -341,16 +399,14 @@
     }
   }
 
-  async function submitAnswerAPI(questionId, content, nickname) {
+  async function submitAnswerAPI(questionId, content, nickname, userId = null) {
     if (!ensureSb()) return { success: false, error: 'Supabase 未初始化' };
-    
+
     try {
       const finalNickname = nickname.trim() || DEFAULT_NICKNAME;
-      const { error } = await sb.from('answers').insert({
-        question_id: questionId,
-        content: content,
-        nickname: finalNickname
-      });
+      const payload = { question_id: questionId, content: content, nickname: finalNickname };
+      if (userId) payload.user_id = userId;
+      const { error } = await sb.from('answers').insert(payload);
       if (error) throw error;
       return { success: true };
     } catch (err) {
@@ -359,42 +415,9 @@
     }
   }
 
-  // 调用 Gemini 审核内容
-  async function moderateContent(content) {
-    try {
-      const response = await fetch(window.API_BASE + '/api/gemini', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          prompt: `你是一个温暖的社区内容审核员。请审核以下用户发布的"心事"内容是否合适。判断标准：
-- 包含暴力、自残、自杀方法描述 → 不合适
-- 包含恶意攻击、仇恨言论、人身攻击 → 不合适
-- 包含色情、性骚扰内容 → 不合适
-- 正常的情绪倾诉、压力表达、寻求安慰 → 合适
-- 日常生活的烦恼、困惑、感悟 → 合适
-
-请只回复"合适"或"不合适"，不要加任何其他文字。
-
-心事内容：${content}`
-        })
-      });
-
-      if (!response.ok) {
-        console.warn('内容审核服务不可用，放行');
-        return { passed: true, reason: '' };
-      }
-
-      const data = await response.json();
-      const text = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
-
-      if (text.includes('不合适')) {
-        return { passed: false, reason: '你写的内容可能包含不适宜的表述，请修改后重新提交。树洞是用来安全倾诉的，但请不要包含危险或攻击性内容。' };
-      }
-      return { passed: true, reason: '' };
-    } catch (err) {
-      console.warn('内容审核异常，放行:', err);
-      return { passed: true, reason: '' };
-    }
+  // moderateContent 由 utils.js 统一提供，此处引用全局版本
+  function moderateContent(content) {
+    return window.moderateContent(content);
   }
 
   // 情绪标签分析（Gemini，localStorage 缓存）
@@ -516,11 +539,11 @@
         await new Promise(resolve => setTimeout(resolve, 500));
         const { error: updateError } = await sb
           .from('profiles')
-          .update({ nickname: finalNickname })
+          .update({ nickname: finalNickname, email: email })
           .eq('user_id', data.user.id);
 
         if (updateError) {
-          await sb.from('profiles').insert({ user_id: data.user.id, nickname: finalNickname });
+          await sb.from('profiles').insert({ user_id: data.user.id, nickname: finalNickname, email: email });
         }
         window.location.href = 'index.html';
       } else if (data.user && !data.session) {
@@ -606,116 +629,31 @@
     }
   }
 
-  // =====================
-  // 用户资料弹窗 (新增)
-  // =====================
-  async function showUserPopup(userId) {
-    const client = window.TreeHole?.supabase;
-    if (!client) {
-      console.error('Supabase client not found');
-      return;
-    }
-
-    // 移除已存在的弹窗
-    const existingOverlay = document.getElementById('user-popup-overlay');
-    if (existingOverlay) existingOverlay.remove();
-
-    const { data, error } = await client
-      .from('profiles')
-      .select('*')
-      .eq('user_id', userId)
-      .single();
-
-    if (error || !data) return;
-
-    // 注入样式（只注入一次）
-    if (!document.getElementById('user-popup-style')) {
-      const style = document.createElement('style');
-      style.id = 'user-popup-style';
-      style.innerHTML = `
-        #user-popup-overlay {
-          position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-          background: rgba(0,0,0,0.5); display: flex; justify-content: center;
-          align-items: center; z-index: 9999; backdrop-filter: blur(2px);
-        }
-        #user-popup-card {
-          background: var(--bg-card, #ffffff); border-radius: 16px; padding: 24px;
-          width: 90%; max-width: 320px; position: relative;
-          box-shadow: 0 10px 25px rgba(0,0,0,0.2);
-        }
-        #user-popup-close {
-          position: absolute; top: 12px; right: 12px; background: none;
-          border: none; cursor: pointer; font-size: 18px; color: var(--text-muted);
-        }
-        .popup-avatar {
-          width: 60px; height: 60px; border-radius: 50%; object-fit: cover;
-          display: block; margin: 0 auto 12px; border: 2px solid var(--border-light);
-        }
-        .popup-nickname {
-          text-align: center; font-size: 18px; font-weight: 600;
-          margin-bottom: 16px; color: var(--text-primary);
-        }
-        .popup-row {
-          margin-bottom: 10px; font-size: 14px; color: var(--text-secondary);
-        }
-        .popup-label {
-          font-weight: 600; color: var(--text-primary); margin-right: 8px;
-        }
-      `;
-      document.head.appendChild(style);
-    }
-
-    const date = new Date(data.created_at);
-    const formattedDate = `${date.getFullYear()}年${date.getMonth() + 1}月${date.getDate()}日`;
-    const avatarSrc = data.avatar_url || 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><text y=".9em" font-size="90">🌱</text></svg>';
-
-    let contentHtml = `
-      <img src="${avatarSrc}" class="popup-avatar" alt="Avatar">
-      <div class="popup-nickname">${data.nickname || '匿名用户'}</div>
-    `;
-
-    if (data.show_mbti && data.mbti) {
-      contentHtml += `<div class="popup-row"><span class="popup-label">MBTI:</span>${data.mbti}</div>`;
-    }
-    if (data.show_bio && data.bio) {
-      contentHtml += `<div class="popup-row"><span class="popup-label">简介:</span>${data.bio}</div>`;
-    }
-    if (data.show_join_date) {
-      contentHtml += `<div class="popup-row"><span class="popup-label">注册于:</span>${formattedDate}</div>`;
-    }
-
-    const overlay = document.createElement('div');
-    overlay.id = 'user-popup-overlay';
-    overlay.innerHTML = `
-      <div id="user-popup-card">
-        <button id="user-popup-close">✕</button>
-        ${contentHtml}
-      </div>
-    `;
-
-    const close = () => overlay.remove();
-    overlay.querySelector('#user-popup-close').onclick = close;
-    overlay.onclick = (e) => { if (e.target === overlay) close(); };
-
-    document.body.appendChild(overlay);
-  }
+  // 用户资料弹窗由 user-popup.js 统一处理（完整版，含好友申请/聊天/统计）
+  // 全站 13 个 HTML 页面均已引入 user-popup.js
 
   // =====================
   // UI 渲染逻辑层
   // =====================
+  var _renderVersion = 0;
+
   async function renderQuestions(questions, append) {
-    const container = document.getElementById('questions-list');
+    var container = document.getElementById('questions-list');
     if (!container) return;
+
+    // 竞态保护：非追加模式递增版本号，后续异步操作校验版本
+    var myVersion = append ? _renderVersion : ++_renderVersion;
 
     // 首次加载且无数据时展示空状态
     if (!append) {
       if (questions.length === 0) {
-        const searchInput = document.getElementById('searchInput');
-        const hasSearchKeyword = searchInput && searchInput.value.trim();
+        if (myVersion !== _renderVersion) return;
+        var searchInput = document.getElementById('searchInput');
+        var hasSearchKeyword = searchInput && searchInput.value.trim();
 
         container.innerHTML = hasSearchKeyword
-          ? `<div class="empty-state"><div class="empty-state-icon">🔍</div><p class="empty-state-text">没有找到相关心事</p><p class="empty-state-sub">换一个词试试吧</p></div>`
-          : `<div class="empty-state"><div class="empty-state-icon">🌳</div><p class="empty-state-text">这里还没有人倾诉心事</p><p class="empty-state-sub">你是第一个来到树洞的人，写下你的故事，会有人听见的。</p></div>`;
+          ? '<div class="empty-state"><div class="empty-state-icon">🔍</div><p class="empty-state-text">没有找到相关心事</p><p class="empty-state-sub">换一个词试试吧</p></div>'
+          : '<div class="empty-state"><div class="empty-state-icon">🌳</div><p class="empty-state-text">这里还没有人倾诉心事</p><p class="empty-state-sub">你是第一个来到树洞的人，写下你的故事，会有人听见的。</p></div>';
         initEmptyStateCursors();
         return;
       }
@@ -723,6 +661,7 @@
     }
 
     if (questions.length === 0) return;
+    if (myVersion !== _renderVersion) return;
 
     const userIds = questions.map(q => q.user_id).filter(id => id);
     const questionIds = questions.map(q => q.id);
@@ -772,9 +711,10 @@
     var allCards = container.querySelectorAll('.question-card');
     var startIndex = append ? allCards.length - questions.length : 0;
     questions.forEach(async function(q, i) {
-      const emotion = await analyzeEmotion(q.id, q.content);
+      var emotion = await analyzeEmotion(q.id, q.content);
+      if (myVersion !== _renderVersion) return;
       if (emotion) {
-        const card = allCards[startIndex + i];
+        var card = allCards[startIndex + i];
         if (card) {
           const tag = document.createElement('span');
           tag.className = 'emotion-tag';
@@ -869,10 +809,11 @@
     signUp, signIn, signOut, getCurrentUser, getUserProfile,
     initQuestionsBoard,
     updateTextSmoothly: window.updateTextSmoothly, initEmptyStateCursors,
-    showUserPopup, loadMoreQuestions,
+    loadMoreQuestions,
     applyEmotionFilter, clearEmotionFilter, updateEmotionFilterBar,
     toggleReaction, hasReacted, getUserReactionMap, getReactionCounts, getFavoriteCounts,
-    toggleFavorite, getUserFavoriteMap
+    toggleFavorite, getUserFavoriteMap, getAvatarMap,
+    notifyPeerSupportersForCrisis
   });
 
   // =====================
@@ -944,8 +885,9 @@ window.addEventListener('DOMContentLoaded', async () => {
       searchInput.addEventListener('input', function() {
         var keyword = searchInput.value.trim();
         clearSearch.classList.toggle('visible', keyword);
-        window.hasMore = !!keyword;
-        if (!keyword && !window.emotionFilter) {
+        if (keyword || window.emotionFilter) {
+          window.hasMore = false;
+        } else {
           window.hasMore = (window.allQuestions && window.allQuestions.length >= (window.TreeHole.pageSize || 20));
         }
         if (searchTimer) clearTimeout(searchTimer);
@@ -1042,14 +984,6 @@ window.addEventListener('DOMContentLoaded', async () => {
     }
 
 
-    // 全局头像点击事件委托
-    document.body.addEventListener('click', function(e) {
-      const avatar = e.target.closest('.user-avatar, .user-avatar-placeholder');
-      if (!avatar) return;
-      const userId = avatar.dataset.userId;
-      if (userId && window.TreeHole?.showUserPopup) {
-        window.TreeHole.showUserPopup(userId);
-      }
-    });
+    // 头像点击弹窗由 user-popup.js 在捕获阶段统一处理
   });
 })();

@@ -46,15 +46,6 @@
       .maybeSingle();
     if (pendingReceived) return 'pending_received';
 
-    const { data: lastRecord } = await sb
-      .from('friend_requests')
-      .select('status')
-      .or(`and(from_user.eq.${myUserId},to_user.eq.${targetUserId}),and(from_user.eq.${targetUserId},to_user.eq.${myUserId})`)
-      .order('created_at', { ascending: false })
-      .limit(1)
-      .maybeSingle();
-    if (lastRecord && lastRecord.status === 'rejected') return 'was_rejected';
-
     return null;
   }
 
@@ -67,7 +58,7 @@
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'apikey': 'sb_publishable_5i3Z5mF3VCwoEaXPaIJebA_55H6w13g',
+            'apikey': window.TreeHole.config.SUPABASE_ANON_KEY,
             'Authorization': `Bearer ${token}`,
             'Prefer': 'return=minimal'
           },
@@ -117,12 +108,15 @@
     document.head.appendChild(style);
   }
 
+  var activePopupRequest = 0;
+
   async function showPopup(userId) {
-    const old = document.querySelector('.popup-overlay');
+    var requestId = ++activePopupRequest;
+    var old = document.querySelector('.popup-overlay');
     if (old) old.remove();
     if (!userId) return;
 
-    const myUserId = await getCurrentUserId();
+    var myUserId = await getCurrentUserId();
 
     const [profileRes, userQuestionsRes, userAnswersRes, favoritesRes, friends1Res, friends2Res, friendStatus] = await Promise.all([
       sb.from('profiles').select('*').eq('user_id', userId).single(),
@@ -151,17 +145,19 @@
       heartsCount += aHearts || 0;
     }
 
-    const favoritesCount = favoritesRes.count || 0;
-    const postsTotal = questionIds.length + answerIds.length;
-    const friendsTotal = (friends1Res.count || 0) + (friends2Res.count || 0);
+    if (requestId !== activePopupRequest) return;
 
-    const avatarHTML = profile.avatar_url
+    var favoritesCount = favoritesRes.count || 0;
+    var postsTotal = questionIds.length + answerIds.length;
+    var friendsTotal = (friends1Res.count || 0) + (friends2Res.count || 0);
+
+    var avatarHTML = profile.avatar_url
       ? `<img src="${profile.avatar_url}" class="popup-avatar-img" alt="头像">`
       : `<div class="popup-avatar-placeholder">🌱</div>`;
 
     let contentHTML = `
       ${avatarHTML}
-      <div class="popup-name">${profile.nickname || '匿名用户'}</div>
+      <div class="popup-name">${profile.nickname || '匿名用户'}${profile.is_peer_supporter ? ' <span class="peer-supporter-badge">🌿 认证倾听者</span>' : ''}</div>
     `;
 
     if (profile.show_mbti && profile.mbti) {
@@ -254,6 +250,17 @@
         this.disabled = true;
         const success = await sendFriendRequest(myUserId, userId);
         if (success) {
+          // 通知对方
+          if (window.TreeHole.Notifications) {
+            window.TreeHole.Notifications.create({
+              userId: userId,
+              type: 'friend_request',
+              fromUserId: myUserId,
+              entityId: null,
+              link: 'profile.html',
+              contentPreview: '向你发送了好友申请'
+            }).catch(function(){});
+          }
           this.textContent = '已申请，等待对方通过';
           this.className = 'popup-friend-btn pending';
         } else {

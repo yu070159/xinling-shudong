@@ -262,32 +262,56 @@
   }
 
   function initDrag(header, dialog) {
-    header.addEventListener('mousedown', (e) => {
+    function startDialogDrag(e) {
       isDraggingDialog = true;
-      buttonDragStartX = e.clientX;
-      buttonDragStartY = e.clientY;
+      var clientX, clientY;
+      if (e.type === 'touchstart') {
+        clientX = e.touches[0].clientX;
+        clientY = e.touches[0].clientY;
+      } else {
+        clientX = e.clientX;
+        clientY = e.clientY;
+      }
+      buttonDragStartX = clientX;
+      buttonDragStartY = clientY;
       dialogStartX = dialog.offsetLeft;
       dialogStartY = dialog.offsetTop;
-      
+
       document.addEventListener('mousemove', onDialogDrag);
       document.addEventListener('mouseup', stopDialogDrag);
-    });
+      document.addEventListener('touchmove', onDialogDrag, { passive: false });
+      document.addEventListener('touchend', stopDialogDrag);
+    }
+
+    header.addEventListener('mousedown', startDialogDrag);
+    header.addEventListener('touchstart', startDialogDrag, { passive: false });
 
     function onDialogDrag(e) {
       if (!isDraggingDialog) return;
-      
-      const dx = e.clientX - buttonDragStartX;
-      const dy = e.clientY - buttonDragStartY;
-      
+      e.preventDefault();
+
+      var clientX, clientY;
+      if (e.type === 'touchmove') {
+        if (!e.touches || e.touches.length === 0) return;
+        clientX = e.touches[0].clientX;
+        clientY = e.touches[0].clientY;
+      } else {
+        clientX = e.clientX;
+        clientY = e.clientY;
+      }
+
+      const dx = clientX - buttonDragStartX;
+      const dy = clientY - buttonDragStartY;
+
       let newX = dialogStartX + dx;
       let newY = dialogStartY + dy;
-      
+
       const maxX = window.innerWidth - dialog.offsetWidth - 10;
       const maxY = window.innerHeight - dialog.offsetHeight - 10;
-      
+
       newX = Math.max(10, Math.min(newX, maxX));
       newY = Math.max(10, Math.min(newY, maxY));
-      
+
       dialog.style.left = newX + 'px';
       dialog.style.right = 'auto';
       dialog.style.top = newY + 'px';
@@ -298,6 +322,8 @@
       isDraggingDialog = false;
       document.removeEventListener('mousemove', onDialogDrag);
       document.removeEventListener('mouseup', stopDialogDrag);
+      document.removeEventListener('touchmove', onDialogDrag);
+      document.removeEventListener('touchend', stopDialogDrag);
     }
   }
 
@@ -353,6 +379,7 @@
     // 获取当前鼠标/触摸位置
     let currentX, currentY;
     if (e.type === 'touchmove') {
+      if (!e.touches || e.touches.length === 0) return;
       currentX = e.touches[0].clientX;
       currentY = e.touches[0].clientY;
     } else {
@@ -395,6 +422,27 @@
     document.removeEventListener('mouseup', stopButtonDrag);
     document.removeEventListener('touchmove', onButtonDrag);
     document.removeEventListener('touchend', stopButtonDrag);
+  }
+
+  // 危机干预关键词由 utils.js 统一提供（window.TreeHole.CRISIS_KEYWORDS / CRISIS_HOTLINE）
+
+  function detectCrisis(text) {
+    var keywords = window.TreeHole.CRISIS_KEYWORDS || [];
+    var lower = text.toLowerCase();
+    for (var i = 0; i < keywords.length; i++) {
+      if (lower.indexOf(keywords[i]) !== -1) return true;
+    }
+    return false;
+  }
+
+  function showCrisisAlert() {
+    var chatArea = document.getElementById('ai-chat-area');
+    var alert = document.createElement('div');
+    alert.style.cssText = 'background:#fff3e0;border:1px solid #ff9800;border-radius:12px;padding:12px 14px;margin:8px 0;font-size:13px;line-height:1.6;color:#e65100;';
+    var hotline = window.TreeHole.CRISIS_HOTLINE || '全国心理危机干预热线：希望24热线 400-161-9995（24小时免费）';
+    alert.innerHTML = '<strong>树灵不愿失去你这片叶子。</strong><br>请让专业的人帮帮你，这非常重要：<br><strong>' + hotline + '</strong>';
+    chatArea.appendChild(alert);
+    scrollToBottom();
   }
 
   function setupEventListeners() {
@@ -469,6 +517,12 @@
     saveConversation();
     scrollToBottom();
 
+    var isCrisis = detectCrisis(text);
+
+    if (isCrisis) {
+      showCrisisAlert();
+    }
+
     showTypingIndicator();
 
     try {
@@ -477,7 +531,12 @@
       addMessage('assistant', response);
     } catch (e) {
       hideTypingIndicator();
-      addMessage('assistant', e.message || '树灵正在打盹，请稍后再试...');
+      if (isCrisis) {
+        var hotline = window.TreeHole.CRISIS_HOTLINE || '全国心理危机干预热线：希望24热线 400-161-9995（24小时免费）';
+        addMessage('assistant', '树灵感受到了你沉重的情绪。请一定记得，你并不孤单。' + hotline);
+      } else {
+        addMessage('assistant', e.message || '树灵正在打盹，请稍后再试...');
+      }
     }
 
     renderMessages();
@@ -518,20 +577,32 @@ async function callDeepSeekAPI(text) {
     messages.push({ role: 'user', content: text });
 
     // 核心改变：改为请求我们自己部署的安全后端接口，不再暴露 API Key
-    const response = await fetch(window.API_BASE + '/api/chat', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({ messages: messages })
-    });
+    const controller = new AbortController();
+    const timeout = setTimeout(function() { controller.abort(); }, 30000);
 
-    if (!response.ok) {
-      throw new Error('树灵正在打盹，请稍后再试...');
+    try {
+      const response = await fetch(window.API_BASE + '/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ messages: messages }),
+        signal: controller.signal
+      });
+
+      clearTimeout(timeout);
+
+      if (!response.ok) {
+        throw new Error('树灵正在打盹，请稍后再试...');
+      }
+
+      const data = await response.json();
+      return data.choices?.[0]?.message?.content || '树灵感受到了你的心声...';
+    } catch (e) {
+      clearTimeout(timeout);
+      if (e.name === 'AbortError') {
+        throw new Error('树灵思考的时间有点长，请稍后再试...');
+      }
+      throw e;
     }
-
-    const data = await response.json();
-    return data.choices?.[0]?.message?.content || '树灵感受到了你的心声...';
   }
   
   function addMessage(type, text) {
