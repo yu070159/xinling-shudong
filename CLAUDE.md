@@ -320,3 +320,32 @@ npx playwright test --grep "广场"    # 按名称筛选用例
 
 ### 路线图状态
 - 长期路线图：剩余 2 项（树洞回音壁、关怀代币闭环）
+
+## 2026-05-25（八次会话）全日工作总结
+
+### 解决的问题
+- 情绪年轮可视化从计划到完整实现，4 个 Task 一气呵成（数据库→页面→导航→测试）
+- 发现 DeepSeek 不支持 embedding API，避免了 pgvector 方案投入后的架构返工
+- 心事语义共振用 PostgreSQL 数组替代 pgvector，同样实现语义匹配且零额外依赖
+
+### 做的修改
+- `migrations/add_mood_logs.sql` — mood_logs 表（BIGSERIAL + mood_type CHECK + UNIQUE + 4条RLS）
+- `mood-ring.html` — 447 行独立页面（签到区 + 年轮树 SVG + 图例统计 + 年份切换）
+- 全站 14 个 HTML 页面导航栏统一插入 `<a href="mood-ring.html">年轮</a>`
+- `tests/full-test.spec.js` 新增情绪年轮冒烟测试
+- `migrations/add_tags_to_questions.sql` — questions 表新增 tags TEXT[] 字段
+- `app.js` — `extractAndSaveTags()` 异步标签提取 + `submitQuestionAPI` 异步链调用
+- `detail.html` — 相似心事推荐区块（tags 重叠度排序 Top 3 卡片）
+- `docs/superpowers/specs/2026-05-25-semantic-resonance-design.md` — 语义共振设计文档
+- CLAUDE.md — 两功能标记完成，路线图 4→2 项剩余，追记四次会话总结
+
+### 达成的共识
+- 实现优先级按路线图逐个击破：情绪年轮 → 语义共振 → 树洞回音壁 → 关怀代币闭环
+- 情绪年轮用 5 种基础情绪（开心/平静/难过/焦虑/生气），银杏叶同心圆 SVG
+- 语义共振因 DeepSeek 无 embedding API，改用 PostgreSQL 数组标签方案，用户选 B
+- 标签提取异步不阻塞发布，相似推荐放在回应列表下方，用户选 A
+- 设计问题用多选加速决策，确认后不再反复询问，直接进入实现
+
+### 当前待办
+- [ ] 在 Vercel 控制台配置 `RESEND_API_KEY`、`SUPABASE_SERVICE_KEY`（离线邮件生效）
+- [ ] 长期路线图剩余 2 项：树洞回音壁、关怀代币闭环
