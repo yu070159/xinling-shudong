@@ -4,7 +4,6 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 为 Claude Code（claude.ai/code）提供项目上下文和开发指引。
 
-**启动指令：每次对话开始，先执行 `/init` 刷新项目上下文，紧接着执行 `/compact`。**
 
 ## 交互规则
 
@@ -54,7 +53,7 @@ vercel dev
 ```
 `vercel dev` 启动在 `localhost:3000`，前端页面通过 Live Server（`localhost:5500`）访问时，`utils.js` 中的 `API_BASE` 会自动指向 `http://localhost:3000` 以调用本地 API 代理。
 
-**测试：** 项目有 26 个 Playwright 用例（`tests/full-test.spec.js`），需要 Live Server 在 5500 端口运行。
+**测试：** 项目有 27 个 Playwright 用例（`tests/full-test.spec.js`），需要 Live Server 在 5500 端口运行。
 ```
 npx playwright test                  # 运行全部测试
 npx playwright test --headed         # 有头模式（观察浏览器）
@@ -72,7 +71,7 @@ npx playwright test --grep "广场"    # 按名称筛选用例
 - **`notifications.js`** —— 全站通知中心（IIFE）。通过 `utils.js` 自动注入到所有页面，在导航栏创建铃铛按钮和下拉面板。30s 轮询 `notifications` 表未读计数，页面后台时触发 Browser Notification API 桌面通知。暴露 `window.TreeHole.Notifications` API（create / upsertMessage / refreshBadge / markAllRead）。通知类型：reply（回复）、message（私信）、friend_request（好友申请）、friend_accept（接受好友）、peer_support（危机优先通知认证倾听者）、match_letter（收到匿名信）。
 - **`style.css`** —— 全局样式，CSS 自定义属性定义在 `:root`（暖色森林调色板：`--accent`、`--bg-main`、`--bg-card`、`--warm-heart`、`--danger`）。
 
-### 页面结构（15 个 HTML 页面）
+### 页面结构（16 个 HTML 页面）
 
 每个页面引入 `style.css`、CDN 加载 Supabase SDK、公共导航栏（`.forest-header`），以及页面专属的 `<style>` 和 `<script>` 块。页面脚本自行初始化 Supabase 客户端、处理鉴权守卫。
 
@@ -90,11 +89,12 @@ npx playwright test --grep "广场"    # 按名称筛选用例
 - `peer-cert.html` —— 朋辈倾听者认证考试（8 道场景题，AI 评分 3 维度：共情/边界/危机，≥30/40 分通过）
 - `match.html` —— 提灯寻友（MBTI 落叶盲盒）。匹配算法（MBTI互补40分+情绪共鸣20分），每日限投1封匿名长信，收件箱模式 `?view=inbox`。匿名信存入 `match_letters` 表，回复后双方身份揭示
 - `feedback.html` —— 反馈提交
+- `mood-ring.html` —— 情绪年轮。每日签到选择 5 种情绪之一，SVG 同心圆年轮树可视化（12 圈=12 个月，银杏叶标记每日心情），年份切换，图例统计。使用 `mood_logs` 表
 
 ### Supabase 数据库
 
 - `profiles` —— 用户资料（nickname, mbti, bio, avatar_url, email, phq9_score, is_peer_supporter, last_active_at, last_email_digest_at, show_* 可见性开关）
-- `questions` —— 心事（content, nickname, user_id）
+- `questions` —— 心事（content, nickname, user_id, tags TEXT[]）
 - `answers` —— 回应（question_id, content, nickname, user_id）
 - `reactions` —— 暖心反应（user_id, target_type: 'question'|'answer', target_id）
 - `favorites` —— 收藏（user_id, question_id）
@@ -103,6 +103,7 @@ npx playwright test --grep "广场"    # 按名称筛选用例
 - `notifications` —— 通知（user_id, type, from_user_id, entity_id, link, content_preview, is_read, created_at）。类型：reply / message / friend_request / friend_accept / peer_support / match_letter。INSERT RLS：`auth.uid() = from_user_id AND user_id != auth.uid()`（发送者创建通知给他人）。SELECT/UPDATE/DELETE RLS：`auth.uid() = user_id`（接收者读写）。DELETE 额外允许 `auth.uid() = from_user_id`（发送者删除自己创建的通知，用于消息去重）。部分唯一索引防重复：reply（user_id+entity_id）、friend_request（user_id+from_user_id）、friend_accept（user_id+entity_id）。message 类型用应用层 upsert（先删旧未读再插入新）。
 - `match_letters` —— 提灯寻友匿名信（from_user_id, to_user_id, content, is_read, created_at）
 - `feedbacks` —— 用户反馈
+- `mood_logs` —— 心情记录（user_id, mood_type CHECK 5 种情绪, note, created_at DATE UNIQUE 每日一条）
 
 鉴权使用 Supabase Auth（邮箱/密码）。所有表均启用 RLS 策略。
 
@@ -117,6 +118,8 @@ npx playwright test --grep "广场"    # 按名称筛选用例
   - `add_peer_supporter_and_match_letters.sql` —— 合并迁移（peer_supporter + match_letters + 统一 notifications 类型约束，一次性执行）
   - `add_offline_email.sql` —— 离线邮件通知（profiles 加 email, last_active_at, last_email_digest_at + 回填已有用户邮箱）
   - `add_resources.sql` —— 资源库动态化（resources 表 + 21 条种子数据 + RLS 策略）
+  - `add_mood_logs.sql` —— 心情签到（mood_logs 表 + 5 种情绪 CHECK + 每日 UNIQUE + 4 条 RLS）
+  - `add_tags_to_questions.sql` —— 心事语义标签（questions 表新增 tags TEXT[] 字段）
 
 ### 部署与 SEO
 
@@ -127,7 +130,7 @@ npx playwright test --grep "广场"    # 按名称筛选用例
 
 ### 测试
 
-- **Playwright**（`tests/full-test.spec.js`）：26 个自动化用例，需 Live Server 在 5500 端口。配置文件为根目录的 `playwright.config.js`（baseURL: `http://localhost:5500`，chromium，无头模式）。依赖 `package.json` 中的 `@playwright/test`。
+- **Playwright**（`tests/full-test.spec.js`）：27 个自动化用例，需 Live Server 在 5500 端口。配置文件为根目录的 `playwright.config.js`（baseURL: `http://localhost:5500`，chromium）。依赖 `package.json` 中的 `@playwright/test`。
 - **手动测试**（`测试方案.md`）：聊天功能、敏感词过滤、删除聊天、未读消息的系统测试方案。
 
 ### API 代理
@@ -181,7 +184,7 @@ npx playwright test --grep "广场"    # 按名称筛选用例
 - [x] 内容审核（`moderateContent` → `/api/gemini`，暴力/自残/仇恨/色情拦截）
 - [x] 聊天敏感词本地过滤（去除 AI 审核延迟，27个敏感词即时星号替换）
 - [x] 点赞/收藏去重 + REST API DELETE 模式
-- [x] Playwright 自动化测试（26 用例）
+- [x] Playwright 自动化测试（27 用例）
 - [x] 危机干预关键词本地预检 + 热线提示（`ai-float.js` + `shuling.html`，20+ 危机词，即使 API 不可用也展示）
 - [x] Prompt 注入防护（`<user_content>` XML 标签包裹用户输入，防止"忽略指令"类注入）
 - [x] reactions 表唯一约束 + friend_requests pending 部分唯一索引
@@ -221,7 +224,7 @@ npx playwright test --grep "广场"    # 按名称筛选用例
 ### 当前待办
 
 - [ ] 在 Vercel 控制台配置 `RESEND_API_KEY`、`SUPABASE_SERVICE_KEY`（离线邮件生效）
-- [ ] 长期路线图剩余 4 项：心事语义共振、情绪年轮可视化、树洞回音壁、关怀代币闭环
+- [ ] 长期路线图剩余 2 项：树洞回音壁、关怀代币闭环
 
 ### 开发约定
 
@@ -277,7 +280,7 @@ npx playwright test --grep "广场"    # 按名称筛选用例
 ### 下一步 → 已全部完成
 - [x] 数据库迁移（`migrations/add_mood_logs.sql` 已在 Supabase 执行）
 - [x] `mood-ring.html` 页面（HTML 骨架 + CSS + JS 完整逻辑）
-- [x] 全站 14 个 HTML 页面导航栏新增"年轮"入口
+- [x] 全站 15 个 HTML 页面导航栏新增"年轮"入口
 - [x] Playwright 冒烟测试
 
 ## 2026-05-25（六次会话）情绪年轮可视化完成
@@ -285,7 +288,7 @@ npx playwright test --grep "广场"    # 按名称筛选用例
 ### 实现内容
 - `migrations/add_mood_logs.sql` — mood_logs 表（BIGSERIAL PK, user_id UUID FK, mood_type CHECK 5 种情绪, note TEXT, created_at DATE UNIQUE）+ 4 条 RLS 策略
 - `mood-ring.html` — 完整页面：签到区（5 种情绪选择 + 可选备注 + 修改覆盖）、年轮树 SVG（同心圆 12 圈，每圈 = 一个月，银杏叶均匀分布，hover tooltip 显示日期+心情+备注）、年份切换、图例、统计
-- 全站 14 个 HTML 页面导航栏 `<nav class="forest-nav">` 统一插入 `<a href="mood-ring.html">年轮</a>`
+- 全站 15 个 HTML 页面导航栏 `<nav class="forest-nav">` 统一插入 `<a href="mood-ring.html">年轮</a>`
 - `tests/full-test.spec.js` 新增冒烟测试：页面可访问 + 导航栏链接可见
 
 ### 新增文件
@@ -331,7 +334,7 @@ npx playwright test --grep "广场"    # 按名称筛选用例
 ### 做的修改
 - `migrations/add_mood_logs.sql` — mood_logs 表（BIGSERIAL + mood_type CHECK + UNIQUE + 4条RLS）
 - `mood-ring.html` — 447 行独立页面（签到区 + 年轮树 SVG + 图例统计 + 年份切换）
-- 全站 14 个 HTML 页面导航栏统一插入 `<a href="mood-ring.html">年轮</a>`
+- 全站 15 个 HTML 页面导航栏统一插入 `<a href="mood-ring.html">年轮</a>`
 - `tests/full-test.spec.js` 新增情绪年轮冒烟测试
 - `migrations/add_tags_to_questions.sql` — questions 表新增 tags TEXT[] 字段
 - `app.js` — `extractAndSaveTags()` 异步标签提取 + `submitQuestionAPI` 异步链调用
