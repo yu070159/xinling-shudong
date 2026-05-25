@@ -233,3 +233,25 @@ npx playwright test --grep "广场"    # 按名称筛选用例
 ### Playwright 状态
 
 9 通过 / 17 失败（全为预存问题：URL 匹配 + 缺 Supabase 测试凭证），"所有页面无 400 错误"通过。
+
+## 2026-05-25（四次会话）对话总结
+
+### 解决的问题
+- CLAUDE.md 冗余：三段历史对话总结 + 近期变更摘要 + 四处重复待办，净减约 120 行
+- 通知方案反复变更：从 keybd_event → SendKeys 闪烁 → 最终全部删除，因用户决定放弃所有提示音/弹窗/闪烁/提醒类 Claude Code 行为规则
+
+### 做的修改
+- CLAUDE.md 精简：删除三段对话总结、近期变更摘要、任务通知/后台闪烁/Elicitation 弹窗/Hooks 配置路径等全部行为规则
+- 新增强制中文交互违规惩罚条款（违反将导致后续指令无法执行）
+- 新增安全协议：任务前后自动备份 + 禁止 git push --force/rm -rf/DROP TABLE + 连续 3 次失败回退机制
+- books.html 描述修正为"动态加载 + 静态数据降级"
+- 开发约定新增两条：Hooks 修改需重启 Claude Code、`.claude/` 被 gitignore
+
+### 达成的共识
+- 删除关键词时须区分 Claude Code 行为规则（删除）和项目架构描述（保留），不能一刀切
+- 安全协议优先：任何修改前先 git commit 备份，确保可回退
+- 工作区随时保持干净，未确认的破坏性操作可通过 git checkout 快速撤销
+
+### 当前待办
+- [ ] 在 Vercel 控制台配置 `RESEND_API_KEY`、`SUPABASE_SERVICE_KEY`（离线邮件生效）
+- [ ] 长期路线图剩余 4 项：心事语义共振、情绪年轮可视化、树洞回音壁、关怀代币闭环
