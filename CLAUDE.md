@@ -258,3 +258,22 @@ npx playwright test --grep "广场"    # 按名称筛选用例
 ### 当前待办
 - [ ] 在 Vercel 控制台配置 `RESEND_API_KEY`、`SUPABASE_SERVICE_KEY`（离线邮件生效）
 - [ ] 长期路线图剩余 4 项：心事语义共振、情绪年轮可视化、树洞回音壁、关怀代币闭环
+
+## 2026-05-25（五次会话）情绪年轮可视化启动
+
+### 达成设计决策
+- 实现优先级：情绪年轮 → 心事语义共振 → 树洞回音壁 → 关怀代币闭环，逐个击破
+- 情绪年轮为独立新页面 `mood-ring.html`，不放入 profile 标签页
+- 存储使用 Supabase `mood_logs` 表（user_id + mood_type + note + created_at，UNIQUE 每日一条），修改时 UPDATE 覆盖
+- 5 种基础情绪：开心（金黄#f0c040）、平静（叶绿#7ba878）、难过（雾蓝#6b8cce）、焦虑（暖橙#e07b39）、生气（枫红#e05555）
+- 可视化采用同心圆"年轮树"SVG（最内圈最早月，向外扩展），日历热力图留后续
+- 银杏叶用简化扇形 SVG path，hover 放大 1.15x + tooltip 淡入
+- 导航栏各页面需新增"年轮"入口链接
+
+### 已完成的准备
+- 设计文档写入 `docs/superpowers/specs/2026-05-25-mood-ring-design.md` 并提交
+- 实现计划正在通过 writing-plans 技能编写
+
+### 上下文占比检查机制
+- 每个独立任务完成后检查上下文占比，到达 60% 时执行 /compact
+- CLAUDE.md 会话总结需追加，不覆盖已有内容
