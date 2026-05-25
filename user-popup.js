@@ -190,6 +190,18 @@
       contentHTML += `<div class="popup-divider"></div><div class="popup-stats">${statsHTML}</div>`;
     }
 
+    // 公益捐赠徽章
+    var donated = profile.glimmer_donated || 0;
+    if (donated > 0) {
+      var badges = [];
+      if (donated >= 100) badges.push('<span title="微光使者 · 累计捐赠100微光">🥉</span>');
+      if (donated >= 500) badges.push('<span title="温暖之光 · 累计捐赠500微光">🥈</span>');
+      if (donated >= 1000) badges.push('<span title="星火相传 · 累计捐赠1000微光">🥇</span>');
+      if (badges.length > 0) {
+        contentHTML += '<div style="text-align:center;margin-top:8px;font-size:11px;color:var(--text-secondary);">💛 公益徽章：' + badges.join(' ') + '</div>';
+      }
+    }
+
     let actionBtnsHTML = '';
     if (myUserId && myUserId !== userId) {
       if (friendStatus === 'accepted') {

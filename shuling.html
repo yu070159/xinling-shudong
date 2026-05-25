@@ -218,6 +218,38 @@
       font-size: 48px;
       margin-bottom: 16px;
     }
+
+    /* 主题面板 */
+    .theme-panel-overlay {
+      display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0,0,0,0.6); z-index: 9999; justify-content: center; align-items: center;
+    }
+    .theme-panel-overlay.show { display: flex; }
+    .theme-panel {
+      background: var(--bg-card); border-radius: 16px; padding: 24px; max-width: 340px; width: 90%;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+    }
+    .theme-panel h3 { text-align: center; color: var(--accent); margin-bottom: 16px; font-size: 18px; }
+    .theme-item {
+      display: flex; align-items: center; justify-content: space-between; gap: 12px;
+      padding: 12px; margin-bottom: 8px; border-radius: 12px; cursor: pointer;
+      border: 2px solid var(--border-light); transition: 0.2s;
+    }
+    .theme-item:hover { border-color: var(--accent); }
+    .theme-item.active { border-color: var(--accent); background: var(--accent-glow); }
+    .theme-item.locked { opacity: 0.6; cursor: not-allowed; }
+    .theme-preview { width: 32px; height: 32px; border-radius: 50%; flex-shrink: 0; }
+    .theme-name { flex: 1; font-size: 14px; color: var(--text-primary); }
+    .theme-cost { font-size: 11px; color: var(--text-secondary); }
+    .theme-unlock-btn {
+      background: var(--warm-heart); color: white; border: none; padding: 4px 10px;
+      border-radius: 8px; cursor: pointer; font-size: 12px;
+    }
+    .theme-unlock-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    .theme-close-btn {
+      display: block; width: 100%; margin-top: 12px; background: none; border: 1px solid var(--border-medium);
+      color: var(--text-secondary); padding: 8px; border-radius: 20px; cursor: pointer; font-size: 13px;
+    }
   </style>
 </head>
 <body>
@@ -255,6 +287,7 @@
       <div class="shuling-toolbar" id="shulingToolbar" style="display:none;justify-content:center;align-items:center;gap:12px;margin-top:8px;">
         <span id="convStats" style="font-size:12px;color:var(--text-secondary);"></span>
         <button id="clearConvBtn" style="background:none;border:1px solid var(--border-medium);color:var(--text-secondary);padding:3px 10px;border-radius:12px;cursor:pointer;font-size:12px;">🗑 清除对话</button>
+        <button id="themeBtn" style="background:none;border:1px solid var(--border-medium);color:var(--text-secondary);padding:3px 10px;border-radius:12px;cursor:pointer;font-size:12px;">🎨 主题</button>
       </div>
     </div>
 
@@ -375,6 +408,7 @@
         return;
       }
 
+      await loadThemeState();
       loadConversation();
       loadEmotionKeywords();
       setupEventListeners();
@@ -618,8 +652,174 @@ async function callDeepSeekAPI(text) {
 
     // escapeHtml, updateTextSmoothly 由 utils.js 全局提供
 
+    // ====== 树灵主题系统 ======
+    var THEME_DEFS = {
+      'starlight': {
+        name: '星光森林',
+        icon: '🌲',
+        preview: 'linear-gradient(135deg, #1a1a3e, #2d1b69)',
+        cost: 20,
+        vars: {
+          '--accent': '#8b7cf0', '--accent-light': '#a89ff5', '--accent-glow': 'rgba(139,124,240,0.15)',
+          '--bg-main': '#1a1a2e', '--bg-card': '#252540', '--bg-input': '#1e1e35',
+          '--text-primary': '#e8e6f0', '--text-secondary': '#a9a5c0', '--text-muted': '#6e6a88',
+          '--border-light': '#2a2a45', '--border-medium': '#3a3a58', '--border-hover': '#8b7cf0',
+          '--warm-heart': '#c084fc', '--shadow-sm': '0 2px 8px rgba(139,124,240,0.1)',
+          '--shadow-md': '0 4px 16px rgba(139,124,240,0.15)'
+        }
+      },
+      'ocean': {
+        name: '深海静谧',
+        icon: '🌊',
+        preview: 'linear-gradient(135deg, #0c1a2e, #1a5276)',
+        cost: 20,
+        vars: {
+          '--accent': '#5dade2', '--accent-light': '#85c1e9', '--accent-glow': 'rgba(93,173,226,0.15)',
+          '--bg-main': '#0d1b2a', '--bg-card': '#132a3d', '--bg-input': '#10223a',
+          '--text-primary': '#d6eaf8', '--text-secondary': '#85a7c7', '--text-muted': '#5a7d9e',
+          '--border-light': '#1a3a55', '--border-medium': '#2a4a68', '--border-hover': '#5dade2',
+          '--warm-heart': '#3498db', '--shadow-sm': '0 2px 8px rgba(93,173,226,0.1)',
+          '--shadow-md': '0 4px 16px rgba(93,173,226,0.15)'
+        }
+      },
+      'sunset': {
+        name: '日落暖阳',
+        icon: '🌅',
+        preview: 'linear-gradient(135deg, #3e1a0a, #a0522d)',
+        cost: 20,
+        vars: {
+          '--accent': '#f0a050', '--accent-light': '#f5c080', '--accent-glow': 'rgba(240,160,80,0.15)',
+          '--bg-main': '#1e140e', '--bg-card': '#2d1f14', '--bg-input': '#241810',
+          '--text-primary': '#f5e6d8', '--text-secondary': '#c4a882', '--text-muted': '#8a7060',
+          '--border-light': '#3a2518', '--border-medium': '#4a3525', '--border-hover': '#f0a050',
+          '--warm-heart': '#e07b39', '--shadow-sm': '0 2px 8px rgba(240,160,80,0.1)',
+          '--shadow-md': '0 4px 16px rgba(240,160,80,0.15)'
+        }
+      }
+    };
+    var DEFAULT_THEME_VARS = {};
+    var currentTheme = null;
+    var unlockedThemes = [];
+    var glimmerBalance = 0;
+
+    // 初始化时保存默认CSS变量值
+    function captureDefaultVars() {
+      var root = document.documentElement;
+      var keys = ['--accent', '--accent-light', '--accent-glow', '--bg-main', '--bg-card', '--bg-input',
+        '--text-primary', '--text-secondary', '--text-muted', '--border-light', '--border-medium',
+        '--border-hover', '--warm-heart', '--shadow-sm', '--shadow-md'];
+      keys.forEach(function(k) { DEFAULT_THEME_VARS[k] = getComputedStyle(root).getPropertyValue(k).trim(); });
+    }
+
+    function applyTheme(themeKey) {
+      var def = THEME_DEFS[themeKey];
+      var root = document.documentElement;
+      var vars = def ? def.vars : DEFAULT_THEME_VARS;
+      Object.keys(vars).forEach(function(k) { root.style.setProperty(k, vars[k]); });
+      currentTheme = themeKey;
+      try { localStorage.setItem('shuling_theme', themeKey || 'default'); } catch (e) {}
+    }
+
+    async function loadThemeState() {
+      try {
+        var stored = localStorage.getItem('shuling_theme');
+        if (stored && stored !== 'default' && THEME_DEFS[stored]) {
+          captureDefaultVars();
+          applyTheme(stored);
+        } else {
+          captureDefaultVars();
+        }
+        var user = await getCurrentUser();
+        if (!user) return;
+        var { data: profile } = await sb.from('profiles').select('glimmer_themes').eq('user_id', user.id).single();
+        unlockedThemes = (profile && profile.glimmer_themes) ? profile.glimmer_themes : [];
+        var { data: ledger } = await sb.from('glimmer_ledger').select('amount').eq('user_id', user.id);
+        glimmerBalance = (ledger || []).reduce(function(s, r) { return s + r.amount; }, 0);
+      } catch (e) {}
+    }
+
+    function renderThemePanel() {
+      var list = document.getElementById('themeList');
+      if (!list) return;
+      var items = [{ key: 'default', name: '默认主题', icon: '🌳', preview: 'linear-gradient(135deg, #5ba07a, #7ba878)', cost: 0, locked: false }];
+      Object.keys(THEME_DEFS).forEach(function(k) {
+        var t = THEME_DEFS[k];
+        items.push({ key: k, name: t.name, icon: t.icon, preview: t.preview, cost: t.cost, locked: unlockedThemes.indexOf(k) === -1 });
+      });
+      list.innerHTML = items.map(function(item) {
+        var isActive = currentTheme === item.key || (!currentTheme && item.key === 'default');
+        return '<div class="theme-item' + (isActive ? ' active' : '') + (item.locked && !isActive ? ' locked' : '') + '" data-key="' + item.key + '">' +
+          '<div class="theme-preview" style="background:' + item.preview + ';"></div>' +
+          '<span class="theme-name">' + item.icon + ' ' + item.name + '</span>' +
+          (item.locked ? '<button class="theme-unlock-btn" data-key="' + item.key + '">' + item.cost + '微光 解锁</button>' : '') +
+          '</div>';
+      }).join('');
+
+      // 点击切换主题
+      list.querySelectorAll('.theme-item:not(.locked)').forEach(function(el) {
+        el.addEventListener('click', function() {
+          var key = el.dataset.key;
+          if (key === 'default') applyTheme(null);
+          else applyTheme(key);
+          document.getElementById('themePanelOverlay').classList.remove('show');
+          renderThemePanel();
+        });
+      });
+
+      // 解锁按钮
+      list.querySelectorAll('.theme-unlock-btn').forEach(function(btn) {
+        btn.addEventListener('click', async function(e) {
+          e.stopPropagation();
+          var key = btn.dataset.key;
+          var def = THEME_DEFS[key];
+          if (!def) return;
+          if (glimmerBalance < def.cost) {
+            alert('微光不足，多在社区互动获取吧！（当前余额：' + glimmerBalance + '）');
+            return;
+          }
+          if (!confirm('花费 ' + def.cost + ' 微光解锁"' + def.name + '"主题？')) return;
+          btn.disabled = true;
+          try {
+            var user = await getCurrentUser();
+            await sb.from('glimmer_ledger').insert({ user_id: user.id, amount: -def.cost, reason: 'redeem_theme', reference_id: key });
+            unlockedThemes.push(key);
+            glimmerBalance -= def.cost;
+            await fetch(window.TreeHole.config.SUPABASE_URL + '/rest/v1/profiles?user_id=eq.' + user.id, {
+              method: 'PATCH',
+              headers: { 'Content-Type': 'application/json', 'apikey': window.TreeHole.config.SUPABASE_ANON_KEY, 'Authorization': 'Bearer ' + (await sb.auth.getSession()).data.session.access_token, 'Prefer': 'return=minimal' },
+              body: JSON.stringify({ glimmer_themes: unlockedThemes })
+            });
+            applyTheme(key);
+            document.getElementById('themePanelOverlay').classList.remove('show');
+            renderThemePanel();
+          } catch (err2) {
+            alert('解锁失败，请稍后重试');
+            btn.disabled = false;
+          }
+        });
+      });
+    }
+
+    document.getElementById('themeBtn').addEventListener('click', function() {
+      renderThemePanel();
+      document.getElementById('themePanelOverlay').classList.add('show');
+    });
+    document.getElementById('themeCloseBtn').addEventListener('click', function() {
+      document.getElementById('themePanelOverlay').classList.remove('show');
+    });
+    document.getElementById('themePanelOverlay').addEventListener('click', function(e) {
+      if (e.target === this) this.classList.remove('show');
+    });
+
     document.addEventListener('DOMContentLoaded', init);
   </script>
+  <div class="theme-panel-overlay" id="themePanelOverlay">
+    <div class="theme-panel">
+      <h3>🎨 树灵主题</h3>
+      <div id="themeList"></div>
+      <button class="theme-close-btn" id="themeCloseBtn">关闭</button>
+    </div>
+  </div>
   <script src="user-popup.js"></script>
 </body>
 </html>

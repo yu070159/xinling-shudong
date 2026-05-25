@@ -197,6 +197,25 @@
           target_id: Number(targetId)
         });
         if (error) throw error;
+        // 微光获取：暖心回应（仅 answer 类型，去重防刷）
+        if (targetType === 'answer') {
+          (async function awardGlimmerForHeart() {
+            try {
+              var { data: answerData } = await sb.from('answers').select('user_id').eq('id', Number(targetId)).single();
+              if (!answerData || !answerData.user_id || answerData.user_id === user.id) return;
+              // 去重：同一回答只能获得一次微光
+              var { data: existing } = await sb.from('glimmer_ledger')
+                .select('id').eq('reference_id', String(targetId)).eq('reason', 'answer_hearted').maybeSingle();
+              if (existing) return;
+              await sb.from('glimmer_ledger').insert({
+                user_id: answerData.user_id,
+                amount: 1,
+                reason: 'answer_hearted',
+                reference_id: String(targetId)
+              });
+            } catch (e) { /* 微光发放失败不阻塞暖心操作 */ }
+          })();
+        }
         return 'added';
       }
     } catch (err) {
@@ -298,12 +317,14 @@
 
       // 异步检测危机内容并通知倾听者（不阻塞返回）
       // 异步提取语义标签用于共振匹配（不阻塞返回）
+      // 异步发放微光（不阻塞返回）
       if (userId) {
         // 获取刚插入的心事ID
         sb.from('questions').select('id').eq('user_id', userId).eq('content', content).order('created_at', { ascending: false }).limit(1).single().then(function(r) {
           if (r.data) {
             notifyPeerSupportersForCrisis(content, r.data.id, userId).catch(function(){});
             extractAndSaveTags(content, r.data.id).catch(function(){});
+            awardGlimmerForPost(userId, r.data.id).catch(function(){});
           }
         }).catch(function(){});
       }
@@ -472,6 +493,23 @@
       // 标签提取失败不阻塞任何流程
       console.warn('标签提取失败:', e.message);
     }
+  }
+
+  // 微光获取：发布心事（每日上限 5 条）
+  var GLIMMER_POST_DAILY_MAX = 5;
+  async function awardGlimmerForPost(userId, questionId) {
+    try {
+      var today = new Date().toISOString().substring(0, 10);
+      var { count } = await sb.from('glimmer_ledger')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', userId).eq('reason', 'post_question')
+        .gte('created_at', today + 'T00:00:00Z');
+      if (count >= GLIMMER_POST_DAILY_MAX) return;
+      await sb.from('glimmer_ledger').insert({
+        user_id: userId, amount: 1,
+        reason: 'post_question', reference_id: String(questionId)
+      });
+    } catch (e) { /* 静默失败 */ }
   }
 
   // 情绪标签颜色映射

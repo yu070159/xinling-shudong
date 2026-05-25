@@ -247,6 +247,34 @@
             const { error: e } = await sb.from('mood_logs')
               .insert({ user_id: currentUser.id, mood_type: selectedMood, note, created_at: today });
             error = e;
+            // 微光获取：连续签到7天
+            if (!error) {
+              (async function checkStreakGlimmer() {
+                try {
+                  var dates = [];
+                  var d = new Date();
+                  for (var i = 0; i < 7; i++) {
+                    dates.push(d.toISOString().slice(0, 10));
+                    d.setDate(d.getDate() - 1);
+                  }
+                  var { data: logs } = await sb.from('mood_logs')
+                    .select('created_at').eq('user_id', currentUser.id)
+                    .in('created_at', dates);
+                  if (!logs || logs.length < 7) return;
+                  // 去重：最近7天内是否已领取过
+                  var weekStart = dates[dates.length - 1] + 'T00:00:00Z';
+                  var { data: existing } = await sb.from('glimmer_ledger')
+                    .select('id').eq('user_id', currentUser.id).eq('reason', 'checkin_streak')
+                    .gte('created_at', weekStart).maybeSingle();
+                  if (existing) return;
+                  await sb.from('glimmer_ledger').insert({
+                    user_id: currentUser.id, amount: 5,
+                    reason: 'checkin_streak', reference_id: dates[0]
+                  });
+                  msg.textContent = '🎉 连续签到7天！获得 5 微光 ✨';
+                } catch (e2) { /* 静默失败 */ }
+              })();
+            }
           }
 
           if (error) {

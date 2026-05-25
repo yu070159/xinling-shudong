@@ -130,6 +130,26 @@
     .echo-card-delete:hover { color: var(--danger); }
     .echo-empty { text-align: center; color: var(--text-muted); padding: 20px; font-size: 13px; }
     .echo-empty a { color: var(--accent); text-decoration: none; }
+
+    /* 微光公益 */
+    .donate-section { margin-bottom: 20px; }
+    .donate-title { color: var(--accent); font-size: 16px; margin-bottom: 8px; }
+    .donate-balance { font-size: 13px; color: var(--text-secondary); margin-bottom: 12px; }
+    .donate-balance strong { color: var(--warm-heart); font-size: 18px; }
+    .donate-btns { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
+    .donate-btn {
+      flex: 1; min-width: 80px; background: var(--bg-card); border: 1px solid var(--border-medium);
+      color: var(--text-primary); padding: 10px 8px; border-radius: 10px; cursor: pointer;
+      font-size: 13px; transition: 0.2s; text-align: center;
+    }
+    .donate-btn:hover:not(:disabled) { border-color: var(--warm-heart); background: rgba(224, 120, 57, 0.08); }
+    .donate-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    .donate-btn .donate-amount { font-size: 18px; font-weight: 700; color: var(--warm-heart); display: block; }
+    .badge-row { display: flex; gap: 10px; flex-wrap: wrap; }
+    .badge-item { text-align: center; font-size: 12px; color: var(--text-secondary); opacity: 0.4; }
+    .badge-item.earned { opacity: 1; }
+    .badge-item .badge-icon { font-size: 24px; display: block; margin-bottom: 2px; }
+    .badge-item .badge-name { font-weight: 600; }
   </style>
 </head>
 <body>
@@ -167,6 +187,7 @@
       <div class="stat-item"><div class="stat-num" id="statComments">-</div><div class="stat-label">回应</div></div>
       <div class="stat-item"><div class="stat-num" id="statHearts">-</div><div class="stat-label">获暖心</div></div>
       <div class="stat-item"><div class="stat-num" id="statFavorites">-</div><div class="stat-label">收藏</div></div>
+      <div class="stat-item"><div class="stat-num" id="statGlimmer">-</div><div class="stat-label">微光</div></div>
     </div>
 
     <div class="tab-nav">
@@ -213,6 +234,23 @@
         <h3 class="echo-wall-title">💌 收到的回音</h3>
         <div id="echoCardsList"></div>
         <div id="echoEmpty" class="echo-empty" style="display:none;">还没有收到回音，<a href="index.html">去广场</a>给别人送去温暖吧</div>
+      </div>
+
+      <div class="donate-section" id="donateSection">
+        <div class="profile-info-divider"></div>
+        <h3 class="donate-title">💛 微光公益</h3>
+        <div class="donate-balance">当前余额：<strong id="donateBalance">0</strong> 微光</div>
+        <div class="donate-btns">
+          <button class="donate-btn" data-amount="100"><span class="donate-amount">100</span>微光使者 🥉</button>
+          <button class="donate-btn" data-amount="500"><span class="donate-amount">500</span>温暖之光 🥈</button>
+          <button class="donate-btn" data-amount="1000"><span class="donate-amount">1000</span>星火相传 🥇</button>
+        </div>
+        <div id="donateMsg" class="form-message"></div>
+        <div class="badge-row" id="donateBadges">
+          <div class="badge-item" data-badge="100"><span class="badge-icon">🥉</span><span class="badge-name">微光使者</span></div>
+          <div class="badge-item" data-badge="500"><span class="badge-icon">🥈</span><span class="badge-name">温暖之光</span></div>
+          <div class="badge-item" data-badge="1000"><span class="badge-icon">🥇</span><span class="badge-name">星火相传</span></div>
+        </div>
       </div>
 
       <button id="logoutBtn">退出树洞</button>
@@ -739,6 +777,16 @@
         console.warn('获取收藏数异常', e);
       }
 
+      // 微光余额
+      try {
+        const { data: ledger } = await sb.from('glimmer_ledger').select('amount').eq('user_id', currentUser.id);
+        const balance = (ledger || []).reduce(function(s, r) { return s + r.amount; }, 0);
+        document.getElementById('statGlimmer').textContent = balance;
+      } catch (e) {
+        console.warn('获取微光余额异常', e);
+        document.getElementById('statGlimmer').textContent = '0';
+      }
+
       const avatarPlaceholder = document.getElementById('avatarPlaceholder');
       const avatarPreview = document.getElementById('avatarPreview');
       const triggerUpload = () => document.getElementById('avatarInput').click();
@@ -839,6 +887,59 @@
         }
       } catch (err) {
         console.warn('加载回音卡失败:', err);
+      }
+
+      // 微光公益：余额、捐赠、徽章
+      try {
+        var { data: fullLedger } = await sb.from('glimmer_ledger').select('amount').eq('user_id', currentUser.id);
+        var glimmerBalance = (fullLedger || []).reduce(function(s, r) { return s + r.amount; }, 0);
+        document.getElementById('donateBalance').textContent = glimmerBalance;
+        document.getElementById('statGlimmer').textContent = glimmerBalance;
+
+        // 捐赠徽章状态
+        var donated = profile.glimmer_donated || 0;
+        document.querySelectorAll('#donateBadges .badge-item').forEach(function(item) {
+          if (donated >= parseInt(item.dataset.badge)) item.classList.add('earned');
+        });
+
+        // 捐赠按钮
+        document.querySelectorAll('.donate-btn').forEach(function(btn) {
+          btn.addEventListener('click', async function() {
+            var amount = parseInt(btn.dataset.amount);
+            if (glimmerBalance < amount) {
+              updateTextSmoothly('donateMsg', '微光不足，多在社区互动获取吧', 'error');
+              document.getElementById('donateMsg').style.display = 'block';
+              return;
+            }
+            if (!confirm('确定要捐赠 ' + amount + ' 微光吗？这是荣誉性的虚拟捐赠，不会产生实际金钱交易。')) return;
+            btn.disabled = true;
+            try {
+              await sb.from('glimmer_ledger').insert({
+                user_id: currentUser.id, amount: -amount,
+                reason: 'donate', reference_id: String(amount)
+              });
+              var newDonated = donated + amount;
+              await updateProfile({ glimmer_donated: newDonated });
+              glimmerBalance -= amount;
+              donated = newDonated;
+              document.getElementById('donateBalance').textContent = glimmerBalance;
+              document.getElementById('statGlimmer').textContent = glimmerBalance;
+              document.querySelectorAll('#donateBadges .badge-item').forEach(function(item) {
+                if (donated >= parseInt(item.dataset.badge)) item.classList.add('earned');
+              });
+              updateTextSmoothly('donateMsg', '✅ 感谢你的善意！累计捐赠 ' + donated + ' 微光', 'success');
+              document.getElementById('donateMsg').style.display = 'block';
+            } catch (err2) {
+              updateTextSmoothly('donateMsg', '捐赠失败，请稍后重试', 'error');
+              document.getElementById('donateMsg').style.display = 'block';
+            } finally {
+              btn.disabled = false;
+            }
+          });
+        });
+      } catch (e3) {
+        console.warn('加载微光公益失败:', e3);
+        document.getElementById('donateSection').style.display = 'none';
       }
     });
   </script>
