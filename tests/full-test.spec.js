@@ -398,3 +398,9 @@ test('详情页点赞后广场计数同步', async ({ page }) => {
     }
   }
 });
+
+test('情绪年轮页面可访问', async ({ page }) => {
+  await page.goto('/mood-ring.html');
+  await expect(page.locator('.mood-title')).toHaveText('🍂 情绪年轮');
+  await expect(page.locator('.forest-nav a[href="mood-ring.html"]')).toBeVisible();
+});
