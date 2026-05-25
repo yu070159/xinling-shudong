@@ -206,7 +206,7 @@ npx playwright test --grep "广场"    # 按名称筛选用例
 
 ### 长期（差异化壁垒）
 
-- [ ] **心事语义共振网络**：Supabase 启用 `pgvector` 扩展。发布心事时通过 `/api/gemini` 生成 1536 维 Embedding，存入向量字段。详情页底部展示全站语义最相似的3条往期心事（余弦距离）。必须异步生成，不阻塞发布回显。
+- [x] **心事语义共振网络**：已实现。由于 DeepSeek 不支持 embedding API，改用 PostgreSQL 数组标签匹配方案：`questions.tags TEXT[]` + `&&` 重叠度排序。发布心事后异步调 DeepSeek 提取 3-8 个语义标签写入 tags，详情页回应列表下方展示 Top 3 相似心事卡片。
 - [x] **情绪年轮可视化**：每日用不同颜色银杏叶记录心情，月末聚合成"情绪年轮树"。已实现：`mood_logs` 表 + `mood-ring.html` 独立页面（签到区 + 年轮树 SVG + 图例统计），全站导航栏已加入入口。
 - [ ] **树洞回音壁**：允许树友为沉重心事匿名寄送"情绪急救包"（手写文字 + 治愈音乐链接），以卡片形式悬挂在收件人个人中心。
 - [ ] **关怀代币闭环**：内循环"微光"代币，通过高质量回帖/维护社区获得。可兑换 AI 主题外观、电子书，或达标后以社区名义向心理援助公益组织捐赠。须严防刷帖灌水扭曲生态。
@@ -257,7 +257,7 @@ npx playwright test --grep "广场"    # 按名称筛选用例
 
 ### 当前待办
 - [ ] 在 Vercel 控制台配置 `RESEND_API_KEY`、`SUPABASE_SERVICE_KEY`（离线邮件生效）
-- [ ] 长期路线图剩余 3 项：心事语义共振、树洞回音壁、关怀代币闭环
+- [ ] 长期路线图剩余 2 项：树洞回音壁、关怀代币闭环
 
 ## 2026-05-25（五次会话）情绪年轮可视化启动 → 已完成
 
@@ -299,3 +299,24 @@ npx playwright test --grep "广场"    # 按名称筛选用例
 ### 上下文占比检查机制
 - 每个独立任务完成后检查上下文占比，到达 60% 时先追加 CLAUDE.md 总结，再执行 /compact
 - CLAUDE.md 会话总结需追加，不覆盖已有内容
+
+## 2026-05-25（七次会话）心事语义共振网络完成
+
+### 设计决策
+- DeepSeek 不支持 embedding API → 改用 PostgreSQL 数组标签方案替代 pgvector
+- `questions.tags TEXT[]` 存储语义标签，`&&` 运算符做数组重叠度匹配
+- 异步标签提取复用现有 `api/gemini.js`，发布心事不阻塞回显
+- 详情页相似推荐置于回应列表下方、送出回应表单上方
+
+### 实现内容
+- `migrations/add_tags_to_questions.sql` — ALTER TABLE questions ADD tags TEXT[]
+- `app.js` — 新增 `extractAndSaveTags(content, questionId)`：调 DeepSeek 提取 3-8 个语义标签 JSON 数组，去重后写入 tags 字段，失败静默丢弃
+- `app.js` — `submitQuestionAPI` 中异步链添加标签提取调用
+- `detail.html` — 新增相似心事推荐区块：CSS 样式 + HTML section + JS 查询逻辑（tags 重叠度排序取 Top 3，卡片含昵称/日期/内容摘要/共享标签）
+
+### 新增文件
+- `migrations/add_tags_to_questions.sql`
+- `docs/superpowers/specs/2026-05-25-semantic-resonance-design.md`
+
+### 路线图状态
+- 长期路线图：剩余 2 项（树洞回音壁、关怀代币闭环）
