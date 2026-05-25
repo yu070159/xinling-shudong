@@ -238,19 +238,22 @@ npx playwright test --grep "广场"    # 按名称筛选用例
 
 ### 解决的问题
 - CLAUDE.md 冗余：三段历史对话总结 + 近期变更摘要 + 四处重复待办，净减约 120 行
-- 通知方案反复变更：从 keybd_event → SendKeys 闪烁 → 最终全部删除，因用户决定放弃所有提示音/弹窗/闪烁/提醒类 Claude Code 行为规则
+- 通知方案反复变更：keybd_event → SendKeys 闪烁 → 测试 → 最终全部删除，用户决定彻底放弃所有 Claude Code 行为层面的提示音/弹窗/闪烁/提醒规则
+- Caps Lock 闪烁在 CLAUDE.md 规则删除后仍被触发：根因是全局和项目本地 settings.json 中 Stop Hook 残留 keybd_event 命令，已清除
 
 ### 做的修改
 - CLAUDE.md 精简：删除三段对话总结、近期变更摘要、任务通知/后台闪烁/Elicitation 弹窗/Hooks 配置路径等全部行为规则
 - 新增强制中文交互违规惩罚条款（违反将导致后续指令无法执行）
 - 新增安全协议：任务前后自动备份 + 禁止 git push --force/rm -rf/DROP TABLE + 连续 3 次失败回退机制
 - books.html 描述修正为"动态加载 + 静态数据降级"
-- 开发约定新增两条：Hooks 修改需重启 Claude Code、`.claude/` 被 gitignore
+- 全局 `settings.json`：删除 `PowerShell(*keybd_event*)` 权限 + 整个 Stop Hook
+- 项目 `.claude/settings.local.json`：删除 `PowerShell(*keybd_event*)` 权限 + 整个 Stop Hook，保留 SessionStart Hook
 
 ### 达成的共识
-- 删除关键词时须区分 Claude Code 行为规则（删除）和项目架构描述（保留），不能一刀切
+- 删除关键词时须区分 Claude Code 行为规则（删除）和项目架构描述（保留），不能一刀切；误删可用 git checkout 撤销
 - 安全协议优先：任何修改前先 git commit 备份，确保可回退
-- 工作区随时保持干净，未确认的破坏性操作可通过 git checkout 快速撤销
+- settings.json Hooks 是独立于 CLAUDE.md 的配置层，规则删除需两处同步
+- 当前 CLAUDE.md 中所有含"通知/闪烁/弹窗"等关键词的行均为项目架构描述，无需删除
 
 ### 当前待办
 - [ ] 在 Vercel 控制台配置 `RESEND_API_KEY`、`SUPABASE_SERVICE_KEY`（离线邮件生效）
