@@ -207,7 +207,7 @@ npx playwright test --grep "广场"    # 按名称筛选用例
 ### 长期（差异化壁垒）
 
 - [ ] **心事语义共振网络**：Supabase 启用 `pgvector` 扩展。发布心事时通过 `/api/gemini` 生成 1536 维 Embedding，存入向量字段。详情页底部展示全站语义最相似的3条往期心事（余弦距离）。必须异步生成，不阻塞发布回显。
-- [ ] **情绪年轮可视化**：每日用不同颜色银杏叶记录心情，月末聚合成"情绪年轮树"。存储：`mood_logs` 表（user_id, mood_type, note, created_at）或 localStorage。
+- [x] **情绪年轮可视化**：每日用不同颜色银杏叶记录心情，月末聚合成"情绪年轮树"。已实现：`mood_logs` 表 + `mood-ring.html` 独立页面（签到区 + 年轮树 SVG + 图例统计），全站导航栏已加入入口。
 - [ ] **树洞回音壁**：允许树友为沉重心事匿名寄送"情绪急救包"（手写文字 + 治愈音乐链接），以卡片形式悬挂在收件人个人中心。
 - [ ] **关怀代币闭环**：内循环"微光"代币，通过高质量回帖/维护社区获得。可兑换 AI 主题外观、电子书，或达标后以社区名义向心理援助公益组织捐赠。须严防刷帖灌水扭曲生态。
 
@@ -257,9 +257,9 @@ npx playwright test --grep "广场"    # 按名称筛选用例
 
 ### 当前待办
 - [ ] 在 Vercel 控制台配置 `RESEND_API_KEY`、`SUPABASE_SERVICE_KEY`（离线邮件生效）
-- [ ] 长期路线图剩余 4 项：心事语义共振、情绪年轮可视化、树洞回音壁、关怀代币闭环
+- [ ] 长期路线图剩余 3 项：心事语义共振、树洞回音壁、关怀代币闭环
 
-## 2026-05-25（五次会话）情绪年轮可视化启动
+## 2026-05-25（五次会话）情绪年轮可视化启动 → 已完成
 
 ### 达成设计决策
 - 实现优先级：情绪年轮 → 心事语义共振 → 树洞回音壁 → 关怀代币闭环，逐个击破
@@ -274,8 +274,27 @@ npx playwright test --grep "广场"    # 按名称筛选用例
 - 设计文档 `docs/superpowers/specs/2026-05-25-mood-ring-design.md` 已提交
 - 实现计划 `docs/superpowers/plans/2026-05-25-mood-ring.md` 已提交，含 4 个 Task：数据库迁移、HTML 骨架、JS 逻辑、全站导航栏入口
 
-### 下一步
-- 执行实现计划（数据库迁移 → mood-ring.html 页面 → 全站导航栏更新 → 测试）
+### 下一步 → 已全部完成
+- [x] 数据库迁移（`migrations/add_mood_logs.sql` 已在 Supabase 执行）
+- [x] `mood-ring.html` 页面（HTML 骨架 + CSS + JS 完整逻辑）
+- [x] 全站 14 个 HTML 页面导航栏新增"年轮"入口
+- [x] Playwright 冒烟测试
+
+## 2026-05-25（六次会话）情绪年轮可视化完成
+
+### 实现内容
+- `migrations/add_mood_logs.sql` — mood_logs 表（BIGSERIAL PK, user_id UUID FK, mood_type CHECK 5 种情绪, note TEXT, created_at DATE UNIQUE）+ 4 条 RLS 策略
+- `mood-ring.html` — 完整页面：签到区（5 种情绪选择 + 可选备注 + 修改覆盖）、年轮树 SVG（同心圆 12 圈，每圈 = 一个月，银杏叶均匀分布，hover tooltip 显示日期+心情+备注）、年份切换、图例、统计
+- 全站 14 个 HTML 页面导航栏 `<nav class="forest-nav">` 统一插入 `<a href="mood-ring.html">年轮</a>`
+- `tests/full-test.spec.js` 新增冒烟测试：页面可访问 + 导航栏链接可见
+
+### 新增文件
+- `migrations/add_mood_logs.sql`
+- `mood-ring.html`
+
+### 路线图状态
+- 长期路线图：4 → 3 项剩余（心事语义共振、树洞回音壁、关怀代币闭环）
+- 下一优先：心事语义共振网络（pgvector + embedding + 语义相似度）
 
 ### 上下文占比检查机制
 - 每个独立任务完成后检查上下文占比，到达 60% 时先追加 CLAUDE.md 总结，再执行 /compact
