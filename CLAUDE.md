@@ -223,7 +223,7 @@ npx playwright test --grep "广场"    # 按名称筛选用例
 
 ### 当前待办
 
-- [ ] 在 Vercel 控制台配置 `RESEND_API_KEY`、`SUPABASE_SERVICE_KEY`（离线邮件生效）
+- [x] 在 Vercel 控制台配置 `RESEND_API_KEY`、`SUPABASE_SERVICE_KEY`（离线邮件生效）
 - [x] 长期路线图全部完成
 
 ### 开发约定
@@ -259,7 +259,7 @@ npx playwright test --grep "广场"    # 按名称筛选用例
 - 当前 CLAUDE.md 中所有含"通知/闪烁/弹窗"等关键词的行均为项目架构描述，无需删除
 
 ### 当前待办
-- [ ] 在 Vercel 控制台配置 `RESEND_API_KEY`、`SUPABASE_SERVICE_KEY`（离线邮件生效）
+- [x] 在 Vercel 控制台配置 `RESEND_API_KEY`、`SUPABASE_SERVICE_KEY`（离线邮件生效）
 - [x] 长期路线图全部完成
 
 ## 2026-05-25（五次会话）情绪年轮可视化启动 → 已完成
@@ -350,5 +350,5 @@ npx playwright test --grep "广场"    # 按名称筛选用例
 - 设计问题用多选加速决策，确认后不再反复询问，直接进入实现
 
 ### 当前待办
-- [ ] 在 Vercel 控制台配置 `RESEND_API_KEY`、`SUPABASE_SERVICE_KEY`（离线邮件生效）
+- [x] 在 Vercel 控制台配置 `RESEND_API_KEY`、`SUPABASE_SERVICE_KEY`（离线邮件生效）
 - [x] 长期路线图全部完成
