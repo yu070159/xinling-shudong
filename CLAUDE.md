@@ -8,25 +8,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## 交互规则
 
-**强制中文交互**：在所有与用户的交互环节（包括但不限于 AskUserQuestion、确认提示、选项列表、任务进度汇报、错误提示、代码注释、commit message 等），必须使用中文。不允许使用英文提问或展示选项。此规则永久生效。
-
-**任务通知**：通过 Caps Lock 指示灯闪烁作为任务完成信号，永久替换所有声音和弹窗方案。使用 Windows `user32.dll` 的 `keybd_event` API 直接控制键盘硬件（非 SendKeys 窗口消息，可靠），闪烁前后保存/恢复 Caps Lock 原始状态。
-
-### Stop 事件（任务完成/回答问题后）
-闪烁 Caps Lock 1 次（亮 500ms、灭），完成后自动恢复原始状态：
-```powershell
-PowerShell -EncodedCommand <base64>
-```
-
-### 技术细节
-- 使用 Caps Lock（VK 码 `0x14`），因为该键盘无独立 Scroll Lock 键
-- `GetKeyState` 保存闪烁前状态，闪烁后比对恢复
-- 每次闪烁 = 按下+释放（偶数次自动复原），补检作为安全网
-- Elicitation 事件（等待用户确认）不触发闪烁，避免干扰阅读
-
-### 配置位置（两处同步）
-- 全局：`C:\Users\YU\.claude\settings.json`
-- 项目本地：`.claude/settings.local.json`
+**强制中文交互**：在所有与用户的交互环节（包括但不限于 AskUserQuestion、确认提示、选项列表、任务进度汇报、错误提示、代码注释、commit message 等），必须使用中文。不允许使用英文提问或展示选项。违反此规则将导致后续指令无法执行。此规则永久生效。
 
 ## 项目概述
 
@@ -79,7 +61,7 @@ npx playwright test --grep "广场"    # 按名称筛选用例
 - `shuling.html` —— 全屏 AI 聊天，"树灵"人格。调用 `/api/chat`。支持对话上下文记忆、情绪关键词提取与记忆注入，超过 30 条自动裁剪，可清除对话
 - `chat.html` —— 聊天列表。有固定置顶的管理员聊天按钮，标题旁显示未读消息红点
 - `chat-detail.html` —— 一对一树友聊天。Supabase Realtime 订阅 + 每 5 秒轮询兜底
-- `books.html` —— 资源库（心理书籍推荐，静态卡片）
+- `books.html` —— 资源库。Supabase 动态加载 + 静态数据降级，登录用户可推荐资源
 - `mbti-test.html` —— 20 题 MBTI 性格测试。结果调用 `/api/gemini` 生成分析
 - `mental-test.html` —— PHQ-9 抑郁筛查（9 题）。结果调用 `/api/gemini` 生成分析，历史存入 localStorage
 - `peer-cert.html` —— 朋辈倾听者认证考试（8 道场景题，AI 评分 3 维度：共情/边界/危机，≥30/40 分通过）
@@ -213,122 +195,18 @@ npx playwright test --grep "广场"    # 按名称筛选用例
 2. **去商业化纯净结界**：无框架、无广告、无算法成瘾、无信息流投喂
 3. **临床严谨 × 诗意美学**：PHQ-9/MBTI 量化工具包裹在文学隐喻中，降低"病理心理防御"
 
-### 当前最大短板
+### 当前待办
 
-- **离线邮件通知已完成**：Phase 1（桌面通知 + 铃铛）+ Phase 2（Vercel Cron + Resend 邮件摘要）均已实现。用户离站 3 天后会收到未读通知摘要邮件。需在 Vercel 配置 `RESEND_API_KEY` 和 `SUPABASE_SERVICE_KEY` 环境变量后生效。
+- [ ] 在 Vercel 控制台配置 `RESEND_API_KEY`、`SUPABASE_SERVICE_KEY`（离线邮件生效）
+- [ ] 长期路线图剩余 4 项：心事语义共振、情绪年轮可视化、树洞回音壁、关怀代币闭环
 
-## 近期变更摘要（2026-05-24 ~ 2026-05-25）
+### 开发约定
 
-### 已完成的重大功能
-- **全站通知中心**：`notifications` 表 + `notifications.js`（铃铛/下拉面板/桌面通知/6种通知类型），通过 `utils.js` 自动注入全部 15 页面，零 HTML 改动
-- **朋辈倾听者认证**：`peer-cert.html`（8 道场景题，AI 3 维度评分 ≥30/40 通过），`profiles.is_peer_supporter` 字段，危机优先通知认证倾听者
-- **MBTI 落叶盲盒**：`match.html`（匹配算法纯客户端：MBTI 互补 40 分 + 情绪共鸣 20 分，每日限投 1 封匿名长信），回复后双方身份揭示
-- **代码安全优化**：全域 API Key 收敛到 `utils.js` 单一定义，删除 `app.js` 死代码（`showUserPopup`/~90行），CSS 冲突修复（`.question-card` → `.test-question-card`），危机关键词集中管理
-- **树灵情绪记忆增强**：`shuling.html` 从历史对话提取情绪关键词注入 SYSTEM_PROMPT
-- **PHQ-9 历史趋势图**：`profile.html` localStorage 存储历次测评，渲染最近 10 次彩色柱状图
-- **离线通知 Phase 2（离线邮件）**：`api/cron.js` + `vercel.json` Cron Job + Resend，用户离站 3 天后发送未读通知摘要邮件。`utils.js` 心跳上报 `last_active_at`（5 分钟节流）。需 Vercel 环境变量配置后生效。
-- **Claude Code Hooks 任务通知**：全局 + 项目本地配置 `Elicitation`（AskUserQuestion 触发，同步阻塞式 MessageBox）和 `Stop`（任务完成，系统响铃）事件
-
-### 关键技术决策
-- 通知 message 类型用应用层 upsert（先删旧未读再插新），reply/friend_request/friend_accept 用部分唯一索引 + ON CONFLICT DO NOTHING
-- INSERT RLS：`auth.uid() = from_user_id AND user_id != auth.uid()`（发送者创建通知给接收方）
-- DELETE RLS 额外允许 `auth.uid() = from_user_id`（支持 message upsert 流程）
-- 匹配算法纯客户端计算，不依赖 AI API；`match_letters` 查询须 try/catch 包裹确保迁移执行前优雅降级
-- 任务通知权限：全局 + 项目本地各 2 条 PowerShell 自动允许规则（`*PresentationFramework*` / `*MessageBox*`），替代旧的 5 条 SoundPlayer 规则
-
-### 用户设定
 - 核心工作哲学：结果导向、极致耐心、产品思维
 - 代码优化规范：完整阅读 → 安全操作 → 风险告知 → 16 项核心功能验证 → 修改清单
 - 一次性本地工具不入库，用完即删
-- Vercel 冷启动 5-8s 属正常现象；X-Frame-Options/CSP 未设置是 Vercel 默认行为，低优先级
+- Vercel 冷启动 5-8s 属正常现象
 
 ### Playwright 状态
+
 9 通过 / 17 失败（全为预存问题：URL 匹配 + 缺 Supabase 测试凭证），"所有页面无 400 错误"通过。
-
-### 当前待办
-- [x] ~~在 Supabase SQL Editor 运行迁移文件~~ 已执行
-- [ ] 在 Vercel 控制台配置 `RESEND_API_KEY`、`SUPABASE_SERVICE_KEY` 等环境变量（离线邮件生效）
-- [x] ~~书洞资源动态化~~ 已完成（`migrations/add_resources.sql` 已执行，`books.html` 改造已完成）
-
-## 2026-05-25（会话来）对话总结
-
-### 解决了什么问题
-- CLAUDE.md 膨胀至 378 行，7 段重复对话总结占据近半篇幅，维护成本高且 AI 上下文浪费
-- 提示音依赖手动 PowerShell 调用，每次触发需代码显式播放，不够实时和可靠
-- 两个 SQL 迁移（peer_supporter + match_letters）存在约束冲突依赖，分开执行顺序不当会失败
-- 离线通知仅有 Phase 1（页面打开时的桌面通知），用户关掉所有标签页后完全无法感知新动态
-- books.html 20 条资源硬编码在 JS 数组中，新增资源需改代码部署
-
-### 做了哪些修改
-- **CLAUDE.md 重构**：加英文前缀、修 13→15 页面、删 showUserPopup 死代码引用、7 段对话总结合并为 1 段，净减 150 行
-- **Claude Code Hooks 配置**：全局 `settings.json` + 项目 `.claude/settings.local.json` 添加 `Elicitation`（AskUserQuestion 触发，同步阻塞式 MessageBox）和 `Stop`（任务完成，系统响铃）hooks，规则写入 CLAUDE.md
-- **SQL 迁移合并**：`add_peer_supporter_and_match_letters.sql` 将三个操作合为一次执行，避免约束冲突
-- **离线通知 Phase 2**：新建 5 个文件——`migrations/add_offline_email.sql`（profiles 加 email/last_active_at/last_email_digest_at）、`api/cron.js`（Vercel Cron 邮件摘要端点）、`vercel.json`（Cron 配置）；修改 2 个文件——`app.js` signUp 存储 email、`utils.js` 心跳上报 last_active_at（5min 节流）
-- **书洞资源动态化（部分）**：`migrations/add_resources.sql` 已创建（resources 表 + 21 条种子数据 + RLS），books.html 改造被中断
-- **已执行迁移**：`add_peer_supporter_and_match_letters.sql` 和 `add_offline_email.sql` 已在 Supabase SQL Editor 执行成功
-
-### 达成的共识
-- 任务通知通过 Hooks 系统级触发（Elicitation 阻塞式 MessageBox + Stop 响铃），替代原有 SoundPlayer 方案，AskUserQuestion 前必须手动确认弹窗
-- 离线邮件用 Resend 发送，Cron 每天 UTC 10:00 检查不活跃用户（last_active_at < 3 天前 + 有未读通知），每个离站周期最多发一次
-- profiles.email 在注册时写入（回填已有用户），cron 直接读此字段发邮件
-- SQL 迁移有依赖关系时合并为单文件，避免分开执行顺序问题
-- 书洞动态化保留静态数据作为 Supabase 加载失败时的优雅降级
-
-### 待办事项
-- [ ] 在 Vercel 控制台配置 `RESEND_API_KEY`、`SUPABASE_SERVICE_KEY`（离线邮件生效的前提）
-- [x] 在 Supabase SQL Editor 运行 `migrations/add_resources.sql`
-- [x] 完成 `books.html` 改造：Supabase 动态加载 + 用户推荐表单 + 静态数据降级
-- [ ] 长期路线图剩余 4 项：心事语义共振、情绪年轮可视化、树洞回音壁、关怀代币闭环
-- [ ] 重启 Claude Code 使新 Hooks 生效（MessageBox + echo ^G）
-
-## 2026-05-25（二次会话）对话总结
-
-### 解决了什么问题
-- 提示音方案不可靠，用户需要更强的感知——需要在 AskUserQuestion 前有阻塞式弹窗确保不遗漏交互确认
-- 书洞资源动态化被中断，books.html 改造需完成
-- Stop 通知方式从 Beep 改为 echo ^G，与用户终端习惯一致
-
-### 做了哪些修改
-- **Hooks 规则全面替换**：Elicitation → 同步阻塞式 MessageBox（`PresentationFramework`），Stop → `[System.Console]::Write([char]7)`（等价 `echo ^G`）。CLAUDE.md + 全局 + 项目本地 settings 三处同步更新
-- **权限精简**：从 5 条 SoundPlayer 规则 → 2 条（`*PresentationFramework*` / `*MessageBox*`），移除所有声音播放权限
-- **books.html 动态化**：新增 `loadResources()` 从 Supabase `resources` 表加载，失败降级到静态 `libraryData`；登录用户可见"+ 推荐资源"按钮和推荐弹窗（6 字段表单），提交后即时插入列表顶部并重置筛选
-- **待办更新**：`add_resources.sql` 已执行 + books.html 改造已完成，两项勾销
-
-### 达成的共识
-- Hooks 在会话启动时一次性加载，中途修改配置文件需重启 Claude Code 才生效
-- Elicitation MessageBox 是强制阻塞的，点击确定前程序不继续——作为每次 AskUserQuestion 的硬性前置动作
-- Stop 通知使用 `echo ^G`（BEL 字符），不依赖 Windows 声音方案或 Media.SoundPlayer
-- 书洞资源推荐表单仅登录用户可见，推荐成功即时回显到当前页面无需刷新
-- books.html 静态数据永久保留作为 Supabase 不可用时的优雅降级
-
-### 当前待办
-- [ ] 重启 Claude Code 使新 Hooks（MessageBox + echo ^G）生效
-- [ ] 在 Vercel 控制台配置 `RESEND_API_KEY`、`SUPABASE_SERVICE_KEY`（离线邮件生效）
-- [ ] 长期路线图剩余 4 项
-
-## 2026-05-25（三次会话）对话总结
-
-### 解决了什么问题
-- CLAUDE.md 多处引用过时（moderateContent 位置、showUserPopup 已删除、危机关键词未集中、books.html 标记未完成）
-- 通知方案经历多轮演化：MessageBox → msg.exe（不可用）→ WScript.Shell SendKeys（不工作）→ keybd_event API（可靠）
-- 键盘无 Scroll Lock 键，最终锁定 Caps Lock（VK 码 0x14）
-
-### 做了哪些修改
-- **CLAUDE.md 修正**：moderateContent 归属 utils.js、删除 showUserPopup 死代码引用、危机关键词集中管理标注、books.html 标记完成、补 add_resources.sql 迁移条目
-- **CLAUDE.md 新增**：强制中文交互规则（所有环节必须中文，永久生效）
-- **通知方案最终态**：Stop 事件 → Caps Lock 闪烁 1 次（亮 500ms 灭）+ 保存/恢复原始状态；使用 user32.dll `keybd_event` API（非 SendKeys）；base64 编码命令存入 settings.json 规避 JSON 转义
-- **Hooks 配置更新**：全局 + 项目本地 `settings.json` 同步，移除所有旧方案（Elicitation/MessageBox/echo ^G），仅保留 Stop + SessionStart
-- **一次性提交**：33 个文件的未提交改动全部入库（危机通知倾听者、书洞资源动态化、通知铃铛样式、移动端触摸、代码清理等）
-
-### 达成的共识
-- `WScript.Shell.SendKeys` 无法可靠控制键盘硬件指示灯，必须用 `user32.dll` 的 `keybd_event` API
-- base64 编码是 hooks JSON 配置中处理复杂 PowerShell 命令的最佳方案，彻底消除引号转义问题
-- 该键盘无独立 Scroll Lock 键，全部使用 Caps Lock（0x14）
-- Elicitation 事件不设置闪烁，避免用户阅读确认对话框时分心
-- Hook 配置文件中途修改需重启 Claude Code 才生效
-- `.claude/` 目录被 gitignore，项目本地 settings 不入库
-
-### 当前待办
-- [ ] 重启 Claude Code 使新 Hooks（Caps Lock 闪烁 Stop 事件）生效
-- [ ] 在 Vercel 控制台配置 `RESEND_API_KEY`、`SUPABASE_SERVICE_KEY`（离线邮件生效）
-- [ ] 长期路线图剩余 4 项
