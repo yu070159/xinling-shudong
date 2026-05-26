@@ -800,15 +800,17 @@ async function callDeepSeekAPI(text) {
       });
     }
 
-    document.getElementById('themeBtn').addEventListener('click', function() {
-      renderThemePanel();
-      document.getElementById('themePanelOverlay').classList.add('show');
-    });
-    document.getElementById('themeCloseBtn').addEventListener('click', function() {
-      document.getElementById('themePanelOverlay').classList.remove('show');
-    });
-    document.getElementById('themePanelOverlay').addEventListener('click', function(e) {
-      if (e.target === this) this.classList.remove('show');
+    document.addEventListener('DOMContentLoaded', function() {
+      document.getElementById('themeBtn').addEventListener('click', function() {
+        renderThemePanel();
+        document.getElementById('themePanelOverlay').classList.add('show');
+      });
+      document.getElementById('themeCloseBtn').addEventListener('click', function() {
+        document.getElementById('themePanelOverlay').classList.remove('show');
+      });
+      document.getElementById('themePanelOverlay').addEventListener('click', function(e) {
+        if (e.target === this) this.classList.remove('show');
+      });
     });
 
     document.addEventListener('DOMContentLoaded', init);
