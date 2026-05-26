@@ -199,6 +199,18 @@
             border-left: 3px solid var(--accent);
         }
 
+        .access-badge {
+            align-self: flex-end;
+            margin-top: 10px;
+            font-size: 0.7rem;
+            padding: 3px 8px;
+            border-radius: 10px;
+            background: rgba(123, 168, 120, 0.15);
+            color: var(--accent);
+            letter-spacing: 0.5px;
+            opacity: 0.85;
+        }
+
         .empty-state {
             text-align: center;
             padding: 80px 20px;
@@ -465,8 +477,10 @@
         const showRecommendBtn = document.getElementById('showRecommendBtn');
         const recommendModal = document.getElementById('recommendModal');
 
-        // 从 Supabase 加载资源，失败则降级到静态数据
+        // 以 books-data.js 精选数据为基础，追加用户在 Supabase 中提交的独有资源
         async function loadResources() {
+            allResources = [...libraryData];
+            const staticTitles = new Set(libraryData.map(r => r.title));
             try {
                 const { data, error } = await sb
                     .from('resources')
@@ -474,20 +488,21 @@
                     .order('created_at', { ascending: false });
                 if (error) throw error;
                 if (data && data.length > 0) {
-                    allResources = data.map(r => ({
-                        title: r.title,
-                        author: r.author,
-                        desc: r.description,
-                        reason: r.reason,
-                        category: r.category,
-                        link: r.link
-                    }));
-                    return;
+                    const userEntries = data
+                        .filter(r => !staticTitles.has(r.title))
+                        .map(r => ({
+                            title: r.title,
+                            author: r.author,
+                            desc: r.description,
+                            reason: r.reason,
+                            category: r.category,
+                            link: r.link
+                        }));
+                    allResources = [...userEntries, ...allResources];
                 }
             } catch (err) {
-                console.warn('Supabase 资源加载失败，使用静态数据:', err.message);
+                console.warn('Supabase 资源加载失败，仅使用静态数据:', err.message);
             }
-            allResources = libraryData;
         }
 
         function renderCards() {
@@ -518,13 +533,16 @@
                     card.className = 'book-card';
                     card.href = item.link;
                     card.target = "_blank";
-                    
+                    card.rel = "noopener";
+
+                    const accessLabel = getAccessLabel(item.link);
                     card.innerHTML = `
                         <span class="tag">${item.category}</span>
                         <h3 class="book-title">${item.title}</h3>
                         <p class="book-author">${item.author}</p>
                         <p class="book-desc">${item.desc}</p>
                         <div class="book-reason">${item.reason}</div>
+                        <span class="access-badge">${accessLabel}</span>
                     `;
                     booksGrid.appendChild(card);
                 });
@@ -557,6 +575,14 @@
                 toast.classList.add('hide');
                 toast.classList.remove('show');
             }, 2000);
+        }
+
+        function getAccessLabel(link) {
+            if (/weread\.qq\.com|archive\.org\/details|manybooks\.net|verywellmind|psychologytoday|simplypsychology|nobaproject|socialpsychology|psychinaxiv|doaj\.org|ncpssd\.org|hanspub\.org|ncbi\.nlm|researchgate|zhihu\.com|xinli001|cpsbeijing/.test(link)) return '在线阅读';
+            if (/gutenberg\.org|openstax\.org|ocw\.mit\.edu/.test(link)) return 'PDF下载';
+            if (/bilibili|icourse163|ted\.com|coursera/.test(link)) return '视频';
+            if (/jiumodiary/.test(link)) return '搜书';
+            return '在线阅读';
         }
 
         // 推荐弹窗逻辑（DOMContentLoaded 后绑定，避免元素未加载）

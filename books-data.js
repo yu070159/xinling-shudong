@@ -1199,6 +1199,58 @@ const libraryData = [
     },
 
     // ═══════════════════════════════════════════════
+    // PDF直读 — 公版/开源/开放获取，可直接下载或在线阅读
+    // ═══════════════════════════════════════════════
+    {
+        title: "《心理学》免费教材 (OpenStax Psychology 2e)",
+        author: "莱斯大学 OpenStax",
+        desc: "完全免费的大学级心理学导论教材，内容涵盖感知、记忆、学习、情绪、人格、心理障碍等全部核心主题。直接提供PDF下载。",
+        reason: "与售价数百元的商业教材同等质量但完全免费，适合系统自学心理学的同学，支持网页阅读和PDF下载。",
+        category: "免费资源",
+        link: "https://openstax.org/details/books/psychology-2e"
+    },
+    {
+        title: "《社会心理学》开源教材 (Principles of Social Psychology)",
+        author: "明尼苏达大学开源教材项目",
+        desc: "完整的大学社会心理学开源教材，覆盖社会认知、态度、从众、群体行为等主题，提供PDF和在线版。",
+        reason: "免费且高质量的社会心理学教材，被多所大学采用，支持直接下载PDF。",
+        category: "免费资源",
+        link: "https://open.umn.edu/opentextbooks/textbooks/principles-of-social-psychology"
+    },
+    {
+        title: "古腾堡计划 · 心理学经典书库",
+        author: "Project Gutenberg",
+        desc: "包含弗洛伊德、荣格、威廉·詹姆斯等心理学先驱的英文原版著作，全部可免费下载为PDF/ePub/Kindle格式。",
+        reason: "《梦的解析》《精神分析引论》《心理学原理》等经典著作英文原版免费下载，适合中英对照阅读。",
+        category: "免费资源",
+        link: "https://www.gutenberg.org/ebooks/subjects/search/psychology"
+    },
+    {
+        title: "心理学历史上经典论文全集 (Classics in the History of Psychology)",
+        author: "约克大学 - Christopher D. Green",
+        desc: "收集了从古希腊到20世纪心理学史上最重要的原创论文全文，包括詹姆斯、弗洛伊德、华生、斯金纳等。",
+        reason: "直接阅读心理学大师的原著论文而非二手解读，每篇都有HTML网页版可直接在线阅读。",
+        category: "免费资源",
+        link: "https://psychclassics.yorku.ca/"
+    },
+    {
+        title: "APA 开放获取心理学论文",
+        author: "美国心理学会 (APA)",
+        desc: "美国心理学会官方开放获取论文集合，所有文章均可免费全文下载PDF，涵盖临床、认知、发展等全部领域。",
+        reason: "全球最权威的心理学学术组织的免费论文——了解心理学最新研究发现的直接窗口。",
+        category: "免费资源",
+        link: "https://www.apa.org/pubs/journals/open-access"
+    },
+    {
+        title: "B-OK / Z-Library 镜像 (全球最大电子书库)",
+        author: "Z-Library Project",
+        desc: "全球最大的免费电子书搜索引擎，包含海量心理学中英文书籍的PDF/ePub/Mobi格式下载链接。",
+        reason: "几乎能找到任何心理学书籍的电子版——鸠摩搜书搜不到时来这里，注意遵守当地版权法规。",
+        category: "免费资源",
+        link: "https://zh.z-lib.gs/"
+    },
+
+    // ═══════════════════════════════════════════════
     // 公开课 — 国内外优质心理学视频课程
     // ═══════════════════════════════════════════════
     {
