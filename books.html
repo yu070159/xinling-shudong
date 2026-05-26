@@ -376,6 +376,116 @@
             to   { opacity: 1; transform: translateY(0); }
         }
 
+        .book-detail-overlay {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.5);
+            z-index: 1100;
+            align-items: center;
+            justify-content: center;
+        }
+        .book-detail-overlay.active { display: flex; }
+
+        .book-detail-panel {
+            background: var(--bg-card);
+            border-radius: 20px;
+            padding: 32px 36px;
+            width: 90%;
+            max-width: 560px;
+            max-height: 85vh;
+            overflow-y: auto;
+            animation: fadeInUp 0.35s ease;
+            position: relative;
+        }
+        .book-detail-panel .detail-tag {
+            display: inline-block;
+            font-size: 0.75rem;
+            padding: 4px 12px;
+            border-radius: 12px;
+            background: var(--accent-glow);
+            color: var(--accent);
+            margin-bottom: 12px;
+        }
+        .book-detail-panel .detail-access {
+            display: inline-block;
+            font-size: 0.72rem;
+            padding: 3px 10px;
+            border-radius: 10px;
+            margin-left: 8px;
+            background: rgba(123, 168, 120, 0.15);
+            color: var(--accent);
+        }
+        .book-detail-panel .detail-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin: 0 0 6px;
+            line-height: 1.4;
+        }
+        .book-detail-panel .detail-author {
+            font-size: 1rem;
+            color: var(--accent);
+            margin: 0 0 18px;
+            opacity: 0.85;
+        }
+        .book-detail-panel .detail-section-label {
+            font-size: 0.78rem;
+            color: var(--text-secondary);
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            margin: 16px 0 6px;
+            opacity: 0.7;
+        }
+        .book-detail-panel .detail-desc {
+            font-size: 0.95rem;
+            color: var(--text-secondary);
+            line-height: 1.7;
+            margin: 0 0 4px;
+        }
+        .book-detail-panel .detail-reason {
+            font-size: 0.92rem;
+            background: var(--bg-input);
+            padding: 14px 16px;
+            border-radius: 10px;
+            color: var(--text-secondary);
+            border-left: 3px solid var(--accent);
+            line-height: 1.6;
+        }
+        .book-detail-panel .detail-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 22px;
+            flex-wrap: wrap;
+        }
+        .book-detail-panel .detail-goto {
+            display: inline-block;
+            background: var(--accent);
+            color: white;
+            padding: 10px 24px;
+            border-radius: 24px;
+            text-decoration: none;
+            font-size: 0.93rem;
+            font-weight: 500;
+            transition: opacity 0.2s;
+        }
+        .book-detail-panel .detail-goto:hover { opacity: 0.85; }
+        .book-detail-panel .detail-close {
+            background: var(--bg-input);
+            border: 1px solid var(--border-medium);
+            color: var(--text-secondary);
+            padding: 10px 24px;
+            border-radius: 24px;
+            cursor: pointer;
+            font-size: 0.93rem;
+        }
+        .book-detail-panel .detail-close:hover { background: var(--border-light); }
+
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(24px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+
         .modal-overlay {
             display: none;
             position: fixed;
@@ -582,8 +692,9 @@
 
         // 以 books-data.js 精选数据为基础，追加用户在 Supabase 中提交的独有资源
         async function loadResources() {
-            allResources = [...libraryData];
-            const staticTitles = new Set(libraryData.map(r => r.title));
+            allResources = Array.isArray(window.libraryData) ? [...window.libraryData] : (typeof libraryData !== 'undefined' ? [...libraryData] : []);
+            const base = allResources;
+            const staticTitles = new Set(base.map(r => r.title));
             try {
                 const { data, error } = await sb
                     .from('resources')
@@ -631,12 +742,11 @@
                 booksGrid.style.display = 'grid';
                 emptyState.style.display = 'none';
 
-                filteredData.forEach(item => {
-                    const card = document.createElement('a');
+                filteredData.forEach((item, idx) => {
+                    const card = document.createElement('div');
                     card.className = 'book-card';
-                    card.href = item.link;
-                    card.target = "_blank";
-                    card.rel = "noopener";
+                    card.style.cursor = 'pointer';
+                    card.setAttribute('data-book-index', idx);
 
                     const accessLabel = getAccessLabel(item.link);
                     card.innerHTML = `
@@ -647,6 +757,7 @@
                         <div class="book-reason">${item.reason}</div>
                         <span class="access-badge">${accessLabel}</span>
                     `;
+                    card.addEventListener('click', () => openBookDetail(item));
                     booksGrid.appendChild(card);
                 });
             }
@@ -681,12 +792,49 @@
         }
 
         function getAccessLabel(link) {
-            if (/weread\.qq\.com|archive\.org\/details|manybooks\.net|verywellmind|psychologytoday|simplypsychology|nobaproject|socialpsychology|psychinaxiv|doaj\.org|ncpssd\.org|hanspub\.org|ncbi\.nlm|researchgate|zhihu\.com|xinli001|cpsbeijing/.test(link)) return '在线阅读';
+            if (/weread\.qq\.com|archive\.org\/details|manybooks\.net|verywellmind|psychologytoday|simplypsychology|nobaproject|socialpsychology|psychinaxiv|doaj\.org|ncpssd\.org|hanspub\.org|ncbi\.nlm|researchgate|zhihu\.com|xinli001|cpsbeijing|open\.umn\.edu|psychclassics\.yorku\.ca|apa\.org\/pubs/.test(link)) return '在线阅读';
             if (/gutenberg\.org|openstax\.org|ocw\.mit\.edu/.test(link)) return 'PDF下载';
             if (/bilibili|icourse163|ted\.com|coursera/.test(link)) return '视频';
-            if (/jiumodiary/.test(link)) return '搜书';
+            if (/jiumodiary|z-lib/.test(link)) return '搜书';
             return '在线阅读';
         }
+
+        // 书籍详情弹窗（DOM 元素延迟获取，因为脚本在 DOM 之前执行）
+        function getDetailEls() {
+            return {
+                overlay: document.getElementById('bookDetailOverlay'),
+                category: document.getElementById('detailCategory'),
+                access: document.getElementById('detailAccess'),
+                title: document.getElementById('detailTitle'),
+                author: document.getElementById('detailAuthor'),
+                desc: document.getElementById('detailDesc'),
+                reason: document.getElementById('detailReason'),
+                goto: document.getElementById('detailGoto'),
+                close: document.getElementById('detailClose')
+            };
+        }
+
+        function openBookDetail(item) {
+            const els = getDetailEls();
+            if (!els.overlay) return;
+            els.category.textContent = item.category;
+            els.access.textContent = getAccessLabel(item.link);
+            els.title.textContent = item.title;
+            els.author.textContent = item.author;
+            els.desc.textContent = item.desc;
+            els.reason.textContent = item.reason;
+            els.goto.href = item.link;
+            els.goto.textContent = getAccessLabel(item.link) === '视频' ? '去观看' : '去阅读';
+            els.overlay.classList.add('active');
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeBookDetail() {
+            const overlay = document.getElementById('bookDetailOverlay');
+            if (overlay) overlay.classList.remove('active');
+            document.body.style.overflow = '';
+        }
+        // 延迟绑定事件，在 DOMContentLoaded 中处理
 
         // 随机推荐 —— 从当前筛选结果中随机选一本
         const randomResult = document.getElementById('randomResult');
@@ -696,6 +844,8 @@
         const randomLink = document.getElementById('randomLink');
         const randomPickBtn = document.getElementById('randomPickBtn');
         const randomReroll = document.getElementById('randomReroll');
+
+        let lastRandomPick = null;
 
         function pickRandomBook() {
             const pool = allResources.filter(item => {
@@ -707,15 +857,20 @@
             });
             if (pool.length === 0) return;
 
-            const pick = pool[Math.floor(Math.random() * pool.length)];
-            randomTitle.textContent = pick.title;
-            randomAuthor.textContent = pick.author;
-            randomDesc.textContent = pick.reason || pick.desc;
-            randomLink.href = pick.link;
+            lastRandomPick = pool[Math.floor(Math.random() * pool.length)];
+            randomTitle.textContent = lastRandomPick.title;
+            randomAuthor.textContent = lastRandomPick.author;
+            randomDesc.textContent = lastRandomPick.reason || lastRandomPick.desc;
+            randomLink.href = '#';
             randomResult.classList.add('show');
             randomResult.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
             randomPickBtn.textContent = '🎲 再摇一次';
         }
+
+        randomLink.addEventListener('click', (e) => {
+            e.preventDefault();
+            if (lastRandomPick) openBookDetail(lastRandomPick);
+        });
 
         randomPickBtn.addEventListener('click', pickRandomBook);
         randomReroll.addEventListener('click', (e) => {
@@ -725,6 +880,18 @@
 
         // 推荐弹窗逻辑（DOMContentLoaded 后绑定，避免元素未加载）
         window.addEventListener('DOMContentLoaded', () => {
+            // 绑定书籍详情弹窗事件
+            const detailOverlay = document.getElementById('bookDetailOverlay');
+            const detailCloseBtn = document.getElementById('detailClose');
+            if (detailOverlay) {
+                detailOverlay.addEventListener('click', (e) => {
+                    if (e.target === detailOverlay) closeBookDetail();
+                });
+            }
+            if (detailCloseBtn) {
+                detailCloseBtn.addEventListener('click', closeBookDetail);
+            }
+
             const modal = document.getElementById('recommendModal');
             const cancelBtn = document.getElementById('cancelRecommend');
             const submitBtn = document.getElementById('submitRecommend');
@@ -863,6 +1030,23 @@
             <div class="modal-actions">
                 <button class="btn-cancel" id="cancelRecommend">取消</button>
                 <button class="btn-submit" id="submitRecommend">提交推荐</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="book-detail-overlay" id="bookDetailOverlay">
+        <div class="book-detail-panel">
+            <span class="detail-tag" id="detailCategory"></span>
+            <span class="detail-access" id="detailAccess"></span>
+            <h2 class="detail-title" id="detailTitle"></h2>
+            <p class="detail-author" id="detailAuthor"></p>
+            <p class="detail-section-label">内容简介</p>
+            <p class="detail-desc" id="detailDesc"></p>
+            <p class="detail-section-label">推荐理由</p>
+            <div class="detail-reason" id="detailReason"></div>
+            <div class="detail-actions">
+                <a class="detail-goto" id="detailGoto" href="#" target="_blank" rel="noopener">去阅读</a>
+                <button class="detail-close" id="detailClose">关闭</button>
             </div>
         </div>
     </div>
