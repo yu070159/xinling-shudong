@@ -1,0 +1,17 @@
+User-agent: *
+Allow: /
+Allow: /index.html
+Allow: /books.html
+Allow: /welcome.html
+
+# 保护隐私边界，禁止爬取个人身份相关与系统表单页面
+Disallow: /login.html
+Disallow: /register.html
+Disallow: /profile.html
+Disallow: /feedback.html
+Disallow: /chat.html
+Disallow: /chat-detail.html
+Disallow: /detail.html
+
+# 告诉爬虫网站地图的位置
+Sitemap: https://xinling-shudong.vercel.app/sitemap.xml

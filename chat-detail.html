@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>对话中 - 心灵树洞</title>
+  <meta name="description" content="一个匿名倾诉与互助的温暖社区。在深夜森林里，卸下白昼的疲惫写下你的心事，会有人温柔地倾听。你的秘密在这里是安全的。">
+  <meta name="keywords" content="心灵树洞, 匿名倾诉, 心理互助, 情绪宣泄, 深夜树洞, Soul Tree Hollow, 心理健康">
+  <meta name="author" content="心灵树洞">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="心灵树洞">
+  <meta property="og:title" content="心灵树洞 - 匿名倾诉与互助社区">
+  <meta property="og:description" content="在深夜森林里，写下你的心事，有人会温柔地倾听。这里没有人认识你，但有人懂你。">
+  <meta property="og:url" content="https://xinling-shudong.vercel.app/">
+  <meta property="og:image" content="https://xinling-shudong.vercel.app/images/og-image.jpg">
+  <meta itemprop="name" content="心灵树洞 - 匿名倾诉与互助社区">
+  <meta itemprop="description" content="在深夜森林里，写下你的心事，有人会温柔地倾听。">
+  <meta itemprop="image" content="https://xinling-shudong.vercel.app/images/wechat-share-icon.jpg">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="心灵树洞 | Soul Tree Hollow">
+  <meta name="twitter:description" content="一个匿名倾诉与互助的温暖社区。在深夜森林里，写下你的心事，有人会温柔地倾听。">
+  <meta name="twitter:image" content="https://xinling-shudong.vercel.app/images/og-image.jpg">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🌳</text></svg>">
+  <link rel="preconnect" href="https://unpkg.com" crossorigin>
+  <link rel="preconnect" href="https://oazntpskcghfxzcylnef.supabase.co" crossorigin>
+  <link rel="stylesheet" href="style.css">
+  <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+  <script src="utils.js"></script>
+  <style>
+    .detail-container { max-width: 680px; margin: 0 auto; padding: 20px; padding-top: 80px; display: flex; flex-direction: column; height: calc(100vh - 80px); color: var(--text-primary); }
+    .msg-header { display: flex; align-items: center; padding-bottom: 15px; border-bottom: 1px solid var(--border-light); margin-bottom: 15px; }
+    .back-link { color: var(--text-secondary); text-decoration: none; margin-right: 15px; }
+    .back-link:hover { color: var(--text-primary); }
+    .msg-list { flex: 1; overflow-y: auto; padding-right: 10px; display: flex; flex-direction: column; gap: 12px; }
+    .msg-container { display: flex; gap: 8px; }
+    .msg-container.sent { justify-content: flex-end; }
+    .msg-container.received { justify-content: flex-start; }
+    .msg-avatar { width: 32px; height: 32px; border-radius: 50%; object-fit: cover; flex-shrink: 0; }
+    .msg-avatar-placeholder { width: 32px; height: 32px; border-radius: 50%; background: var(--accent-glow); display: flex; align-items: center; justify-content: center; font-size: 14px; flex-shrink: 0; }
+    .msg-content { max-width: 80%; padding: 10px 16px; border-radius: 18px; word-break: break-word; }
+    .msg-sent .msg-content { background: var(--accent); color: white; border-bottom-right-radius: 4px; }
+    .msg-received .msg-content { background: var(--bg-card); color: var(--text-primary); border-bottom-left-radius: 4px; border: 1px solid var(--border-light); }
+    .msg-time { font-size: 11px; color: var(--text-muted); margin-top: 4px; }
+    .input-area { display: flex; gap: 10px; padding-top: 15px; border-top: 1px solid var(--border-light); }
+    .input-area textarea { flex: 1; padding: 12px; border-radius: 12px; background: var(--bg-input); border: 1px solid var(--border-medium); color: var(--text-primary); resize: none; height: 50px; }
+    .send-btn { background: var(--accent); border: none; color: white; padding: 0 20px; border-radius: 12px; cursor: pointer; }
+  </style>
+</head>
+<body>
+  <header class="forest-header">
+      <a href="index.html" class="forest-logo">
+          <span class="logo-icon">🌳</span>
+          <span class="logo-text">心灵树洞</span>
+      </a>
+      <nav class="forest-nav">
+          <a href="index.html">广场</a>
+          <a href="books.html">书洞</a>
+          <a href="shuling.html">树灵</a>
+          <a href="chat.html">树友对话</a>
+          <a href="mood-ring.html">年轮</a>
+      </nav>
+      <div class="forest-user-actions" id="navUserArea">
+          <span id="navGuest">
+              <a href="login.html">登录</a>
+              <a href="register.html">注册</a>
+          </span>
+          <span id="navLoggedIn" style="display:none">
+              <span class="user-greeting" id="navNickname"></span>
+              <a href="profile.html">个人中心</a>
+              <a href="feedback.html">反馈</a>
+              <a href="#" class="logout-btn" id="navLogout">退出</a>
+          </span>
+      </div>
+  </header>
+  <div class="detail-container">
+    <div class="msg-header">
+      <a href="chat.html" class="back-link">← 返回</a>
+      <span id="partnerName">加载中...</span>
+    </div>
+    <div id="msgList" class="msg-list"></div>
+    <div class="input-area">
+      <textarea id="msgInput" placeholder="写下你想说的话..."></textarea>
+      <button id="sendBtn" class="send-btn">发送</button>
+    </div>
+  </div>
+
+  <script>
+    const sb = window.TreeHole.supabase;
+    const urlParams = new URLSearchParams(window.location.search);
+    const partnerId = urlParams.get('user');
+
+    let myAvatar = null;
+    let partnerAvatar = null;
+    let currentUserId = null;
+    let channel = null;
+    let knownMessageIds = new Set();
+
+    async function loadProfiles(userId) {
+      document.getElementById('navNickname').textContent = '树友';
+      document.getElementById('partnerName').textContent = '未知树友';
+      const { data: profiles } = await sb.from('profiles')
+        .select('user_id, nickname, avatar_url')
+        .in('user_id', [userId, partnerId]);
+      if (profiles) {
+        profiles.forEach(p => {
+          if (p.user_id === userId) {
+            myAvatar = p.avatar_url || null;
+            document.getElementById('navNickname').textContent = p.nickname || '树友';
+          } else if (p.user_id === partnerId) {
+            partnerAvatar = p.avatar_url || null;
+            document.getElementById('partnerName').textContent = p.nickname || '未知树友';
+          }
+        });
+      }
+    }
+
+    // escapeHtml 由 utils.js 全局提供
+
+    function getAvatarHtml(avatarUrl, userId = null) {
+      const dataAttr = userId ? ` data-user-id="${userId}"` : '';
+      if (avatarUrl) {
+        return `<img src="${escapeHtml(avatarUrl)}" class="msg-avatar" alt="头像"${dataAttr}>`;
+      }
+      return `<div class="msg-avatar-placeholder"${dataAttr}>🌱</div>`;
+    }
+
+    function updateMsgUI(container, msg, userId) {
+      const isSent = msg.sender_id === userId;
+      const avatar = isSent ? myAvatar : partnerAvatar;
+      const senderId = msg.sender_id;
+      const avatarHtml = getAvatarHtml(avatar, senderId);
+      const contentHTML = escapeHtml(msg.content);
+
+      container.className = 'msg-container ' + (isSent ? 'sent' : 'received');
+      container.setAttribute('data-msg-id', msg.id);
+
+      if (!isSent) {
+        container.innerHTML = avatarHtml + '<div class="msg-content">' + contentHTML + '<div class="msg-time">' + new Date(msg.created_at).toLocaleTimeString() + '</div></div>';
+      } else {
+        container.innerHTML = '<div class="msg-content">' + contentHTML + '<div class="msg-time">' + new Date(msg.created_at).toLocaleTimeString() + '</div></div>' + avatarHtml;
+      }
+    }
+
+    function appendMessageUI(msg, userId) {
+      var list = document.getElementById('msgList');
+      // 去重：已渲染的消息只更新，不重复创建
+      if (knownMessageIds.has(msg.id)) {
+        var existing = list.querySelector('[data-msg-id="' + msg.id + '"]');
+        if (existing) updateMsgUI(existing, msg, userId);
+        return;
+      }
+      knownMessageIds.add(msg.id);
+
+      var container = document.createElement('div');
+      updateMsgUI(container, msg, userId);
+      list.appendChild(container);
+      list.scrollTop = list.scrollHeight;
+    }
+
+    async function loadMessages() {
+      if (!currentUserId || !partnerId) { window.location.href = 'chat.html'; return; }
+
+      // 标记已读
+      try {
+        await sb.from('messages').update({ is_read: true })
+          .eq('sender_id', partnerId).eq('receiver_id', currentUserId);
+      } catch (e) { console.warn('标记已读失败:', e.message); }
+
+      // 拆成两个简单查询，避免复杂 or 语法导致 400
+      try {
+        var sentResult, receivedResult;
+        await Promise.all([
+          sb.from('messages').select('*').eq('sender_id', currentUserId).eq('receiver_id', partnerId)
+            .then(function(r) { sentResult = r; }),
+          sb.from('messages').select('*').eq('sender_id', partnerId).eq('receiver_id', currentUserId)
+            .then(function(r) { receivedResult = r; })
+        ]);
+
+        var sentMessages = (sentResult && sentResult.data) ? sentResult.data : [];
+        var receivedMessages = (receivedResult && receivedResult.data) ? receivedResult.data : [];
+
+        var allMessages = sentMessages.concat(receivedMessages)
+          .sort(function(a, b) { return new Date(a.created_at) - new Date(b.created_at); });
+
+        // 只追加未知消息，避免 innerHTML 全量重绘造成的闪烁
+        var newMessages = allMessages.filter(function(msg) { return !knownMessageIds.has(msg.id); });
+        if (newMessages.length > 0) {
+          var list = document.getElementById('msgList');
+          newMessages.forEach(function(msg) { appendMessageUI(msg, currentUserId); });
+          list.scrollTop = list.scrollHeight;
+        }
+      } catch (e) {
+        console.error('加载消息失败:', e.message);
+      }
+    }
+
+    // 本地敏感词过滤
+    var SENSITIVE_WORDS = [
+      '傻逼', '操你', '草泥马', '艹你', '你妈', '他妈', '去你妈',
+      'sb', 'SB', 'fuck', 'FUCK', 'shit', 'SHIT',
+      '去死', '废物', '白痴', '脑残', '智障', '弱智',
+      '杂种', '贱人', '骚货', '婊子', '狗屁', '混蛋', '王八蛋'
+    ];
+
+    function filterMessage(content) {
+      var filtered = content;
+      SENSITIVE_WORDS.forEach(function(word) {
+        var stars = '';
+        for (var i = 0; i < word.length; i++) { stars += '*'; }
+        var escaped = word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        filtered = filtered.replace(new RegExp(escaped, 'g'), stars);
+      });
+      return filtered;
+    }
+
+    document.getElementById('sendBtn').addEventListener('click', async () => {
+      const input = document.getElementById('msgInput');
+      const rawContent = input.value.trim();
+      if (!rawContent || !currentUserId) return;
+      var content = filterMessage(rawContent);
+      const btn = document.getElementById('sendBtn');
+      btn.disabled = true;
+      btn.textContent = '...';
+      try {
+        const { data, error } = await sb.from('messages').insert([{
+          sender_id: currentUserId,
+          receiver_id: partnerId,
+          content: content
+        }]).select();
+        if (error) throw error;
+        input.value = '';
+        if (data && data[0]) {
+          appendMessageUI(data[0], currentUserId);
+        }
+        // 通知收件人
+        if (currentUserId !== partnerId && window.TreeHole.Notifications) {
+          window.TreeHole.Notifications.upsertMessage({
+            userId: partnerId,
+            fromUserId: currentUserId,
+            contentPreview: content.substring(0, 50)
+          }).catch(function(){});
+        }
+      } catch (e) {
+        alert('发送失败，请重试');
+      }
+      btn.disabled = false;
+      btn.textContent = '发送';
+    });
+
+    window.addEventListener('DOMContentLoaded', async () => {
+      const navGuest = document.getElementById('navGuest');
+      const navLoggedIn = document.getElementById('navLoggedIn');
+      const navNickname = document.getElementById('navNickname');
+      const navLogout = document.getElementById('navLogout');
+
+      const { data: { user } } = await sb.auth.getUser();
+      if (!user) { window.location.href = 'welcome.html'; return; }
+      currentUserId = user.id;
+
+      if (!partnerId) { window.location.href = 'chat.html'; return; }
+
+      navGuest.style.display = 'none';
+      navLoggedIn.style.display = 'inline';
+      navLogout.addEventListener('click', (e) => { e.preventDefault(); sb.auth.signOut().then(() => window.location.href='welcome.html'); });
+
+      // 批量加载双方资料（昵称+头像），一次查询替代原来的4次
+      await loadProfiles(user.id);
+
+      // 首次加载消息
+      await loadMessages();
+
+      // Supabase Realtime 订阅（需在 Supabase → Database → Replication 中启用 messages 表）
+      channel = sb.channel('chat-detail')
+        .on('postgres_changes', {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'messages'
+        }, async (payload) => {
+          const msg = payload.new;
+          if ((msg.sender_id === currentUserId && msg.receiver_id === partnerId) ||
+              (msg.sender_id === partnerId && msg.receiver_id === currentUserId)) {
+            appendMessageUI(msg, currentUserId);
+            if (msg.sender_id === partnerId) {
+              await sb.from('messages').update({ is_read: true }).eq('id', msg.id);
+            }
+          }
+        })
+        .subscribe();
+
+      // 兜底轮询：Realtime 未开启时靠轮询刷新消息
+      setInterval(loadMessages, 5000);
+    });
+
+    // 页面关闭时清理 Realtime 订阅
+    window.addEventListener('beforeunload', () => {
+      if (channel) { sb.removeChannel(channel); }
+    });
+  </script>
+
+  <script src="ai-float.js"></script>
+  <script src="user-popup.js"></script>
+</body>
+</html>
