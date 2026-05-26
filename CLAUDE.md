@@ -546,3 +546,34 @@ npx playwright test --grep "广场"    # 按名称筛选用例
 
 ### Playwright 测试状态
 - 33 项全部通过，零回归
+
+## 2026-05-26（十次会话）书洞外链恢复 + 导航栏三项增强 + 部署同步规则
+
+### 解决的问题
+- 书洞 171 本书的 `reader.html` 内链恢复为外部免费阅读平台链接（鸠摩搜书/微信读书/Internet Archive 等），仅 4 本有真实 PDF 源的保留 `reader.html?book=xxx&url=xxx`
+- 部署文件夹 `soul-tree-deploy/` 积压 15 个文件未同步，且导航栏"站长"按钮只存在于部署文件夹、源项目缺失
+- 导航栏缺少微光余额展示，用户不知道自己的微光数量和用途
+- 管理员（站长）无法方便地查看所有用户反馈和推荐书籍
+
+### 做的修改
+- `books-data.js` — 167 本恢复外链，4 本（Gutenberg ×2 + OpenStax ×2）保留 reader.html 链接
+- `books.html` — "去阅读"链接恢复 `target="_blank" rel="noopener"` 属性
+- `index.html` — 导航栏新增 `🌳 站长` 按钮（点击展示微信 + 一键复制），从部署文件夹同步回源项目
+- `chat.html` — 置顶聊天文案 `给站长留言` → `与站长交心`
+- `glimmer-badge.js` — 新建，自动注入导航栏微光余额徽章（✨ 数字）+ `?` 按钮弹窗说明获取途径和使用方式
+- `style.css` — 新增微光徽章、弹窗、管理员面板完整样式（含移动端适配）
+- `app.js` / `mood-ring.html` / `shuling.html` / `profile.html` — 5 处微光变动点接入 `refreshGlimmer()` 实时刷新余额
+- `secret-admin.js` — 新建，自动注入 `🔒 秘密` 按钮，密码 `070929` 验证后打开全屏管理面板（双标签页：用户反馈 + 推荐书籍）
+- `api/admin.js` — 新建 Vercel 函数，使用 `SUPABASE_SERVICE_KEY` 绕过 RLS 查询全部 feedbacks + resources
+- `netlify/functions/admin.js` — 新建 Netlify 版本（同功能，`exports.handler` 格式）
+- `utils.js` — 末尾自动注入 `glimmer-badge.js` 和 `secret-admin.js`
+- `CLAUDE.md` — 开发约定新增"部署同步规则"，更新本会话总结
+
+### 达成的共识
+- **部署同步规则**：只改源项目文件，不同步到 `soul-tree-deploy/`，等用户明确指令才同步；该规则已写入 CLAUDE.md 开发约定
+- 导航栏功能（铃铛/微光/秘密/站长）均通过 JS 自动注入到 `.forest-header`，实现零 HTML 改动的全站覆盖
+- 管理员面板密码 `070929` 同时用于前端 UI 门禁和服务端 API 鉴权，需在 Vercel/Netlify 环境变量中配置 `SUPABASE_SERVICE_KEY` 才能查询全部数据
+- 所有 AI API 调用已统一为 `/api/chat`（DeepSeek），`/api/gemini` 已标记废弃
+
+### 当前待办
+- 无
