@@ -569,8 +569,13 @@
     }
     if (keyword) {
       var k = keyword.toLowerCase();
+      var sm = window.searchMode || 'all';
       filtered = filtered.filter(function(q) {
-        return q.content.toLowerCase().indexOf(k) !== -1 || q.nickname.toLowerCase().indexOf(k) !== -1;
+        var mc = q.content.toLowerCase().indexOf(k) !== -1;
+        var mn = q.nickname.toLowerCase().indexOf(k) !== -1;
+        if (sm === 'content') return mc;
+        if (sm === 'nickname') return mn;
+        return mc || mn;
       });
     }
     await renderQuestions(filtered);
@@ -866,10 +871,14 @@
     if (!window.allQuestions) return [];
     const k = keyword.toLowerCase().trim();
     if (!k) return window.allQuestions;
-    return window.allQuestions.filter(q =>
-      q.content.toLowerCase().includes(k) ||
-      q.nickname.toLowerCase().includes(k)
-    );
+    const mode = window.searchMode || 'all';
+    return window.allQuestions.filter(q => {
+      const matchContent = q.content.toLowerCase().includes(k);
+      const matchNickname = q.nickname.toLowerCase().includes(k);
+      if (mode === 'content') return matchContent;
+      if (mode === 'nickname') return matchNickname;
+      return matchContent || matchNickname;
+    });
   }
 
 
@@ -953,6 +962,19 @@ window.addEventListener('DOMContentLoaded', async () => {
         input.value = '';
         input.placeholder = '匿名树友';
       }
+    });
+
+    window.searchMode = 'all';
+    document.querySelectorAll('.search-mode-btn').forEach(function(btn) {
+      btn.addEventListener('click', function() {
+        document.querySelectorAll('.search-mode-btn').forEach(function(b) { b.classList.remove('active'); });
+        btn.classList.add('active');
+        window.searchMode = btn.dataset.mode;
+        var searchInput = document.getElementById('searchInput');
+        if (searchInput && searchInput.value.trim()) {
+          searchInput.dispatchEvent(new Event('input'));
+        }
+      });
     });
 
     const searchInput = document.getElementById('searchInput');
