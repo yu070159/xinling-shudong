@@ -55,6 +55,12 @@
               <a href="feedback.html">反馈</a>
               <a href="#" class="logout-btn" id="navLogout">退出</a>
           </span>
+          <button id="contactAdminBtn" style="background:none;border:none;color:var(--nav-text);cursor:pointer;font-size:0.95rem;padding:6px 12px;border-radius:8px;transition:background 0.2s;">🌳 站长</button>
+          <div id="wechatSection" style="display:none;">
+            <span id="wechatDisplay" style="font-size:0.95rem;color:#000000;">💚 q1427420863p</span>
+            <button id="copyWechatBtn" style="background:linear-gradient(135deg, var(--accent), var(--accent-light));color:white;border:none;border-radius:20px;padding:6px 14px;font-size:0.85rem;cursor:pointer;transition:transform 0.2s;">📋 复制</button>
+          </div>
+          <div id="copySuccessMsg" style="display:none;font-size:12px;color:#5ba07a;">嘿嘿^v^!微信复制成功，快去访问我吧！</div>
       </div>
   </header>
   <div class="container">
@@ -144,6 +150,49 @@
         // 静默失败，不影响页面
       }
     })();
+  </script>
+
+  <script>
+    document.getElementById('contactAdminBtn').addEventListener('click', function() {
+      document.getElementById('contactAdminBtn').style.display = 'none';
+      document.getElementById('wechatSection').style.display = 'flex';
+      document.getElementById('wechatSection').style.alignItems = 'center';
+      document.getElementById('wechatSection').style.gap = '12px';
+      document.getElementById('copySuccessMsg').style.display = 'none';
+    });
+
+    document.getElementById('copyWechatBtn').addEventListener('click', async function() {
+      const wechat = 'q1427420863p';
+      const btn = document.getElementById('copyWechatBtn');
+      btn.disabled = true;
+
+      try {
+        if (navigator.clipboard && window.isSecureContext) {
+          await navigator.clipboard.writeText(wechat);
+        } else {
+          const textarea = document.createElement('textarea');
+          textarea.style.position = 'fixed';
+          textarea.style.left = '-9999px';
+          textarea.value = wechat;
+          document.body.appendChild(textarea);
+          textarea.select();
+          document.execCommand('copy');
+          document.body.removeChild(textarea);
+        }
+
+        document.getElementById('wechatSection').style.display = 'none';
+        document.getElementById('copySuccessMsg').style.display = 'block';
+
+      } catch (err) {
+        console.error('复制失败:', err);
+      }
+
+      setTimeout(() => {
+        document.getElementById('copySuccessMsg').style.display = 'none';
+        document.getElementById('contactAdminBtn').style.display = 'block';
+        btn.disabled = false;
+      }, 5000);
+    });
   </script>
 </body>
 </html>
