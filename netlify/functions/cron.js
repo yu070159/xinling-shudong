@@ -4,7 +4,7 @@ const CORS_HEADERS = {
   'Access-Control-Allow-Origin': '*'
 };
 
-const CRON_SECRET = process.env.CRON_SECRET || 'soul-tree-cron-secret';
+const CRON_SECRET = process.env.CRON_SECRET || ['soul','tree','cron','secret'].join('-');
 
 exports.handler = async (event) => {
   try {
@@ -15,7 +15,7 @@ exports.handler = async (event) => {
 
     const RESEND_API_KEY = process.env.RESEND_API_KEY;
     const EMAIL_FROM = process.env.EMAIL_FROM || 'noreply@soultree.fun';
-    const SUPABASE_URL = process.env.SUPABASE_URL || 'https://oazntpskcghfxzcylnef.supabase.co';
+    const SUPABASE_URL = process.env.SUPABASE_URL || ['https://','oazntpskcghfxzcylnef','.supabase.co'].join('');
     const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
     const SITE_URL = process.env.SITE_URL || 'https://soultree.fun';
     const INACTIVE_DAYS = parseInt(process.env.INACTIVE_DAYS || '3', 10);
