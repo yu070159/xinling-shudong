@@ -81,7 +81,7 @@ const server = http.createServer(async (req, res) => {
     if (auth !== 'Bearer ' + getEnv('ADMIN_PASSWORD', '070929')) return send(res, 401, { error: '密码错误' });
     const key = getEnv('SUPABASE_SERVICE_KEY');
     if (!key) return send(res, 500, { error: 'SUPABASE_SERVICE_KEY 未配置' });
-    const dbUrl = getEnv('SUPABASE_URL', 'https://icbqxsiwktvsiwqygams.supabase.co');
+    const dbUrl = getEnv('SUPABASE_URL', 'https://oazntpskcghfxzcylnef.supabase.co');
     const h = { 'apikey': key, 'Authorization': 'Bearer ' + key };
     try {
       const [fb, rs] = await Promise.all([
