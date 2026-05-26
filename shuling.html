@@ -785,6 +785,7 @@ async function callDeepSeekAPI(text) {
           try {
             var user = await getCurrentUser();
             await sb.from('glimmer_ledger').insert({ user_id: user.id, amount: -def.cost, reason: 'redeem_theme', reference_id: key });
+            if (window.TreeHole.refreshGlimmer) window.TreeHole.refreshGlimmer();
             unlockedThemes.push(key);
             glimmerBalance -= def.cost;
             await fetch(window.TreeHole.config.SUPABASE_URL + '/rest/v1/profiles?user_id=eq.' + user.id, {

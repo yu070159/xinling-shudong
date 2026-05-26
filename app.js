@@ -213,6 +213,7 @@
                 reason: 'answer_hearted',
                 reference_id: String(targetId)
               });
+              if (window.TreeHole.refreshGlimmer) window.TreeHole.refreshGlimmer();
             } catch (e) { /* 微光发放失败不阻塞暖心操作 */ }
           })();
         }
@@ -516,6 +517,7 @@
         user_id: userId, amount: 1,
         reason: 'post_question', reference_id: String(questionId)
       });
+      if (window.TreeHole.refreshGlimmer) window.TreeHole.refreshGlimmer();
     } catch (e) { /* 静默失败 */ }
   }
 
