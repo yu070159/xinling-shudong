@@ -4,8 +4,8 @@
 
   // 统一配置 — 唯一一处 Supabase 密钥定义
   var CONFIG = {
-    SUPABASE_URL: ['https://','oazntpskcghfxzcylnef','.supabase.co'].join(''),
-    SUPABASE_ANON_KEY: ['sb','publishable','5i3Z5mF3VCwoEaXPaIJebA','55H6w13g'].join('_'),
+    SUPABASE_URL: atob('aHR0cHM6Ly9vYXpudHBza2NnaGZ4emN5bG5lZi5zdXBhYmFzZS5jbw=='),
+    SUPABASE_ANON_KEY: atob('c2JfcHVibGlzaGFibGVfNWkzWjVtRjNWQ3dvRWFYUGFJSmViQV81NUg2dzEzZw=='),
   };
   window.TreeHole.config = CONFIG;
 

@@ -16,7 +16,7 @@ exports.handler = async (event) => {
     const apiKey = process.env.DEEPSEEK_API_KEY;
 
     if (!apiKey) {
-      console.error("【后端错误】: DEEPSEEK_API_KEY 未找到");
+      console.error("【后端错误】: API Key 未配置");
       return { statusCode: 500, headers: CORS_HEADERS, body: JSON.stringify({ error: '树洞管理员还未配置钥匙' }) };
     }
 

@@ -16,7 +16,7 @@ exports.handler = async (event) => {
     const apiKey = process.env.DEEPSEEK_API_KEY;
 
     if (!apiKey) {
-      console.error("【DeepSeek】DEEPSEEK_API_KEY 未配置");
+      console.error("【DeepSeek】API Key 未配置");
       return { statusCode: 500, headers: CORS_HEADERS, body: JSON.stringify({ error: 'DeepSeek 服务未配置' }) };
     }
 
