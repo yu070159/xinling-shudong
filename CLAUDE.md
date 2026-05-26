@@ -519,4 +519,29 @@ npx playwright test --grep "广场"    # 按名称筛选用例
 - 书洞 6 项测试全部通过（页面加载 / 资源列表 / 分类筛选 / 搜索输入 / 推荐按钮未登录隐藏 / 推荐按钮登录后可见）
 
 ### 当前待办
-- 无
+- reader.html 本地 PDF 404 时需自动回退到 url 参数（远程 PDF），否则仅 4 本有 url 备用的书可读
+- 大部分书籍无实际 PDF 文件，需后续补充 PDF 或考虑其他站内阅读方案
+
+## 2026-05-26 PDF 阅读器开发 + 搜索框修复
+
+### 解决的问题
+- 书洞搜索框 × 清除按钮始终可见：`style.css` 中 `#clearSearch` ID 选择器 `display: flex` 覆盖了 `.clear-search { display: none }`，JS 切换 `.visible` 类无效；同时 `top: 50%` 定位基准是整个 `.search-container`（含模式按钮行）而非输入框，× 位置偏移
+- 书洞所有书籍跳转外部链接，用户需要站内 PDF 阅读体验
+
+### 做的修改
+- `style.css` — `#clearSearch` 移除 `display: flex`、`top: 50%`、`transform`，改为 `bottom: 12px`，让 `.clear-search/.visible` 类正常控制显隐，× 对齐输入框
+- `pdfjs/` — 新建，从 GitHub 下载 PDF.js v5.7.284 发行版（build + cmaps + standard_fonts + images，共 266 文件）
+- `reader.html` — 新建，内部 PDF 阅读器：支持 `?book=xxx`（本地 `/pdfs/`）和 `?url=xxx`（远程）双参数；工具栏含返回书洞/文档标题/缩放±/页码跳转/上下页；键盘 ← → 翻页；移动端 600px 适配；PDF 未就绪时友好提示
+- `books-data.js` — 全部 171 本书 `link` 字段从外部平台 URL 改为 `reader.html?book=xxx`，每本书精心命名英文 PDF 文件名；4 本有真实 PDF 来源的书（Gutenberg/OpenStax）附加 `&url=` 备用远程地址
+- `books.html` — 移除书籍详情弹窗和随机推荐两处"去阅读"链接的 `target="_blank"` 属性，改为当前页跳转
+- `pdfs/` — 新建空目录，预留存放 PDF 文件
+- `soul-tree-deploy/` — 同步 reader.html、books-data.js、books.html、style.css、pdfjs/
+
+### 达成的共识
+- PDF.js 用于站内 PDF 渲染，不走外部跳转
+- 书籍链接统一为 `reader.html?book=文件名.pdf`，少数有真实 PDF 源的保留 `url` 备用参数
+- 当前大部分书籍无实际 PDF 文件，读者看到的"PDF 暂未就绪"提示属预期行为
+- 搜索框样式修复对广场（index.html）和书洞（books.html）同时生效，两页面结构相同
+
+### Playwright 测试状态
+- 33 项全部通过，零回归
