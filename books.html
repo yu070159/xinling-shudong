@@ -71,34 +71,9 @@
             align-items: center;
         }
 
-        .search-box {
+        .search-container {
             width: 100%;
             max-width: 600px;
-            position: relative;
-        }
-
-        .search-box input {
-            width: 100%;
-            padding: 14px 24px;
-            border-radius: 30px;
-            background: var(--bg-card);
-            border: 2px solid var(--accent);
-            color: var(--text-primary);
-            font-size: 1.05rem;
-            outline: none;
-            transition: all 0.3s ease;
-            box-sizing: border-box;
-            box-shadow: 0 2px 12px var(--accent-glow);
-        }
-
-        .search-box input::placeholder {
-            color: var(--text-secondary);
-            opacity: 0.6;
-        }
-
-        .search-box input:focus {
-            border-color: var(--accent);
-            box-shadow: 0 0 18px var(--accent-glow);
         }
 
         .category-filters {
@@ -580,10 +555,10 @@
                 padding: 0 12px;
                 gap: 14px;
             }
-            .search-box {
+            .search-container {
                 max-width: 100%;
             }
-            .search-box input {
+            .search-container input {
                 padding: 10px 16px;
                 font-size: 0.9rem;
             }
@@ -647,8 +622,14 @@
     </section>
 
     <section class="controls-container">
-        <div class="search-box">
-            <input type="text" id="searchInput" placeholder="寻找相似的回声... (搜索书名或作者)">
+        <div class="search-container">
+            <div class="search-mode-row">
+                <button class="search-mode-btn active" data-mode="all">综合</button>
+                <button class="search-mode-btn" data-mode="title">书名</button>
+                <button class="search-mode-btn" data-mode="author">作者</button>
+            </div>
+            <input type="text" id="searchInput" placeholder="搜索书籍或作者...">
+            <span id="clearSearch" class="clear-search">×</span>
         </div>
         <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;justify-content:center;">
             <button id="showRecommendBtn" class="recommend-btn">+ 推荐资源</button>
@@ -687,6 +668,7 @@
 
         let currentCategory = "全部";
         let currentSearchQuery = "";
+        let currentSearchMode = "all";
         let allResources = [];
 
         const booksGrid = document.getElementById('booksGrid');
@@ -728,8 +710,17 @@
         function renderCards() {
             const filteredData = allResources.filter(item => {
                 const matchCategory = currentCategory === "全部" || item.category === currentCategory;
-                const matchSearch = item.title.toLowerCase().includes(currentSearchQuery) || 
-                                    item.author.toLowerCase().includes(currentSearchQuery);
+                let matchSearch = true;
+                if (currentSearchQuery) {
+                    if (currentSearchMode === 'title') {
+                        matchSearch = item.title.toLowerCase().includes(currentSearchQuery);
+                    } else if (currentSearchMode === 'author') {
+                        matchSearch = item.author.toLowerCase().includes(currentSearchQuery);
+                    } else {
+                        matchSearch = item.title.toLowerCase().includes(currentSearchQuery) ||
+                                      item.author.toLowerCase().includes(currentSearchQuery);
+                    }
+                }
                 return matchCategory && matchSearch;
             });
 
@@ -778,12 +769,41 @@
             });
         });
 
+        // 搜索模式切换
+        const searchModeBtns = document.querySelectorAll('.search-mode-btn');
+        searchModeBtns.forEach(btn => {
+            btn.addEventListener('click', () => {
+                searchModeBtns.forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                currentSearchMode = btn.getAttribute('data-mode');
+                if (currentSearchQuery) renderCards();
+            });
+        });
+
+        // 搜索输入（防抖 300ms）
         let searchDebounceTimer = null;
         searchInput.addEventListener('input', (e) => {
             currentSearchQuery = e.target.value.toLowerCase().trim();
             clearTimeout(searchDebounceTimer);
             searchDebounceTimer = setTimeout(() => renderCards(), 300);
+            // 显示/隐藏清除按钮
+            const clearBtn = document.getElementById('clearSearch');
+            if (clearBtn) {
+                clearBtn.classList.toggle('visible', currentSearchQuery.length > 0);
+            }
         });
+
+        // 清除搜索
+        const clearSearchBtn = document.getElementById('clearSearch');
+        if (clearSearchBtn) {
+            clearSearchBtn.addEventListener('click', () => {
+                searchInput.value = '';
+                currentSearchQuery = '';
+                clearSearchBtn.classList.remove('visible');
+                renderCards();
+                searchInput.focus();
+            });
+        }
 
         function showToast(message) {
             const toast = document.getElementById('submitToast');
@@ -856,9 +876,17 @@
         function pickRandomBook() {
             const pool = allResources.filter(item => {
                 const matchCategory = currentCategory === "全部" || item.category === currentCategory;
-                const matchSearch = !currentSearchQuery ||
-                    item.title.toLowerCase().includes(currentSearchQuery) ||
-                    item.author.toLowerCase().includes(currentSearchQuery);
+                let matchSearch = true;
+                if (currentSearchQuery) {
+                    if (currentSearchMode === 'title') {
+                        matchSearch = item.title.toLowerCase().includes(currentSearchQuery);
+                    } else if (currentSearchMode === 'author') {
+                        matchSearch = item.author.toLowerCase().includes(currentSearchQuery);
+                    } else {
+                        matchSearch = item.title.toLowerCase().includes(currentSearchQuery) ||
+                                      item.author.toLowerCase().includes(currentSearchQuery);
+                    }
+                }
                 return matchCategory && matchSearch;
             });
             if (pool.length === 0) return;
