@@ -415,3 +415,25 @@ npx playwright test --grep "广场"    # 按名称筛选用例
 
 ### 当前待办
 - 无
+
+## 2026-05-26 测试修复与会话总结
+
+### 解决的问题
+- **Playwright 书洞资源 2 项失败**：`loadResources()` Supabase 异步查询耗时超过 `wait(2000)`，改为 `waitForSelector('.book-card', { timeout: 15000 })` 等待 DOM 渲染完成
+- **"解除"按钮和"删除聊天"按钮无法点击**：`user-popup.js` 在 document 捕获阶段全局监听 `[data-user-id]` 并 `e.stopPropagation()`，两个按钮带了此属性被误拦截弹出资料卡，按钮自身 click 事件永不触发
+- **源文件夹与部署文件夹不同步**：`.gitignore` 内容过时，已用源项目版本覆盖
+
+### 做的修改
+- `tests/full-test.spec.js` — 书洞资源列表加载改用 `waitForSelector`；推荐资源按钮改用 `waitForSelector` 状态等待
+- `profile.html:609` — "解除"按钮 `data-user-id` → `data-friend-id`，避开 user-popup.js 捕获阶段拦截
+- `chat.html:235,263` — "✕"删除按钮 `data-user-id` → `data-partner-id`，同步更新 `getAttribute` 读取
+- `soul-tree-deploy/.gitignore` — 用源项目版本覆盖
+- `soul-tree-deploy/profile.html`、`soul-tree-deploy/chat.html` — 同步修复
+
+### 达成的共识
+- `user-popup.js` 的 `[data-user-id]` 捕获阶段拦截会影响所有带此属性的按钮，新按钮绝不能加 `data-user-id`
+- 测试中涉及 Supabase 异步查询的页面需要用 `waitForSelector` 而非固定 `wait()` 时间
+- 不要重复跑全量测试，修改后只验证受影响的用例
+
+### 关键发现
+- `user-popup.js:299-308` 是全局唯一的 `[data-user-id]` 点击拦截入口，捕获阶段 + `e.stopPropagation()` 会阻止任何带此属性的按钮的冒泡阶段事件

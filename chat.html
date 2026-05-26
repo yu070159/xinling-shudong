@@ -232,7 +232,7 @@
             <span class="chat-time">${lastMsg ? new Date(lastMsg.created_at).toLocaleDateString() : ''}</span>
             ${unreadCount > 0 ? `<span class="chat-list-unread">${unreadCount}</span>` : ''}
           </div>
-          <button class="delete-chat-btn" data-user-id="${partnerId}" title="删除聊天记录">✕</button>
+          <button class="delete-chat-btn" data-partner-id="${partnerId}" title="删除聊天记录">✕</button>
         `;
         item.addEventListener('click', (e) => {
           if (e.target.classList.contains('delete-chat-btn')) return;
@@ -260,7 +260,7 @@
       const deleteBtn = e.target.closest('.delete-chat-btn');
       if (!deleteBtn) return;
       
-      const partnerId = deleteBtn.getAttribute('data-user-id');
+      const partnerId = deleteBtn.getAttribute('data-partner-id');
       const chatItem = deleteBtn.closest('.chat-list-item');
       const { data: { user } } = await sb.auth.getUser();
       
