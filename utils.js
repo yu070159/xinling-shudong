@@ -127,3 +127,5 @@
 
 // 自动注入全站通知铃铛
 (function(){var s=document.createElement('script');s.src='notifications.js';document.head.appendChild(s);})();
+// 自动注入微光余额徽章
+(function(){var s=document.createElement('script');s.src='glimmer-badge.js';document.head.appendChild(s);})();

@@ -918,6 +918,7 @@
                 user_id: currentUser.id, amount: -amount,
                 reason: 'donate', reference_id: String(amount)
               });
+              if (window.TreeHole.refreshGlimmer) window.TreeHole.refreshGlimmer();
               var newDonated = donated + amount;
               await updateProfile({ glimmer_donated: newDonated });
               glimmerBalance -= amount;

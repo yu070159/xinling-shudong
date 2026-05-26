@@ -271,6 +271,7 @@
                     user_id: currentUser.id, amount: 5,
                     reason: 'checkin_streak', reference_id: dates[0]
                   });
+                  if (window.TreeHole.refreshGlimmer) window.TreeHole.refreshGlimmer();
                   msg.textContent = '🎉 连续签到7天！获得 5 微光 ✨';
                 } catch (e2) { /* 静默失败 */ }
               })();
