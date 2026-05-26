@@ -289,33 +289,25 @@
         const bookParam = params.get('book') || '';
         const urlParam = params.get('url') || '';
 
-        // 确定 PDF 来源
-        function resolvePdfUrl() {
-            if (urlParam) {
-                return decodeURIComponent(urlParam);
-            }
-            if (bookParam) {
-                // 如果是完整 URL，直接使用
-                if (/^https?:\/\//.test(bookParam)) {
-                    return bookParam;
-                }
-                // 否则当作本地 PDF 文件名
-                return './pdfs/' + bookParam;
-            }
-            return null;
-        }
+        // 构建本地和远程 URL
+        const remoteUrl = urlParam ? decodeURIComponent(urlParam) : null;
+        const localUrl = bookParam
+            ? (/^https?:\/\//.test(bookParam) ? bookParam : './pdfs/' + bookParam)
+            : null;
 
-        const pdfUrl = resolvePdfUrl();
+        // 优先远程 PDF（如有），否则尝试本地，本地失败再回退远程
+        const primaryUrl = remoteUrl || localUrl;
 
-        // 如果没有 PDF URL，显示提示
-        if (!pdfUrl) {
+        if (!primaryUrl) {
             showState('📄', '未指定 PDF 文件', '请从书洞页面选择一本书籍');
             docTitle.textContent = '无内容';
         } else {
-            loadPdf(pdfUrl);
+            // fallback: 远程失败→本地，本地失败→远程
+            const fallback = (primaryUrl === remoteUrl) ? localUrl : remoteUrl;
+            loadPdf(primaryUrl, fallback);
         }
 
-        async function loadPdf(url) {
+        async function loadPdf(url, fallbackUrl) {
             showLoading();
             try {
                 const loadingTask = pdfjsLib.getDocument(url);
@@ -330,6 +322,13 @@
                 renderPage(currentPage);
             } catch (err) {
                 console.error('PDF 加载失败:', err);
+                // 本地文件 404 时，回退到远程 URL
+                if (fallbackUrl && url !== fallbackUrl) {
+                    console.log('本地 PDF 不可用，尝试远程:', fallbackUrl);
+                    showLoading();
+                    loadPdf(fallbackUrl, null);
+                    return;
+                }
                 showState('📚', 'PDF 暂未就绪', '该书籍的 PDF 文件尚未添加。<br>请耐心等待，我们会尽快上线。', true);
                 docTitle.textContent = bookParam || '加载失败';
             }
