@@ -286,6 +286,96 @@
             border-style: solid;
         }
 
+        .random-btn {
+            background: transparent;
+            border: 1px dashed var(--warm-heart);
+            color: var(--warm-heart);
+            padding: 8px 20px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: all 0.3s ease;
+            white-space: nowrap;
+        }
+        .random-btn:hover {
+            background: rgba(224, 123, 57, 0.1);
+            border-style: solid;
+            transform: scale(1.03);
+        }
+        .random-btn:active { transform: scale(0.96); }
+
+        .random-result {
+            display: none;
+            max-width: 600px;
+            width: 100%;
+            background: var(--bg-card);
+            border: 1px solid var(--border-light);
+            border-radius: 16px;
+            padding: 24px 28px;
+            text-align: center;
+            animation: slideDown 0.4s ease;
+            position: relative;
+        }
+        .random-result.show { display: block; }
+        .random-result .random-label {
+            font-size: 0.75rem;
+            color: var(--warm-heart);
+            letter-spacing: 2px;
+            margin-bottom: 8px;
+        }
+        .random-result .random-title {
+            font-size: 1.3rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin: 0 0 4px;
+        }
+        .random-result .random-author {
+            font-size: 0.9rem;
+            color: var(--accent);
+            margin: 0 0 12px;
+        }
+        .random-result .random-desc {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            margin: 0 0 14px;
+            line-height: 1.6;
+        }
+        .random-result .random-action-row {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+        .random-result .random-goto {
+            display: inline-block;
+            background: var(--accent);
+            color: white;
+            padding: 8px 20px;
+            border-radius: 24px;
+            text-decoration: none;
+            font-size: 0.9rem;
+            font-weight: 500;
+        }
+        .random-result .random-reroll {
+            background: transparent;
+            border: 1px solid var(--border-medium);
+            color: var(--text-secondary);
+            padding: 8px 18px;
+            border-radius: 24px;
+            cursor: pointer;
+            font-size: 0.85rem;
+        }
+        .random-result .random-reroll:hover {
+            background: var(--bg-input);
+            border-color: var(--accent);
+            color: var(--accent);
+        }
+
+        @keyframes slideDown {
+            from { opacity: 0; transform: translateY(-16px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+
         .modal-overlay {
             display: none;
             position: fixed;
@@ -444,7 +534,20 @@
         <div class="search-box">
             <input type="text" id="searchInput" placeholder="寻找相似的回声... (搜索书名或作者)">
         </div>
-        <button id="showRecommendBtn" class="recommend-btn">+ 推荐资源</button>
+        <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;justify-content:center;">
+            <button id="showRecommendBtn" class="recommend-btn">+ 推荐资源</button>
+            <button id="randomPickBtn" class="random-btn">🎲 随机推荐</button>
+        </div>
+        <div class="random-result" id="randomResult">
+            <div class="random-label">📚 书洞为你推荐</div>
+            <h3 class="random-title" id="randomTitle"></h3>
+            <p class="random-author" id="randomAuthor"></p>
+            <p class="random-desc" id="randomDesc"></p>
+            <div class="random-action-row">
+                <a class="random-goto" id="randomLink" href="#" target="_blank" rel="noopener">去阅读</a>
+                <button class="random-reroll" id="randomReroll">🔄 换一本</button>
+            </div>
+        </div>
         <div class="category-filters" id="filterContainer">
             <button class="filter-btn active" data-category="全部">全部</button>
             <button class="filter-btn" data-category="经典入门">经典入门</button>
@@ -584,6 +687,41 @@
             if (/jiumodiary/.test(link)) return '搜书';
             return '在线阅读';
         }
+
+        // 随机推荐 —— 从当前筛选结果中随机选一本
+        const randomResult = document.getElementById('randomResult');
+        const randomTitle = document.getElementById('randomTitle');
+        const randomAuthor = document.getElementById('randomAuthor');
+        const randomDesc = document.getElementById('randomDesc');
+        const randomLink = document.getElementById('randomLink');
+        const randomPickBtn = document.getElementById('randomPickBtn');
+        const randomReroll = document.getElementById('randomReroll');
+
+        function pickRandomBook() {
+            const pool = allResources.filter(item => {
+                const matchCategory = currentCategory === "全部" || item.category === currentCategory;
+                const matchSearch = !currentSearchQuery ||
+                    item.title.toLowerCase().includes(currentSearchQuery) ||
+                    item.author.toLowerCase().includes(currentSearchQuery);
+                return matchCategory && matchSearch;
+            });
+            if (pool.length === 0) return;
+
+            const pick = pool[Math.floor(Math.random() * pool.length)];
+            randomTitle.textContent = pick.title;
+            randomAuthor.textContent = pick.author;
+            randomDesc.textContent = pick.reason || pick.desc;
+            randomLink.href = pick.link;
+            randomResult.classList.add('show');
+            randomResult.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            randomPickBtn.textContent = '🎲 再摇一次';
+        }
+
+        randomPickBtn.addEventListener('click', pickRandomBook);
+        randomReroll.addEventListener('click', (e) => {
+            e.preventDefault();
+            pickRandomBook();
+        });
 
         // 推荐弹窗逻辑（DOMContentLoaded 后绑定，避免元素未加载）
         window.addEventListener('DOMContentLoaded', () => {
