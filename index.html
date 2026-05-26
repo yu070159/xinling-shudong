@@ -165,7 +165,7 @@
       const wechat = 'q1427420863p';
       const btn = document.getElementById('copyWechatBtn');
       btn.disabled = true;
-      
+
       try {
         if (navigator.clipboard && window.isSecureContext) {
           await navigator.clipboard.writeText(wechat);
@@ -179,14 +179,14 @@
           document.execCommand('copy');
           document.body.removeChild(textarea);
         }
-        
+
         document.getElementById('wechatSection').style.display = 'none';
         document.getElementById('copySuccessMsg').style.display = 'block';
-        
+
       } catch (err) {
         console.error('复制失败:', err);
       }
-      
+
       setTimeout(() => {
         document.getElementById('copySuccessMsg').style.display = 'none';
         document.getElementById('contactAdminBtn').style.display = 'block';
