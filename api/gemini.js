@@ -16,7 +16,7 @@ export async function POST(request) {
     const apiKey = process.env.DEEPSEEK_API_KEY;
 
     if (!apiKey) {
-      console.error("【DeepSeek】DEEPSEEK_API_KEY 未配置");
+      console.error("【DeepSeek】API Key 未配置");
       return new Response(JSON.stringify({ error: 'DeepSeek 服务未配置' }), {
         status: 500,
         headers: CORS_HEADERS

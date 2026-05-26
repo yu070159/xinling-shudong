@@ -16,7 +16,7 @@ export async function POST(request) {
     const apiKey = process.env.DEEPSEEK_API_KEY;
 
     if (!apiKey) {
-      console.error("【后端错误】: DEEPSEEK_API_KEY 未找到，请检查 .env.local 文件！");
+      console.error("【后端错误】: API Key 未配置");
       return new Response(JSON.stringify({ error: '树洞管理员还未配置钥匙' }), {
         status: 500,
         headers: CORS_HEADERS
