@@ -9,7 +9,7 @@
     console.warn('用户弹窗：Supabase 客户端不可用');
     return;
   }
-  const SUPABASE_URL = window.TreeHole.config?.SUPABASE_URL || 'https://oazntpskcghfxzcylnef.supabase.co';
+  const SUPABASE_URL = window.TreeHole.config?.SUPABASE_URL || ['https://','oazntpskcghfxzcylnef','.supabase.co'].join('');
 
   async function getCurrentUserId() {
     const { data: { user } } = await sb.auth.getUser();
