@@ -645,20 +645,26 @@
             searchDebounceTimer = setTimeout(() => renderCards(), 300);
         });
 
-        // 推荐弹窗逻辑
-        showRecommendBtn.addEventListener('click', () => {
-            recommendModal.classList.add('active');
-        });
+        // 推荐弹窗逻辑（DOMContentLoaded 后绑定，避免元素未加载）
+        window.addEventListener('DOMContentLoaded', () => {
+            const modal = document.getElementById('recommendModal');
+            const cancelBtn = document.getElementById('cancelRecommend');
+            const submitBtn = document.getElementById('submitRecommend');
+            const recBtn = document.getElementById('showRecommendBtn');
 
-        document.getElementById('cancelRecommend').addEventListener('click', () => {
-            recommendModal.classList.remove('active');
-        });
+            recBtn.addEventListener('click', () => {
+                modal.classList.add('active');
+            });
 
-        recommendModal.addEventListener('click', (e) => {
-            if (e.target === recommendModal) recommendModal.classList.remove('active');
-        });
+            modal.addEventListener('click', (e) => {
+                if (e.target === modal) modal.classList.remove('active');
+            });
 
-        document.getElementById('submitRecommend').addEventListener('click', async function() {
+            cancelBtn.addEventListener('click', () => {
+                modal.classList.remove('active');
+            });
+
+            submitBtn.addEventListener('click', async function() {
             const title = document.getElementById('recTitle').value.trim();
             const author = document.getElementById('recAuthor').value.trim();
             const category = document.getElementById('recCategory').value;
@@ -688,7 +694,7 @@
                 if (error) throw error;
 
                 allResources.unshift({ title, author, desc, reason, category, link });
-                recommendModal.classList.remove('active');
+                modal.classList.remove('active');
                 ['recTitle','recAuthor','recCategory','recDesc','recReason','recLink'].forEach(id => {
                     document.getElementById(id).value = '';
                 });
@@ -702,7 +708,9 @@
                 btn.disabled = false;
                 btn.textContent = '提交推荐';
             }
-        });
+        });  // submitBtn click
+
+        });  // DOMContentLoaded 弹窗绑定
 
         // 导航栏登录状态 + 加载资源
         window.addEventListener('DOMContentLoaded', async () => {
