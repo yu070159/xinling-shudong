@@ -437,3 +437,37 @@ npx playwright test --grep "广场"    # 按名称筛选用例
 
 ### 关键发现
 - `user-popup.js:299-308` 是全局唯一的 `[data-user-id]` 点击拦截入口，捕获阶段 + `e.stopPropagation()` 会阻止任何带此属性的按钮的冒泡阶段事件
+
+## 2026-05-26 全项目 API 迁移 + 广场润色按钮 + 年轮日历数字
+
+### 解决的问题
+- 广场发布区太空，需要互动功能帮助用户优化帖子表达
+- 项目中大量 `/api/gemini` 调用让用户困惑（实际是 DeepSeek，但文件名和路径含 gemini）
+- `vercel dev` 无法启动：项目链接丢失（`.vercel` 目录不存在），重新 `vercel link` 到 `xinling-shudong` 后恢复
+- 用户一直打开 `soul-tree-deploy/` 的 `file://` 协议，导致 API 请求被 CORS 阻止，需要用 Live Server 打开
+- 年轮页面日历数字太小，中心年份圆太小包不住年份文字
+
+### 做的修改
+- `index.html` — "投入树洞"按钮旁新增 "✨ 润色" 按钮，class `btn-secondary`
+- `style.css` — 新增 `.btn-secondary` 次要按钮样式（透明背景 + 边框，hover 填充主题色）+ 禁用态样式
+- `app.js` — 润色按钮逻辑（空内容/太短校验，调 `/api/chat` 优化文本，按钮加载态，错误降级）
+- 全项目 `/api/gemini` → `/api/chat` 迁移（9 个源文件）：`utils.js` 内容审核、`app.js` 情绪分析+标签提取、`index.html` 每日语录、`detail.html` AI 帮我想想、`mbti-test.html` 性格解读、`mental-test.html` 关怀解读、`peer-cert.html` AI 评分、`shuling.html` 情绪关键词、`tests/netlify-test.spec.js` 测试用例
+- 迁移格式：请求 `{ prompt }` → `{ messages: [...] }`，响应 `data.candidates[...].text` → `data.choices[0].message.content`
+- `api/gemini.js` — 注释标记为已废弃
+- `mood-ring.html` — 每片银杏叶上新增日期数字（白色加粗 13px，scale 0.55），中心年份圆 r=26→36，年份字号 11→24 加粗 700，月份标签字号 10→15 加粗 600
+- 源项目关联 GitHub 远程 `yu070159/xinling-shudong` 并推送
+- 多次同步源文件到 `soul-tree-deploy/` 部署文件夹
+
+### 达成的共识
+- 所有 AI 调用统一使用 `/api/chat`（DeepSeek），不再出现 `/api/gemini` 路径
+- 源项目 `心灵树洞` 和部署文件夹 `soul-tree-deploy` 是两套独立副本，修改后需手动同步
+- 开发时必须用 Live Server（`localhost:5500`）+ `vercel dev`（`localhost:3000`），不能用 `file://` 协议
+- 年轮页面日历需要数字标识每天的日期，不能只有叶子
+
+### 关键发现
+- `vercel dev` 启动失败报 "Detected linked project does not have id" 是因为 `.vercel` 目录缺失，`vercel link` 重新链接即可
+- `file://` 协议下 fetch 请求会被浏览器安全策略拦截，`API_BASE` 会错误解析为 `file:///C:/api/chat`
+- 银杏叶 SVG 使用 inline `transform`，CSS hover transform 无法覆盖，缩放效果需用 JS 实现
+
+### 当前待办
+- 无

@@ -347,8 +347,8 @@
       const ringWidth = (outerRadius - 30) / 12 - ringGap;
 
       let svg = `<svg width="${svgSize}" height="${svgSize}" viewBox="0 0 ${svgSize} ${svgSize}">`;
-      svg += `<circle cx="${cx}" cy="${cy}" r="22" fill="var(--bg-card)" stroke="var(--border-light)" stroke-width="1"/>`;
-      svg += `<text x="${cx}" y="${cy + 4}" text-anchor="middle" font-size="11" fill="var(--accent)">${currentYear}</text>`;
+      svg += `<circle cx="${cx}" cy="${cy}" r="36" fill="var(--bg-card)" stroke="var(--border-light)" stroke-width="1"/>`;
+      svg += `<text x="${cx}" y="${cy + 7}" text-anchor="middle" font-size="24" font-weight="700" fill="var(--accent)">${currentYear}</text>`;
 
       yearRecords.forEach((monthData, monthIndex) => {
         const ringR = 30 + (monthIndex + 1) * (ringWidth + ringGap);
@@ -366,7 +366,8 @@
           const opacity = record ? 0.9 : 0.3;
           const dateStr = `${currentYear}-${String(monthIndex + 1).padStart(2, '0')}-${String(dayIndex + 1).padStart(2, '0')}`;
 
-          svg += `<g transform="translate(${lx},${ly}) rotate(${deg}) scale(0.5)" style="cursor:pointer;transition:transform 0.2s ease"`;
+          const scale = 0.55;
+          svg += `<g transform="translate(${lx},${ly}) rotate(${deg}) scale(${scale})" style="cursor:pointer;transition:transform 0.2s ease"`;
           if (record) {
             const tipDate = formatDate(dateStr);
             const tipText = record.note ? `${tipDate} · ${record.mood_type}\n"${escapeHtml(record.note)}"` : `${tipDate} · ${record.mood_type}`;
@@ -376,6 +377,8 @@
           }
           svg += '>';
           svg += `<path d="${GINKGO_PATH}" fill="${color}" opacity="${opacity}"/>`;
+          const textColor = record ? '#fff' : 'rgba(150,140,130,0.5)';
+          svg += `<text x="0" y="3" text-anchor="middle" font-size="13" font-weight="600" fill="${textColor}" style="pointer-events:none">${dayIndex + 1}</text>`;
           svg += '</g>';
         });
 
@@ -384,7 +387,7 @@
         const labelR = ringR + ringWidth / 2;
         const labelX = cx + labelR * Math.cos(labelAngle) - 16;
         const labelY = cy + labelR * Math.sin(labelAngle) + 4;
-        svg += `<text x="${labelX}" y="${labelY}" font-size="10" fill="var(--text-muted)">${monthIndex + 1}月</text>`;
+        svg += `<text x="${labelX - 2}" y="${labelY}" font-size="15" font-weight="600" fill="var(--text-secondary)">${monthIndex + 1}月</text>`;
       });
 
       svg += '</svg>';
