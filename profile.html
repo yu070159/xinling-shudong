@@ -606,7 +606,7 @@
               <span class="user-avatar-placeholder" data-user-id="${fid}" style="width:32px;height:32px;font-size:14px;">🌱</span>
               ${escapeHtml(name)}
             </div>
-            <button class="action-delete remove-friend-btn" data-user-id="${fid}">解除</button>
+            <button class="action-delete remove-friend-btn" data-friend-id="${fid}">解除</button>
           `;
           card.querySelector('.remove-friend-btn').addEventListener('click', async (e) => {
             e.stopPropagation();

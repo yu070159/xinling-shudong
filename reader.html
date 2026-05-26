@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PDF 阅读器 - 心灵树洞</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        :root {
+            --reader-toolbar-h: 56px;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            background: #1a1a1a;
+            color: #e0e0e0;
+            font-family: 'PingFang SC', 'Microsoft YaHei', sans-serif;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        /* 工具栏 */
+        .reader-toolbar {
+            height: var(--reader-toolbar-h);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 0 16px;
+            background: #2a2a2a;
+            border-bottom: 1px solid #3a3a3a;
+            flex-shrink: 0;
+            z-index: 10;
+        }
+
+        .btn-back {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            background: transparent;
+            border: 1px solid #555;
+            color: #ccc;
+            padding: 7px 14px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.2s;
+            white-space: nowrap;
+        }
+        .btn-back:hover {
+            background: #3a3a3a;
+            color: #fff;
+            border-color: #888;
+        }
+
+        .doc-title {
+            flex: 1;
+            font-size: 15px;
+            color: #ddd;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            text-align: center;
+            min-width: 0;
+        }
+
+        .page-controls {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            white-space: nowrap;
+        }
+
+        .btn-page {
+            background: transparent;
+            border: 1px solid #555;
+            color: #ccc;
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 18px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+        }
+        .btn-page:hover:not(:disabled) {
+            background: var(--accent, #7ba878);
+            border-color: var(--accent, #7ba878);
+            color: #fff;
+        }
+        .btn-page:disabled {
+            opacity: 0.3;
+            cursor: default;
+        }
+
+        .page-input {
+            width: 44px;
+            text-align: center;
+            background: #333;
+            border: 1px solid #555;
+            color: #e0e0e0;
+            border-radius: 8px;
+            padding: 6px 4px;
+            font-size: 14px;
+        }
+        .page-input:focus {
+            outline: none;
+            border-color: var(--accent, #7ba878);
+        }
+
+        .page-total {
+            font-size: 14px;
+            color: #999;
+        }
+
+        .btn-zoom {
+            background: transparent;
+            border: 1px solid #555;
+            color: #ccc;
+            padding: 6px 10px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 13px;
+            transition: all 0.2s;
+        }
+        .btn-zoom:hover {
+            background: #3a3a3a;
+            color: #fff;
+        }
+
+        .zoom-label {
+            font-size: 13px;
+            color: #aaa;
+            min-width: 44px;
+            text-align: center;
+        }
+
+        /* 主内容区 */
+        .reader-main {
+            flex: 1;
+            overflow: auto;
+            display: flex;
+            justify-content: center;
+            background: #222;
+            padding: 20px;
+        }
+
+        #pdfCanvas {
+            box-shadow: 0 2px 20px rgba(0,0,0,0.5);
+            max-width: 100%;
+            height: auto;
+        }
+
+        /* Loading & Error & Empty 状态 */
+        .reader-state {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 16px;
+            color: #999;
+            height: 100%;
+        }
+
+        .reader-state .icon {
+            font-size: 48px;
+        }
+        .reader-state .msg {
+            font-size: 16px;
+            text-align: center;
+            line-height: 1.6;
+        }
+        .reader-state .sub {
+            font-size: 13px;
+            color: #777;
+        }
+
+        .loading-spinner {
+            width: 36px;
+            height: 36px;
+            border: 3px solid #444;
+            border-top-color: var(--accent, #7ba878);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* 移动端适配 */
+        @media (max-width: 600px) {
+            .reader-toolbar {
+                gap: 6px;
+                padding: 0 8px;
+            }
+            .btn-back {
+                padding: 6px 10px;
+                font-size: 13px;
+                gap: 2px;
+            }
+            .doc-title {
+                font-size: 13px;
+            }
+            .page-controls {
+                gap: 4px;
+            }
+            .btn-page {
+                width: 30px;
+                height: 30px;
+                font-size: 16px;
+            }
+            .page-input {
+                width: 36px;
+                padding: 4px 2px;
+                font-size: 12px;
+            }
+            .btn-zoom {
+                padding: 4px 8px;
+                font-size: 11px;
+            }
+            .zoom-label {
+                font-size: 11px;
+                min-width: 34px;
+            }
+            .reader-main {
+                padding: 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- 工具栏 -->
+    <div class="reader-toolbar">
+        <button class="btn-back" onclick="goBack()" title="返回书洞">
+            <span>←</span> 书洞
+        </button>
+        <span class="doc-title" id="docTitle">加载中...</span>
+        <div class="page-controls">
+            <button class="btn-zoom" onclick="zoomOut()" title="缩小">−</button>
+            <span class="zoom-label" id="zoomLabel">100%</span>
+            <button class="btn-zoom" onclick="zoomIn()" title="放大">+</button>
+            <button class="btn-page" id="btnPrev" onclick="prevPage()" title="上一页">◂</button>
+            <input type="number" class="page-input" id="pageInput" value="1" min="1" onchange="jumpToPage()">
+            <span class="page-total" id="pageTotal">/ 0</span>
+            <button class="btn-page" id="btnNext" onclick="nextPage()" title="下一页">▸</button>
+        </div>
+    </div>
+
+    <!-- 主内容 -->
+    <div class="reader-main" id="readerMain">
+        <div class="reader-state" id="readerState">
+            <div class="loading-spinner"></div>
+            <div class="msg">正在加载 PDF...</div>
+        </div>
+        <canvas id="pdfCanvas" style="display:none"></canvas>
+    </div>
+
+    <script type="module">
+        import * as pdfjsLib from './pdfjs/pdf.mjs';
+
+        pdfjsLib.GlobalWorkerOptions.workerSrc = './pdfjs/pdf.worker.mjs';
+
+        // 状态
+        let pdfDoc = null;
+        let currentPage = 1;
+        let currentScale = 1.2;
+        let pageRendering = false;
+        let pageNumPending = null;
+
+        // DOM
+        const canvas = document.getElementById('pdfCanvas');
+        const ctx = canvas.getContext('2d');
+        const readerMain = document.getElementById('readerMain');
+        const readerState = document.getElementById('readerState');
+        const docTitle = document.getElementById('docTitle');
+        const pageInput = document.getElementById('pageInput');
+        const pageTotal = document.getElementById('pageTotal');
+        const zoomLabel = document.getElementById('zoomLabel');
+        const btnPrev = document.getElementById('btnPrev');
+        const btnNext = document.getElementById('btnNext');
+
+        // 解析 URL 参数
+        const params = new URLSearchParams(window.location.search);
+        const bookParam = params.get('book') || '';
+        const urlParam = params.get('url') || '';
+
+        // 构建本地和远程 URL
+        const remoteUrl = urlParam ? decodeURIComponent(urlParam) : null;
+        const localUrl = bookParam
+            ? (/^https?:\/\//.test(bookParam) ? bookParam : './pdfs/' + bookParam)
+            : null;
+
+        // 优先远程 PDF（如有），否则尝试本地，本地失败再回退远程
+        const primaryUrl = remoteUrl || localUrl;
+
+        if (!primaryUrl) {
+            showState('📄', '未指定 PDF 文件', '请从书洞页面选择一本书籍');
+            docTitle.textContent = '无内容';
+        } else {
+            // fallback: 远程失败→本地，本地失败→远程
+            const fallback = (primaryUrl === remoteUrl) ? localUrl : remoteUrl;
+            loadPdf(primaryUrl, fallback);
+        }
+
+        async function loadPdf(url, fallbackUrl) {
+            showLoading();
+            try {
+                const loadingTask = pdfjsLib.getDocument(url);
+                pdfDoc = await loadingTask.promise;
+                docTitle.textContent = bookParam || new URL(url).pathname.split('/').pop() || 'PDF 文档';
+                pageTotal.textContent = '/ ' + pdfDoc.numPages;
+                pageInput.max = pdfDoc.numPages;
+                currentPage = 1;
+                pageInput.value = 1;
+                hideState();
+                canvas.style.display = '';
+                renderPage(currentPage);
+            } catch (err) {
+                console.error('PDF 加载失败:', err);
+                // 本地文件 404 时，回退到远程 URL
+                if (fallbackUrl && url !== fallbackUrl) {
+                    console.log('本地 PDF 不可用，尝试远程:', fallbackUrl);
+                    showLoading();
+                    loadPdf(fallbackUrl, null);
+                    return;
+                }
+                showState('📚', 'PDF 暂未就绪', '该书籍的 PDF 文件尚未添加。<br>请耐心等待，我们会尽快上线。', true);
+                docTitle.textContent = bookParam || '加载失败';
+            }
+        }
+
+        async function renderPage(num) {
+            if (!pdfDoc) return;
+            pageRendering = true;
+            try {
+                const page = await pdfDoc.getPage(num);
+                const viewport = page.getViewport({ scale: currentScale });
+                canvas.width = viewport.width;
+                canvas.height = viewport.height;
+                await page.render({ canvasContext: ctx, viewport }).promise;
+                currentPage = num;
+                pageInput.value = num;
+                updateNavButtons();
+                pageRendering = false;
+                if (pageNumPending !== null) {
+                    renderPage(pageNumPending);
+                    pageNumPending = null;
+                }
+            } catch (err) {
+                console.error('页面渲染失败:', err);
+                pageRendering = false;
+            }
+        }
+
+        function queueRender(num) {
+            if (pageRendering) {
+                pageNumPending = num;
+            } else {
+                renderPage(num);
+            }
+        }
+
+        function updateNavButtons() {
+            btnPrev.disabled = currentPage <= 1;
+            btnNext.disabled = currentPage >= pdfDoc.numPages;
+        }
+
+        function prevPage() {
+            if (currentPage <= 1) return;
+            queueRender(currentPage - 1);
+        }
+
+        function nextPage() {
+            if (currentPage >= pdfDoc.numPages) return;
+            queueRender(currentPage + 1);
+        }
+
+        function jumpToPage() {
+            const num = parseInt(pageInput.value);
+            if (isNaN(num) || num < 1 || num > pdfDoc.numPages) {
+                pageInput.value = currentPage;
+                return;
+            }
+            queueRender(num);
+        }
+
+        function zoomIn() {
+            currentScale = Math.min(currentScale + 0.2, 3.0);
+            zoomLabel.textContent = Math.round(currentScale * 100) + '%';
+            queueRender(currentPage);
+        }
+
+        function zoomOut() {
+            currentScale = Math.max(currentScale - 0.2, 0.4);
+            zoomLabel.textContent = Math.round(currentScale * 100) + '%';
+            queueRender(currentPage);
+        }
+
+        function showLoading() {
+            readerState.innerHTML = '<div class="loading-spinner"></div><div class="msg">正在加载 PDF...</div>';
+            readerState.style.display = '';
+            canvas.style.display = 'none';
+        }
+
+        function showState(icon, msg, sub, isError) {
+            readerState.innerHTML = `
+                <div class="icon">${icon}</div>
+                <div class="msg">${msg}</div>
+                ${sub ? '<div class="sub">' + sub + '</div>' : ''}
+            `;
+            if (isError) {
+                readerState.querySelector('.msg').style.color = '#e0a060';
+            }
+            readerState.style.display = '';
+            canvas.style.display = 'none';
+        }
+
+        function hideState() {
+            readerState.style.display = 'none';
+        }
+
+        // 键盘快捷键
+        document.addEventListener('keydown', (e) => {
+            if (e.target.tagName === 'INPUT') return;
+            if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') { e.preventDefault(); prevPage(); }
+            if (e.key === 'ArrowRight' || e.key === 'ArrowDown') { e.preventDefault(); nextPage(); }
+        });
+
+        // 全局函数暴露
+        window.prevPage = prevPage;
+        window.nextPage = nextPage;
+        window.jumpToPage = jumpToPage;
+        window.zoomIn = zoomIn;
+        window.zoomOut = zoomOut;
+        window.goBack = () => {
+            if (document.referrer && document.referrer.includes('books.html')) {
+                history.back();
+            } else {
+                location.href = 'books.html';
+            }
+        };
+    </script>
+</body>
+</html>

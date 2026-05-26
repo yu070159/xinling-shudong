@@ -451,15 +451,18 @@
     const cached = localStorage.getItem(cacheKey);
     if (cached) return cached;
     try {
-      const res = await fetch(window.API_BASE + '/api/gemini', {
+      const res = await fetch(window.API_BASE + '/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          prompt: `分析心事的主要情绪，只返回一个词（从这些选：焦虑、孤独、迷茫、委屈、愤怒、疲惫、无奈、自责、想念、感动、喜悦、期待）。\n心事：${content.substring(0, 200)}`
+          messages: [
+            { role: 'system', content: '分析心事的主要情绪，只返回一个词（从这些选：焦虑、孤独、迷茫、委屈、愤怒、疲惫、无奈、自责、想念、感动、喜悦、期待）。' },
+            { role: 'user', content: content.substring(0, 200) }
+          ]
         })
       });
       const data = await res.json();
-      const emotion = data.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
+      const emotion = data.choices?.[0]?.message?.content?.trim();
       if (emotion) {
         try { localStorage.setItem(cacheKey, emotion); } catch (e) {}
         return emotion;
@@ -471,14 +474,18 @@
   // 心事语义共振：异步提取标签数组并写入 questions.tags
   async function extractAndSaveTags(content, questionId) {
     try {
-      const prompt = `你是一个中文情绪标签提取器。阅读以下心事，提取3-8个语义主题标签（如"考研焦虑""原生家庭""友情裂痕""孤独感""自我怀疑"等），只返回JSON数组，不要其他文字。\n\n心事内容：\n${content.substring(0, 500)}`;
-      const res = await fetch(window.API_BASE + '/api/gemini', {
+      const res = await fetch(window.API_BASE + '/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ prompt })
+        body: JSON.stringify({
+          messages: [
+            { role: 'system', content: '你是一个中文情绪标签提取器。阅读心事，提取3-8个语义主题标签（如"考研焦虑""原生家庭""友情裂痕""孤独感""自我怀疑"等），只返回JSON数组，不要其他文字。' },
+            { role: 'user', content: content.substring(0, 500) }
+          ]
+        })
       });
       const data = await res.json();
-      const text = data.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
+      const text = data.choices?.[0]?.message?.content?.trim();
       if (!text) return;
       // 提取 JSON 数组
       const match = text.match(/\[[\s\S]*\]/);
@@ -562,8 +569,13 @@
     }
     if (keyword) {
       var k = keyword.toLowerCase();
+      var sm = window.searchMode || 'all';
       filtered = filtered.filter(function(q) {
-        return q.content.toLowerCase().indexOf(k) !== -1 || q.nickname.toLowerCase().indexOf(k) !== -1;
+        var mc = q.content.toLowerCase().indexOf(k) !== -1;
+        var mn = q.nickname.toLowerCase().indexOf(k) !== -1;
+        if (sm === 'content') return mc;
+        if (sm === 'nickname') return mn;
+        return mc || mn;
       });
     }
     await renderQuestions(filtered);
@@ -859,10 +871,14 @@
     if (!window.allQuestions) return [];
     const k = keyword.toLowerCase().trim();
     if (!k) return window.allQuestions;
-    return window.allQuestions.filter(q =>
-      q.content.toLowerCase().includes(k) ||
-      q.nickname.toLowerCase().includes(k)
-    );
+    const mode = window.searchMode || 'all';
+    return window.allQuestions.filter(q => {
+      const matchContent = q.content.toLowerCase().includes(k);
+      const matchNickname = q.nickname.toLowerCase().includes(k);
+      if (mode === 'content') return matchContent;
+      if (mode === 'nickname') return matchNickname;
+      return matchContent || matchNickname;
+    });
   }
 
 
@@ -946,6 +962,19 @@ window.addEventListener('DOMContentLoaded', async () => {
         input.value = '';
         input.placeholder = '匿名树友';
       }
+    });
+
+    window.searchMode = 'all';
+    document.querySelectorAll('.search-mode-btn').forEach(function(btn) {
+      btn.addEventListener('click', function() {
+        document.querySelectorAll('.search-mode-btn').forEach(function(b) { b.classList.remove('active'); });
+        btn.classList.add('active');
+        window.searchMode = btn.dataset.mode;
+        var searchInput = document.getElementById('searchInput');
+        if (searchInput && searchInput.value.trim()) {
+          searchInput.dispatchEvent(new Event('input'));
+        }
+      });
     });
 
     const searchInput = document.getElementById('searchInput');
@@ -1053,6 +1082,55 @@ window.addEventListener('DOMContentLoaded', async () => {
       });
     }
 
+    const polishBtn = document.getElementById('polish-question-btn');
+    if (polishBtn) {
+      polishBtn.addEventListener('click', async () => {
+        const contentInput = document.getElementById('question-content');
+        const raw = contentInput.value.trim();
+        if (!raw) {
+          showMessage('question-msg', '先写点什么再润色吧', 'error');
+          return;
+        }
+        if (raw.length < 5) {
+          showMessage('question-msg', '内容太短，多写几句再润色效果更好', 'error');
+          return;
+        }
+
+        const originalText = polishBtn.textContent;
+        polishBtn.textContent = '⏳ 润色中...';
+        polishBtn.disabled = true;
+
+        try {
+          const res = await fetch(window.API_BASE + '/api/chat', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              messages: [
+                { role: 'system', content: '你是一个温暖友善的文字编辑。帮用户润色心事内容，使其表达更流畅、更清晰、更有温度。保持原意和语气不变，改善表达流畅度，可适当分段，不要添加原本没有的内容。只返回润色后的文本，不要加任何说明。' },
+                { role: 'user', content: `请润色以下内容：\n\n<user_content>\n${raw}\n</user_content>` }
+              ]
+            })
+          });
+
+          if (!res.ok) throw new Error('API 请求失败');
+
+          const data = await res.json();
+          const polished = (data.choices?.[0]?.message?.content || '').trim();
+
+          if (!polished) {
+            showMessage('question-msg', '润色失败，请稍后再试', 'error');
+          } else {
+            contentInput.value = polished;
+            showMessage('question-msg', '已润色完成，可以继续修改或直接发布 ✨', 'success');
+          }
+        } catch (e) {
+          showMessage('question-msg', '网络开小差了，请稍后再试', 'error');
+        }
+
+        polishBtn.textContent = originalText;
+        polishBtn.disabled = false;
+      });
+    }
 
     // 头像点击弹窗由 user-popup.js 在捕获阶段统一处理
   });

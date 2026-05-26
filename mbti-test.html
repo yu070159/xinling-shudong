@@ -184,18 +184,20 @@
       try {
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 15000);
-        const res = await fetch(window.API_BASE + '/api/gemini', {
+        const res = await fetch(window.API_BASE + '/api/chat', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            prompt: `你是一位温暖的心理咨询师。一位用户刚完成了MBTI测试，类型为"${type}"（${desc}）。请用200字左右，以诗意温暖的语言，从以下角度解读这个性格类型：1）核心特质与优势 2）情感需求与人际模式 3）适合的自我成长方向。语气像朋友在深夜聊天，避免说教感。直接回复解读内容，不要加"亲爱的用户"之类的称呼。`
+            messages: [
+              { role: 'user', content: `你是一位温暖的心理咨询师。一位用户刚完成了MBTI测试，类型为"${type}"（${desc}）。请用200字左右，以诗意温暖的语言，从以下角度解读这个性格类型：1）核心特质与优势 2）情感需求与人际模式 3）适合的自我成长方向。语气像朋友在深夜聊天，避免说教感。直接回复解读内容，不要加"亲爱的用户"之类的称呼。` }
+            ]
           }),
           signal: controller.signal
         });
         clearTimeout(timeoutId);
 
         const data = await res.json();
-        const text = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+        const text = data.choices?.[0]?.message?.content || '';
         if (text) {
           aiEl.innerHTML = `<div class="interpretation-content">${text.replace(/\n/g, '<br>')}</div>`;
         } else {

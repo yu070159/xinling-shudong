@@ -206,30 +206,21 @@
       try {
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 30000);
-        const res = await fetch(window.API_BASE + '/api/gemini', {
+        const res = await fetch(window.API_BASE + '/api/chat', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            prompt: `你是一位资深的心理咨询督导。请评估以下8道倾听者认证考题的回答。\n\n`
-              + `评分标准（每道题1-5分，8题满分40分）：\n`
-              + `- 共情能力（emotion）：是否能准确识别和回应情绪\n`
-              + `- 边界意识（boundary）：是否能保持支持者角色边界，不越界给专业建议\n`
-              + `- 危机敏感度（crisis）：是否能在高风险场景中做出安全回应\n\n`
-              + `请以JSON格式回复（只回复JSON，不要其他文字）：\n`
-              + `{\n`
-              + `  "scores": [分数1, 分数2, 分数3, 分数4, 分数5, 分数6, 分数7, 分数8],\n`
-              + `  "total": 总分,\n`
-              + `  "passed": true或false（总分>=30为true）,\n`
-              + `  "feedback": "200字以内的总评，语气温暖像朋友对话，指出亮点和成长方向，不要称呼用户"\n`
-              + `}\n\n`
-              + promptQuestions
+            messages: [
+              { role: 'system', content: '你是一位资深的心理咨询督导。请评估以下8道倾听者认证考题的回答。评分标准（每道题1-5分，8题满分40分）：共情能力-是否能准确识别和回应情绪、边界意识-是否能保持支持者角色边界不越界给专业建议、危机敏感度-是否能在高风险场景中做出安全回应。请以JSON格式回复（只回复JSON，不要其他文字）：{"scores":[8个分数],"total":总分,"passed":true或false(总分>=30为true),"feedback":"200字内总评，语气温暖指出亮点和成长方向"}' },
+              { role: 'user', content: promptQuestions }
+            ]
           }),
           signal: controller.signal
         });
         clearTimeout(timeoutId);
 
         const data = await res.json();
-        const text = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+        const text = data.choices?.[0]?.message?.content || '';
         let result;
         try {
           result = JSON.parse(text.replace(/```json|```/g, '').trim());

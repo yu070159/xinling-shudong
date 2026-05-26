@@ -55,6 +55,12 @@
               <a href="feedback.html">反馈</a>
               <a href="#" class="logout-btn" id="navLogout">退出</a>
           </span>
+          <button id="contactAdminBtn" style="background:none;border:none;color:var(--nav-text);cursor:pointer;font-size:0.95rem;padding:6px 12px;border-radius:8px;transition:background 0.2s;">🌳 站长</button>
+          <div id="wechatSection" style="display:none;">
+            <span id="wechatDisplay" style="font-size:0.95rem;color:#000000;">💚 q1427420863p</span>
+            <button id="copyWechatBtn" style="background:linear-gradient(135deg, var(--accent), var(--accent-light));color:white;border:none;border-radius:20px;padding:6px 14px;font-size:0.85rem;cursor:pointer;transition:transform 0.2s;">📋 复制</button>
+          </div>
+          <div id="copySuccessMsg" style="display:none;font-size:12px;color:#5ba07a;">嘿嘿^v^!微信复制成功，快去访问我吧！</div>
       </div>
   </header>
   <div class="container">
@@ -77,10 +83,16 @@
           <span id="login-status" class="login-status">已登录，将以此昵称发布</span>
         </div>
         <button id="submit-question-btn">📮 投入树洞</button>
+        <button id="polish-question-btn" class="btn-secondary">✨ 润色</button>
       </div>
     </section>
 
     <div class="search-container">
+      <div class="search-mode-row">
+        <button class="search-mode-btn active" data-mode="all">综合</button>
+        <button class="search-mode-btn" data-mode="content">内容</button>
+        <button class="search-mode-btn" data-mode="nickname">名字</button>
+      </div>
       <input type="text" id="searchInput" placeholder="搜索心事...">
       <span id="clearSearch" class="clear-search">×</span>
     </div>
@@ -118,15 +130,17 @@
       }
 
       try {
-        const res = await fetch(window.API_BASE + '/api/gemini', {
+        const res = await fetch(window.API_BASE + '/api/chat', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            prompt: '请生成一句温暖的治愈语录，风格诗意含蓄、像深夜森林里的轻声细语。不超过30字，不要引号。主题围绕：接纳自己、允许脆弱、慢慢来。'
+            messages: [
+              { role: 'user', content: '请生成一句温暖的治愈语录，风格诗意含蓄、像深夜森林里的轻声细语。不超过30字，不要引号。主题围绕：接纳自己、允许脆弱、慢慢来。' }
+            ]
           })
         });
         const data = await res.json();
-        const text = data.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
+        const text = data.choices?.[0]?.message?.content?.trim();
         if (text) {
           textEl.textContent = text;
           el.style.display = 'block';
@@ -136,6 +150,49 @@
         // 静默失败，不影响页面
       }
     })();
+  </script>
+
+  <script>
+    document.getElementById('contactAdminBtn').addEventListener('click', function() {
+      document.getElementById('contactAdminBtn').style.display = 'none';
+      document.getElementById('wechatSection').style.display = 'flex';
+      document.getElementById('wechatSection').style.alignItems = 'center';
+      document.getElementById('wechatSection').style.gap = '12px';
+      document.getElementById('copySuccessMsg').style.display = 'none';
+    });
+
+    document.getElementById('copyWechatBtn').addEventListener('click', async function() {
+      const wechat = 'q1427420863p';
+      const btn = document.getElementById('copyWechatBtn');
+      btn.disabled = true;
+      
+      try {
+        if (navigator.clipboard && window.isSecureContext) {
+          await navigator.clipboard.writeText(wechat);
+        } else {
+          const textarea = document.createElement('textarea');
+          textarea.style.position = 'fixed';
+          textarea.style.left = '-9999px';
+          textarea.value = wechat;
+          document.body.appendChild(textarea);
+          textarea.select();
+          document.execCommand('copy');
+          document.body.removeChild(textarea);
+        }
+        
+        document.getElementById('wechatSection').style.display = 'none';
+        document.getElementById('copySuccessMsg').style.display = 'block';
+        
+      } catch (err) {
+        console.error('复制失败:', err);
+      }
+      
+      setTimeout(() => {
+        document.getElementById('copySuccessMsg').style.display = 'none';
+        document.getElementById('contactAdminBtn').style.display = 'block';
+        btn.disabled = false;
+      }, 5000);
+    });
   </script>
 </body>
 </html>

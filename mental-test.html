@@ -155,18 +155,20 @@
       try {
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 15000);
-        const res = await fetch(window.API_BASE + '/api/gemini', {
+        const res = await fetch(window.API_BASE + '/api/chat', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            prompt: `你是一位温暖的心理关怀者。一位用户刚完成PHQ-9抑郁症筛查，得分${total}分（9题，满分27分），评估为"${level}"。注意：你不是医生，不要做诊断或替代专业意见。请用200字左右，以温柔共情的语言：1）对用户的情绪状态表达理解和接纳 2）提供1-2个简单可行的日常自我关怀建议 3）如果分数偏高（>=15分），温和地鼓励寻求专业心理援助，并提供全国心理援助热线"400-161-9995"。语气像深夜朋友间对话，温暖不鸡汤。直接回复内容，不要称呼。`
+            messages: [
+              { role: 'user', content: `你是一位温暖的心理关怀者。一位用户刚完成PHQ-9抑郁症筛查，得分${total}分（9题，满分27分），评估为"${level}"。注意：你不是医生，不要做诊断或替代专业意见。请用200字左右，以温柔共情的语言：1）对用户的情绪状态表达理解和接纳 2）提供1-2个简单可行的日常自我关怀建议 3）如果分数偏高（>=15分），温和地鼓励寻求专业心理援助，并提供全国心理援助热线"400-161-9995"。语气像深夜朋友间对话，温暖不鸡汤。直接回复内容，不要称呼。` }
+            ]
           }),
           signal: controller.signal
         });
         clearTimeout(timeoutId);
 
         const data = await res.json();
-        const text = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+        const text = data.choices?.[0]?.message?.content || '';
         if (text) {
           aiEl.innerHTML = `<div class="interpretation-content">${text.replace(/\n/g, '<br>')}</div>`;
         } else {

@@ -280,6 +280,31 @@ button:active {
   transform: scale(0.98);
 }
 
+button:disabled,
+.btn-secondary {
+  background: transparent;
+  border: 2px solid var(--accent);
+  color: var(--accent);
+  padding: 12px 20px;
+  font-size: 1rem;
+}
+
+button:disabled:hover,
+.btn-secondary:hover {
+  background: var(--accent);
+  color: var(--btn-text);
+  box-shadow: 0 2px 8px var(--accent-glow);
+}
+
+button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+#polish-question-btn {
+  flex-shrink: 0;
+}
+
 .questions-list {
   display: flex;
   flex-direction: column;
@@ -449,6 +474,35 @@ button:active {
   margin: 20px auto;
 }
 
+.search-mode-row {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 10px;
+  justify-content: center;
+}
+
+.search-mode-btn {
+  padding: 5px 16px;
+  border-radius: 16px;
+  border: 1px solid var(--border-medium);
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.search-mode-btn:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.search-mode-btn.active {
+  background: var(--accent);
+  color: var(--btn-text);
+  border-color: var(--accent);
+}
+
 .search-container input {
   width: 100%;
   padding: 12px 36px 12px 16px;
@@ -474,14 +528,12 @@ button:active {
 #clearSearch {
   position: absolute;
   right: 12px;
-  top: 50%;
-  transform: translateY(-50%);
+  bottom: 12px;
   cursor: pointer;
   color: var(--text-secondary);
   font-size: 18px;
   line-height: 1;
   padding: 0;
-  display: flex;
   align-items: center;
   justify-content: center;
   transition: all 0.2s;
