@@ -77,6 +77,7 @@
           <span id="login-status" class="login-status">已登录，将以此昵称发布</span>
         </div>
         <button id="submit-question-btn">📮 投入树洞</button>
+        <button id="polish-question-btn" class="btn-secondary">✨ 润色</button>
       </div>
     </section>
 
@@ -118,15 +119,17 @@
       }
 
       try {
-        const res = await fetch(window.API_BASE + '/api/gemini', {
+        const res = await fetch(window.API_BASE + '/api/chat', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            prompt: '请生成一句温暖的治愈语录，风格诗意含蓄、像深夜森林里的轻声细语。不超过30字，不要引号。主题围绕：接纳自己、允许脆弱、慢慢来。'
+            messages: [
+              { role: 'user', content: '请生成一句温暖的治愈语录，风格诗意含蓄、像深夜森林里的轻声细语。不超过30字，不要引号。主题围绕：接纳自己、允许脆弱、慢慢来。' }
+            ]
           })
         });
         const data = await res.json();
-        const text = data.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
+        const text = data.choices?.[0]?.message?.content?.trim();
         if (text) {
           textEl.textContent = text;
           el.style.display = 'block';

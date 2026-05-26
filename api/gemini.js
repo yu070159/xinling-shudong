@@ -1,4 +1,4 @@
-// api/gemini.js — 已改用 DeepSeek API 代理（内容审核、情绪分析、AI建议等）
+// api/gemini.js — 已废弃，全部迁移至 /api/chat。保留文件仅为兼容旧部署。
 const CORS_HEADERS = {
   'Content-Type': 'application/json',
   'Access-Control-Allow-Origin': '*',

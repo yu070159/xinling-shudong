@@ -49,9 +49,9 @@ test.describe('Netlify 线上冒烟测试', () => {
     expect(response.status()).toBeLessThan(500);
   });
 
-  test('API 代理可达 — /api/gemini', async ({ page }) => {
-    const response = await page.request.post(NETLIFY_URL + '/.netlify/functions/gemini', {
-      data: { prompt: 'hello' },
+  test('API 代理可达 — /api/chat', async ({ page }) => {
+    const response = await page.request.post(NETLIFY_URL + '/.netlify/functions/chat', {
+      data: { messages: [{ role: 'user', content: 'hello' }] },
       timeout: 15000
     });
     expect(response.status()).toBeLessThan(500);

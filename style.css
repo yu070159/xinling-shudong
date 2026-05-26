@@ -280,6 +280,31 @@ button:active {
   transform: scale(0.98);
 }
 
+button:disabled,
+.btn-secondary {
+  background: transparent;
+  border: 2px solid var(--accent);
+  color: var(--accent);
+  padding: 12px 20px;
+  font-size: 1rem;
+}
+
+button:disabled:hover,
+.btn-secondary:hover {
+  background: var(--accent);
+  color: var(--btn-text);
+  box-shadow: 0 2px 8px var(--accent-glow);
+}
+
+button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+#polish-question-btn {
+  flex-shrink: 0;
+}
+
 .questions-list {
   display: flex;
   flex-direction: column;

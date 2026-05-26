@@ -372,16 +372,19 @@
       if (userMessages.length < 3) return;
       var recentMessages = userMessages.slice(-10).map(function(m) { return m.text; }).join('\n');
       try {
-        var res = await fetch(window.API_BASE + '/api/gemini', {
+        var res = await fetch(window.API_BASE + '/api/chat', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            prompt: '从以下对话中提取3-5个核心情绪关键词（如焦虑、孤独、考研压力、失眠、家庭关系），只返回关键词用顿号分隔，不要其他内容：\n' + recentMessages.substring(0, 1000)
+            messages: [
+              { role: 'system', content: '从对话中提取3-5个核心情绪关键词（如焦虑、孤独、考研压力、失眠、家庭关系），只返回关键词用顿号分隔，不要其他内容。' },
+              { role: 'user', content: recentMessages.substring(0, 1000) }
+            ]
           })
         });
         if (!res.ok) return;
         var data = await res.json();
-        var text = data.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
+        var text = data.choices?.[0]?.message?.content?.trim();
         if (text && text.length < 80) {
           emotionKeywords = text.substring(0, 80);
           localStorage.setItem(EMOTION_KEYWORDS_KEY, JSON.stringify({
