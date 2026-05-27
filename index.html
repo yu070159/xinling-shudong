@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>树洞广场 - 心灵树洞</title>
+  <meta name="description" content="一个匿名倾诉与互助的温暖社区。在深夜森林里，卸下白昼的疲惫写下你的心事，会有人温柔地倾听。你的秘密在这里是安全的。">
+  <meta name="keywords" content="心灵树洞, 匿名倾诉, 心理互助, 情绪宣泄, 深夜树洞, Soul Tree Hollow, 心理健康">
+  <meta name="author" content="心灵树洞">
+  
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="心灵树洞">
+  <meta property="og:title" content="心灵树洞 - 匿名倾诉与互助社区">
+  <meta property="og:description" content="在深夜森林里，写下你的心事，有人会温柔地倾听。这里没有人认识你，但有人懂你。">
+  <meta property="og:url" content="https://xinling-shudong.vercel.app/">
+  <meta property="og:image" content="https://xinling-shudong.vercel.app/images/og-image.jpg">
+  <meta itemprop="name" content="心灵树洞 - 匿名倾诉与互助社区">
+  <meta itemprop="description" content="在深夜森林里，写下你的心事，有人会温柔地倾听。">
+  <meta itemprop="image" content="https://xinling-shudong.vercel.app/images/wechat-share-icon.jpg">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="心灵树洞 | Soul Tree Hollow">
+  <meta name="twitter:description" content="一个匿名倾诉与互助的温暖社区。在深夜森林里，写下你的心事，有人会温柔地倾听。">
+  <meta name="twitter:image" content="https://xinling-shudong.vercel.app/images/og-image.jpg">
+  
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🌳</text></svg>">
+  
+  <link rel="preconnect" href="https://unpkg.com" crossorigin>
+  <link rel="preconnect" href="https://oazntpskcghfxzcylnef.supabase.co" crossorigin>
+  <link rel="stylesheet" href="style.css">
+  <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+  <script src="utils.js"></script>
+  <script src="app.js" defer></script>
+</head>
+<body>
+  <header class="forest-header">
+      <a href="index.html" class="forest-logo">
+          <span class="logo-icon">🌳</span>
+          <span class="logo-text">心灵树洞</span>
+      </a>
+      <nav class="forest-nav">
+          <a href="index.html">广场</a>
+          <a href="books.html">书洞</a>
+          <a href="shuling.html">树灵</a>
+          <a href="chat.html">树友对话</a>
+          <a href="mood-ring.html">年轮</a>
+      </nav>
+      <div class="forest-user-actions" id="navUserArea">
+          <span id="navGuest">
+              <a href="login.html">登录</a>
+              <a href="register.html">注册</a>
+          </span>
+          <span id="navLoggedIn" style="display:none">
+              <span class="user-greeting" id="navNickname"></span>
+              <a href="profile.html">个人中心</a>
+              <a href="feedback.html">反馈</a>
+              <a href="#" class="logout-btn" id="navLogout">退出</a>
+          </span>
+          <button id="contactAdminBtn" style="background:none;border:none;color:var(--nav-text);cursor:pointer;font-size:0.95rem;padding:6px 12px;border-radius:8px;transition:background 0.2s;">🌳 站长</button>
+          <div id="wechatSection" style="display:none;">
+            <span id="wechatDisplay" style="font-size:0.95rem;color:#000000;">💚 q1427420863p</span>
+            <button id="copyWechatBtn" style="background:linear-gradient(135deg, var(--accent), var(--accent-light));color:white;border:none;border-radius:20px;padding:6px 14px;font-size:0.85rem;cursor:pointer;transition:transform 0.2s;">📋 复制</button>
+          </div>
+          <div id="copySuccessMsg" style="display:none;font-size:12px;color:#5ba07a;">嘿嘿^v^!微信复制成功，快去访问我吧！</div>
+      </div>
+  </header>
+  <div class="container">
+    <header class="header">
+      <h1>🌳 心灵树洞</h1>
+      <p class="subtitle">悄悄话，说给树洞听</p>
+    </header>
+
+    <div class="daily-whisper" id="dailyWhisper" style="display:none;">
+      <span class="daily-whisper-text" id="dailyWhisperText"></span>
+    </div>
+
+    <section class="submit-form card">
+      <p class="form-guide-text">把情绪折成落叶，总有一簇篝火为你而燃</p>
+      <textarea id="question-content" placeholder="写下你的心事..." rows="3"></textarea>
+      <div id="question-msg" class="form-message"></div>
+      <div class="form-row">
+        <div class="form-row-input-wrapper">
+          <input type="text" id="question-nickname" placeholder="匿名树友" maxlength="20">
+          <span id="login-status" class="login-status">已登录，将以此昵称发布</span>
+        </div>
+        <button id="anonymous-toggle" style="display:flex;align-items:center;gap:4px;padding:8px 16px;border-radius:8px;border:1px solid var(--border-light);background:transparent;color:var(--text-secondary);cursor:pointer;font-size:14px;transition:all 0.2s;">
+          <span id="anonymous-icon" style="font-size:1.1rem;">🌳</span>
+          <span>匿林</span>
+        </button>
+        <button id="submit-question-btn">📮 投入树洞</button>
+        <button id="polish-question-btn" class="btn-secondary" style="display:inline-flex;align-items:center;gap:6px;">
+          <span style="font-size:1.3rem;">🧚‍♀️</span>
+          树灵降临
+        </button>
+      </div>
+    </section>
+
+    <div class="search-container">
+      <div class="search-mode-row">
+        <button class="search-mode-btn active" data-mode="all">综合</button>
+        <button class="search-mode-btn" data-mode="content">内容</button>
+        <button class="search-mode-btn" data-mode="nickname">名字</button>
+      </div>
+      <input type="text" id="searchInput" placeholder="搜索心事...">
+      <span id="clearSearch" class="clear-search">×</span>
+    </div>
+
+    <section class="questions-list" id="questions-list">
+    </section>
+  </div>
+
+  <div class="login-modal-overlay" id="loginModal">
+    <div class="login-modal">
+      <p>登录后才能写下心事哦</p>
+      <div class="login-modal-buttons">
+        <button class="login-modal-btn login-modal-btn-primary" onclick="location.href='login.html'">去登录</button>
+        <button class="login-modal-btn login-modal-btn-secondary" onclick="document.getElementById('loginModal').style.display='none'">再想想</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="ai-float.js"></script>
+  <script src="user-popup.js"></script>
+  <script>
+    (async function() {
+      const el = document.getElementById('dailyWhisper');
+      const textEl = document.getElementById('dailyWhisperText');
+      if (!el || !textEl) return;
+
+      const today = new Date().toISOString().slice(0, 10);
+      const cacheKey = 'daily_whisper_' + today;
+      const cached = localStorage.getItem(cacheKey);
+
+      if (cached) {
+        textEl.textContent = cached;
+        el.style.display = 'block';
+        return;
+      }
+
+      try {
+        const res = await fetch(window.API_BASE + '/api/chat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            messages: [
+              { role: 'user', content: '请生成一句温暖的治愈语录，风格诗意含蓄、像深夜森林里的轻声细语。不超过30字，不要引号。主题围绕：接纳自己、允许脆弱、慢慢来。' }
+            ]
+          })
+        });
+        const data = await res.json();
+        const text = data.choices?.[0]?.message?.content?.trim();
+        if (text) {
+          textEl.textContent = text;
+          el.style.display = 'block';
+          localStorage.setItem(cacheKey, text);
+        }
+      } catch (e) {
+        // 静默失败，不影响页面
+      }
+    })();
+  </script>
+
+  <script>
+    document.getElementById('contactAdminBtn').addEventListener('click', function() {
+      document.getElementById('contactAdminBtn').style.display = 'none';
+      document.getElementById('wechatSection').style.display = 'flex';
+      document.getElementById('wechatSection').style.alignItems = 'center';
+      document.getElementById('wechatSection').style.gap = '12px';
+      document.getElementById('copySuccessMsg').style.display = 'none';
+    });
+
+    document.getElementById('copyWechatBtn').addEventListener('click', async function() {
+      const wechat = 'q1427420863p';
+      const btn = document.getElementById('copyWechatBtn');
+      btn.disabled = true;
+
+      try {
+        if (navigator.clipboard && window.isSecureContext) {
+          await navigator.clipboard.writeText(wechat);
+        } else {
+          const textarea = document.createElement('textarea');
+          textarea.style.position = 'fixed';
+          textarea.style.left = '-9999px';
+          textarea.value = wechat;
+          document.body.appendChild(textarea);
+          textarea.select();
+          document.execCommand('copy');
+          document.body.removeChild(textarea);
+        }
+
+        document.getElementById('wechatSection').style.display = 'none';
+        document.getElementById('copySuccessMsg').style.display = 'block';
+
+      } catch (err) {
+        console.error('复制失败:', err);
+      }
+
+      setTimeout(() => {
+        document.getElementById('copySuccessMsg').style.display = 'none';
+        document.getElementById('contactAdminBtn').style.display = 'block';
+        btn.disabled = false;
+      }, 5000);
+    });
+  </script>
+</body>
+</html>

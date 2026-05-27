@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>心灵树洞 - 在深夜森林遇见倾听</title>
+  <meta name="description" content="一个匿名倾诉与互助的温暖社区。在深夜森林里，卸下白昼的疲惫写下你的心事，会有人温柔地倾听。你的秘密在这里是安全的。">
+  <meta name="keywords" content="心灵树洞, 匿名倾诉, 心理互助, 情绪宣泄, 深夜树洞, Soul Tree Hollow, 心理健康">
+  <meta name="author" content="心灵树洞">
+  
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="心灵树洞">
+  <meta property="og:title" content="心灵树洞 - 匿名倾诉与互助社区">
+  <meta property="og:description" content="在深夜森林里，写下你的心事，有人会温柔地倾听。这里没有人认识你，但有人懂你。">
+  <meta property="og:url" content="https://xinling-shudong.vercel.app/">
+  <meta property="og:image" content="https://xinling-shudong.vercel.app/images/og-image.jpg">
+  <meta itemprop="name" content="心灵树洞 - 匿名倾诉与互助社区">
+  <meta itemprop="description" content="在深夜森林里，写下你的心事，有人会温柔地倾听。">
+  <meta itemprop="image" content="https://xinling-shudong.vercel.app/images/wechat-share-icon.jpg">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="心灵树洞 | Soul Tree Hollow">
+  <meta name="twitter:description" content="一个匿名倾诉与互助的温暖社区。在深夜森林里，写下你的心事，有人会温柔地倾听。">
+  <meta name="twitter:image" content="https://xinling-shudong.vercel.app/images/og-image.jpg">
+  
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🌳</text></svg>">
+  
+  <link rel="preconnect" href="https://unpkg.com" crossorigin>
+  <link rel="preconnect" href="https://oazntpskcghfxzcylnef.supabase.co" crossorigin>
+  <link rel="stylesheet" href="style.css">
+  <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+  <script src="utils.js"></script>
+  <style>
+    body { margin: 0; padding: 0; background: var(--bg-main); display: flex; justify-content: center; align-items: center; min-height: 100vh; font-family: sans-serif; }
+    .welcome-container { text-align: center; padding: 40px 20px; }
+    .welcome-icon { font-size: 72px; animation: floatIcon 3s ease-in-out infinite; }
+    @keyframes floatIcon { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
+    .welcome-title { font-size: 36px; color: var(--accent); margin: 20px 0 10px; font-weight: 700; }
+    .welcome-button { display: inline-block; margin-top: 30px; padding: 14px 48px; background: var(--accent); color: white; border-radius: 30px; text-decoration: none; font-size: 18px; font-weight: 600; transition: all 0.3s; cursor: pointer; border: none; }
+    .welcome-button:hover { transform: scale(1.05); box-shadow: 0 6px 24px var(--accent-glow); }
+    .welcome-footer { margin-top: 60px; color: var(--text-secondary); font-size: 13px; }
+    .welcome-links { margin-top: 20px; }
+    .welcome-links a { color: var(--text-secondary); text-decoration: none; margin: 0 12px; font-size: 14px; transition: color 0.2s; }
+    .welcome-links a:hover { color: var(--accent); }
+    #welcomeUser { color: var(--accent); font-size: 16px; margin-bottom: 10px; display: none; }
+    .welcome-secondary-link { display: inline-block; padding: 10px 24px; border: 1px solid var(--border-medium); color: var(--accent); border-radius: 20px; text-decoration: none; font-size: 14px; transition: all 0.3s; }
+    .welcome-secondary-link:hover { background: var(--accent-glow); border-color: var(--accent); }
+  </style>
+</head>
+<body>
+  <div class="welcome-container">
+    <div class="welcome-icon">🌳</div>
+    <h1 class="welcome-title">心灵树洞</h1>
+    <p class="welcome-subtitle">卸下白昼的疲惫，把心事交给夜风与篝火</p>
+    <div id="welcomeUser"></div>
+    <a href="index.html" class="welcome-button">提灯入林</a>
+    <div id="welcomeActions" style="display: none; margin-top: 16px; gap: 12px; justify-content: center; flex-wrap: wrap;">
+      <a href="chat.html" class="welcome-secondary-link">💬 树友对话</a>
+      <a href="books.html" class="welcome-secondary-link">📚 探索书洞</a>
+    </div>
+    <div class="welcome-links" id="welcomeLinks">
+      <a href="login.html">登录</a>
+      <a href="register.html">注册</a>
+    </div>
+    <p class="welcome-footer">夜色会隐去你的姓名，落叶会守口如瓶</p>
+  </div>
+
+  <script>
+    // 确保 DOM 加载完成后再执行登录状态检查
+    document.addEventListener('DOMContentLoaded', async () => {
+      try {
+        // 检查 supabase SDK 是否已正确加载
+        if (typeof window.supabase === 'undefined' || !window.supabase.createClient) {
+          console.warn('Supabase SDK 未加载或不可用，跳过登录状态检查');
+          return;
+        }
+
+        const sb = window.TreeHole.supabase;
+
+        const { data: { user } } = await sb.auth.getUser();
+
+        // 仅当用户已登录时才执行以下操作
+        if (user) {
+          const welcomeUserEl = document.getElementById('welcomeUser');
+          if (welcomeUserEl) {
+            welcomeUserEl.style.display = 'block';
+            try {
+              const { data: profile } = await sb.from('profiles')
+                .select('nickname')
+                .eq('user_id', user.id)
+                .single();
+              welcomeUserEl.textContent = '欢迎回来，' + (profile?.nickname || '树友');
+            } catch (profileErr) {
+              console.warn('获取用户资料失败:', profileErr);
+              welcomeUserEl.textContent = '欢迎回来，树友';
+            }
+          }
+
+          // 修改主按钮文字
+          const welcomeButton = document.querySelector('.welcome-button');
+          if (welcomeButton) {
+            welcomeButton.textContent = '回到树洞';
+          }
+
+          // 显示额外的快捷入口
+          const welcomeActions = document.getElementById('welcomeActions');
+          if (welcomeActions) {
+            welcomeActions.style.display = 'flex';
+          }
+
+          // 隐藏登录/注册链接
+          const welcomeLinks = document.getElementById('welcomeLinks');
+          if (welcomeLinks) {
+            welcomeLinks.style.display = 'none';
+          }
+        }
+      } catch (error) {
+        // 捕获任何未预期的错误，避免控制台红屏
+        console.error('欢迎页初始化错误:', error.message);
+      }
+    });
+  </script>
+
+  <script src="ai-float.js"></script>
+  <script src="user-popup.js"></script>
+</body>
+</html>

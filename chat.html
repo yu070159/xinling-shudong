@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>树友对话 - 心灵树洞</title>
+  <meta name="description" content="一个匿名倾诉与互助的温暖社区。在深夜森林里，卸下白昼的疲惫写下你的心事，会有人温柔地倾听。你的秘密在这里是安全的。">
+  <meta name="keywords" content="心灵树洞, 匿名倾诉, 心理互助, 情绪宣泄, 深夜树洞, Soul Tree Hollow, 心理健康">
+  <meta name="author" content="心灵树洞">
+  
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="心灵树洞">
+  <meta property="og:title" content="心灵树洞 - 匿名倾诉与互助社区">
+  <meta property="og:description" content="在深夜森林里，写下你的心事，有人会温柔地倾听。这里没有人认识你，但有人懂你。">
+  <meta property="og:url" content="https://xinling-shudong.vercel.app/">
+  <meta property="og:image" content="https://xinling-shudong.vercel.app/images/og-image.jpg">
+  <meta itemprop="name" content="心灵树洞 - 匿名倾诉与互助社区">
+  <meta itemprop="description" content="在深夜森林里，写下你的心事，有人会温柔地倾听。">
+  <meta itemprop="image" content="https://xinling-shudong.vercel.app/images/wechat-share-icon.jpg">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="心灵树洞 | Soul Tree Hollow">
+  <meta name="twitter:description" content="一个匿名倾诉与互助的温暖社区。在深夜森林里，写下你的心事，有人会温柔地倾听。">
+  <meta name="twitter:image" content="https://xinling-shudong.vercel.app/images/og-image.jpg">
+  
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🌳</text></svg>">
+  
+  <link rel="preconnect" href="https://unpkg.com" crossorigin>
+  <link rel="preconnect" href="https://oazntpskcghfxzcylnef.supabase.co" crossorigin>
+  <link rel="stylesheet" href="style.css">
+  <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+  <script src="utils.js"></script>
+  <style>
+    .chat-container { max-width: 680px; margin: 0 auto; padding: 20px; padding-top: 80px; color: var(--text-primary); }
+    .page-title { text-align: center; color: var(--accent); margin-bottom: 30px; }
+    
+    .pinned-section { margin-bottom: 30px; }
+    .section-title { font-size: 14px; color: var(--text-secondary); margin-bottom: 10px; border-bottom: 1px solid var(--border-light); padding-bottom: 8px; }
+    .pinned-chat-btn {
+      display: block; width: 100%; padding: 16px; background: var(--accent-glow);
+      border: 1px solid var(--border-medium); border-radius: 16px; color: var(--accent); text-align: left;
+      cursor: pointer; transition: 0.2s; margin-bottom: 20px; font-size: 16px;
+    }
+    .pinned-chat-btn:hover { background: var(--accent-glow); transform: translateY(-2px); box-shadow: var(--shadow-md); }
+    .pinned-unread { background: var(--danger); color: white; border-radius: 10px; padding: 2px 8px; font-size: 12px; margin-left: 10px; }
+
+    .chat-list-item {
+      display: flex; align-items: center; padding: 16px; background: var(--bg-card);
+      border: 1px solid var(--border-light); border-radius: 12px; margin-bottom: 10px;
+      cursor: pointer; transition: 0.2s; justify-content: space-between;
+      gap: 12px;
+    }
+    .chat-info {
+      flex: 1;
+      min-width: 0;
+    }
+    .chat-list-item:hover { background: var(--bg-card); border-color: var(--border-hover); }
+    .chat-partner-name { font-weight: 600; color: var(--text-primary); }
+    .chat-last-msg { color: var(--text-secondary); font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 250px; }
+    .chat-list-right { text-align: right; }
+    .chat-time { font-size: 12px; color: var(--text-muted); display: block; }
+    .chat-list-unread { background: var(--danger); color: white; border-radius: 50%; width: 20px; height: 20px; display: inline-flex; align-items: center; justify-content: center; font-size: 11px; margin-top: 4px; }
+    .delete-chat-btn { color: var(--danger); background: transparent; border: none; cursor: pointer; font-size: 16px; padding: 4px 8px; border-radius: 4px; opacity: 0; transition: opacity 0.2s; }
+    .chat-list-item:hover .delete-chat-btn { opacity: 1; }
+    .delete-chat-btn:hover { background: rgba(220, 53, 69, 0.1); }
+    .friend-badge { color: var(--accent); font-size: 11px; margin-left: 6px; }
+
+    .back-link { color: var(--text-secondary); text-decoration: none; margin-bottom: 20px; display: inline-block; }
+    .back-link:hover { color: var(--text-primary); }
+    .empty-state { text-align: center; color: var(--text-secondary); margin-top: 60px; }
+  </style>
+</head>
+<body>
+  <header class="forest-header">
+      <a href="index.html" class="forest-logo">
+          <span class="logo-icon">🌳</span>
+          <span class="logo-text">心灵树洞</span>
+      </a>
+      <nav class="forest-nav">
+          <a href="index.html">广场</a>
+          <a href="books.html">书洞</a>
+          <a href="shuling.html">树灵</a>
+          <a href="chat.html">树友对话</a>
+          <a href="mood-ring.html">年轮</a>
+      </nav>
+      <div class="forest-user-actions" id="navUserArea">
+          <span id="navGuest">
+              <a href="login.html">登录</a>
+              <a href="register.html">注册</a>
+          </span>
+          <span id="navLoggedIn" style="display:none">
+              <span class="user-greeting" id="navNickname"></span>
+              <a href="profile.html">个人中心</a>
+              <a href="feedback.html">反馈</a>
+              <a href="#" class="logout-btn" id="navLogout">退出</a>
+          </span>
+      </div>
+  </header>
+
+  <div class="chat-container">
+    <a href="index.html" class="back-link">← 返回树洞</a>
+    <h1 class="page-title">树友对话 <span id="totalUnreadBadge" style="display:none;background:var(--danger);color:white;border-radius:12px;padding:2px 8px;font-size:13px;vertical-align:middle;"></span></h1>
+
+    <div class="pinned-section" id="pinnedSection">
+      <div class="section-title">✨ 树洞管理员</div>
+      <div class="pinned-chat-btn" id="pinnedChatBtn">
+        🌳 与站长交心 <span id="pinnedUnreadBadge" class="pinned-unread" style="display:none"></span>
+      </div>
+    </div>
+
+    <div class="pinned-section" id="matchSection">
+      <div class="section-title">🍂 提灯寻友</div>
+      <div class="pinned-chat-btn" id="matchBtn" style="background: linear-gradient(135deg, rgba(212,160,46,0.08), rgba(224,123,57,0.08)); border-color: rgba(212,160,46,0.3);">
+        🏮 落叶盲盒 — 每日一封匿名长信
+        <span style="display:block;font-size:12px;color:var(--text-secondary);margin-top:4px;">基于 MBTI 与情绪共鸣，遇见懂你的人</span>
+      </div>
+    </div>
+
+    <div id="otherChatsSection">
+      <div class="section-title">💬 其他对话</div>
+      <div id="otherChatsList"></div>
+      <div id="emptyOtherChats" class="empty-state" style="display:none">还没有和其他树友聊过天，在树洞里相遇吧。</div>
+    </div>
+  </div>
+
+  <script>
+    const sb = window.TreeHole.supabase;
+    // 管理员用户ID — 部署后请改为你的管理员账号UUID（在 Supabase → Authentication → Users 查看）
+    const ADMIN_USER_ID = 'fafab57d-9188-4de8-ab53-c0802edfe73c';
+
+    // escapeHtml 由 utils.js 全局提供
+
+    async function loadChats() {
+      const { data: { user } } = await sb.auth.getUser();
+      if (!user) { window.location.href = 'welcome.html'; return; }
+
+      // 1. 获取有过聊天记录的用户
+      const { data: sent } = await sb.from('messages').select('receiver_id').eq('sender_id', user.id);
+      const { data: received } = await sb.from('messages').select('sender_id').eq('receiver_id', user.id);
+
+      const messagePartnerIds = new Set();
+      if (sent) sent.forEach(m => messagePartnerIds.add(m.receiver_id));
+      if (received) received.forEach(m => messagePartnerIds.add(m.sender_id));
+
+      // 2. 获取当前已接受的好友（每次都重新查询，确保实时性）
+      const { data: friends1 } = await sb.from('friend_requests').select('to_user').eq('from_user', user.id).eq('status', 'accepted');
+      const { data: friends2 } = await sb.from('friend_requests').select('from_user').eq('to_user', user.id).eq('status', 'accepted');
+
+      const friendIds = new Set();
+      if (friends1) friends1.forEach(f => friendIds.add(f.to_user));
+      if (friends2) friends2.forEach(f => friendIds.add(f.from_user));
+
+      // 3. 只显示有过聊天记录的用户（不再强行展示所有好友）
+      const allPartnerIds = new Set(messagePartnerIds);
+      allPartnerIds.delete(user.id);
+      const uniquePartnerIds = Array.from(allPartnerIds);
+
+      if (uniquePartnerIds.length === 0) {
+        document.getElementById('otherChatsList').innerHTML = '';
+        document.getElementById('emptyOtherChats').style.display = 'block';
+        loadPinnedStatus();
+        return;
+      }
+      document.getElementById('emptyOtherChats').style.display = 'none';
+
+      // 4. 获取所有伙伴的昵称和头像
+      const { data: profiles } = await sb.from('profiles').select('user_id, nickname, avatar_url').in('user_id', uniquePartnerIds);
+      const nicknameMap = {};
+      const avatarMap = {};
+      if (profiles) profiles.forEach(p => { 
+        nicknameMap[p.user_id] = p.nickname || '匿名树友'; 
+        avatarMap[p.user_id] = p.avatar_url || null;
+      });
+
+      const otherChatsContainer = document.getElementById('otherChatsList');
+      otherChatsContainer.innerHTML = '';
+
+      // 批量获取所有伙伴的最后一条消息和未读数，避免 N+1
+      const [sentResult, receivedResult, unreadResult] = await Promise.all([
+        sb.from('messages').select('content, created_at, sender_id, receiver_id')
+          .eq('sender_id', user.id).in('receiver_id', uniquePartnerIds)
+          .order('created_at', { ascending: false }),
+        sb.from('messages').select('content, created_at, sender_id, receiver_id')
+          .eq('receiver_id', user.id).in('sender_id', uniquePartnerIds)
+          .order('created_at', { ascending: false }),
+        sb.from('messages').select('sender_id')
+          .eq('receiver_id', user.id).in('sender_id', uniquePartnerIds).eq('is_read', false)
+      ]);
+
+      // 从批量结果中提取每个伙伴的最后一条消息（忽略个别查询错误，优雅降级）
+      const lastMsgMap = {};
+      const allMessages = [
+        ...(sentResult.data && !sentResult.error ? sentResult.data : []),
+        ...(receivedResult.data && !receivedResult.error ? receivedResult.data : [])
+      ];
+      allMessages
+        .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
+        .forEach(msg => {
+          const pid = msg.sender_id === user.id ? msg.receiver_id : msg.sender_id;
+          if (!lastMsgMap[pid]) lastMsgMap[pid] = msg;
+        });
+
+      // 从批量结果中计算每个伙伴的未读数
+      const unreadMap = {};
+      if (unreadResult.data) unreadResult.data.forEach(m => {
+        unreadMap[m.sender_id] = (unreadMap[m.sender_id] || 0) + 1;
+      });
+
+      for (const partnerId of uniquePartnerIds) {
+        const lastMsg = lastMsgMap[partnerId];
+        const unreadCount = unreadMap[partnerId] || 0;
+        const partnerName = escapeHtml(nicknameMap[partnerId] || '未知树友');
+        const isMine = lastMsg && lastMsg.sender_id === user.id;
+        const lastMsgText = lastMsg ? (isMine ? `我: ${escapeHtml(lastMsg.content)}` : escapeHtml(lastMsg.content)) : '开始聊天吧';
+
+        const avatarUrl = avatarMap[partnerId];
+        const avatarHtml = avatarUrl
+          ? `<img src="${avatarUrl}" class="user-avatar" alt="${partnerName}" data-user-id="${partnerId}" style="width:40px;height:40px;">`
+          : `<div class="user-avatar-placeholder" data-user-id="${partnerId}" style="width:40px;height:40px;font-size:16px;">🌱</div>`;
+
+        const isFriend = friendIds.has(partnerId);
+        const friendBadge = isFriend ? ' <span class="friend-badge">🌿树友</span>' : '';
+
+        const item = document.createElement('div');
+        item.className = 'chat-list-item';
+        item.innerHTML = `
+          ${avatarHtml}
+          <div class="chat-info">
+            <div class="chat-partner-name">${partnerName}${friendBadge}</div>
+            <div class="chat-last-msg">${lastMsgText}</div>
+          </div>
+          <div class="chat-list-right">
+            <span class="chat-time">${lastMsg ? new Date(lastMsg.created_at).toLocaleDateString() : ''}</span>
+            ${unreadCount > 0 ? `<span class="chat-list-unread">${unreadCount}</span>` : ''}
+          </div>
+          <button class="delete-chat-btn" data-partner-id="${partnerId}" title="删除聊天记录">✕</button>
+        `;
+        item.addEventListener('click', (e) => {
+          if (e.target.classList.contains('delete-chat-btn')) return;
+          window.location.href = `chat-detail.html?user=${partnerId}`;
+        });
+        otherChatsContainer.appendChild(item);
+      }
+
+      var pinnedCount = await loadPinnedStatus();
+
+      // 汇总所有未读数并显示在标题旁
+      var totalUnread = 0;
+      if (unreadResult.data) unreadResult.data.forEach(function() { totalUnread++; });
+      totalUnread += pinnedCount;
+      var totalBadge = document.getElementById('totalUnreadBadge');
+      if (totalUnread > 0) {
+        totalBadge.style.display = 'inline';
+        totalBadge.textContent = totalUnread + ' 条未读';
+      } else {
+        totalBadge.style.display = 'none';
+      }
+    }
+
+    document.getElementById('otherChatsList').addEventListener('click', async (e) => {
+      const deleteBtn = e.target.closest('.delete-chat-btn');
+      if (!deleteBtn) return;
+      
+      const partnerId = deleteBtn.getAttribute('data-partner-id');
+      const chatItem = deleteBtn.closest('.chat-list-item');
+      const { data: { user } } = await sb.auth.getUser();
+      
+      if (!user) return;
+      
+      if (!confirm('确定要删除与该树友的全部聊天记录吗？此操作不可恢复。')) return;
+
+      deleteBtn.disabled = true;
+      deleteBtn.textContent = '...';
+      try {
+        const results = await Promise.all([
+          sb.from('messages').delete().eq('sender_id', user.id).eq('receiver_id', partnerId),
+          sb.from('messages').delete().eq('sender_id', partnerId).eq('receiver_id', user.id)
+        ]);
+        const error = results[0].error || results[1].error;
+
+        if (error) throw error;
+
+        chatItem.remove();
+        
+        const remainingItems = document.querySelectorAll('#otherChatsList .chat-list-item');
+        if (remainingItems.length === 0) {
+          document.getElementById('emptyOtherChats').style.display = 'block';
+        }
+      } catch (err) {
+        console.error('删除聊天记录失败:', err);
+        deleteBtn.disabled = false;
+        deleteBtn.textContent = '✕';
+        alert('删除失败，请稍后重试');
+      }
+    });
+
+    async function loadPinnedStatus() {
+      const { data: { user } } = await sb.auth.getUser();
+      if (!user) return 0;
+      const { count } = await sb.from('messages').select('*', { count: 'exact', head: true })
+        .eq('sender_id', ADMIN_USER_ID).eq('receiver_id', user.id).eq('is_read', false);
+      const badge = document.getElementById('pinnedUnreadBadge');
+      if (count > 0) { badge.style.display = 'inline'; badge.textContent = count; }
+      else { badge.style.display = 'none'; }
+      return count || 0;
+    }
+
+    document.getElementById('pinnedChatBtn').addEventListener('click', () => {
+      window.location.href = `chat-detail.html?user=${ADMIN_USER_ID}`;
+    });
+
+    function goToMatch(e) {
+      e.preventDefault();
+      window.location.href = 'match.html';
+    }
+    document.getElementById('matchBtn').addEventListener('click', goToMatch);
+
+    async function checkMatchLimit() {
+      try {
+        var { data: { user } } = await sb.auth.getUser();
+        if (!user) return;
+        var today = new Date();
+        today.setHours(0, 0, 0, 0);
+        var { count } = await sb.from('match_letters')
+          .select('*', { count: 'exact', head: true })
+          .eq('from_user_id', user.id)
+          .gte('created_at', today.toISOString());
+        if (count > 0) {
+          var btn = document.getElementById('matchBtn');
+          btn.style.opacity = '0.6';
+          btn.style.cursor = 'default';
+          btn.innerHTML = '🍂 今日已寄出，明天再来 🌿<span style="display:block;font-size:12px;color:var(--text-secondary);margin-top:4px;">每日一封，让每次相遇都更加珍贵</span>';
+          btn.removeEventListener('click', goToMatch);
+          btn.addEventListener('click', function(e) { e.preventDefault(); });
+        }
+      } catch (e) { /* match_letters 表尚未迁移，静默降级 */ }
+    }
+
+    window.addEventListener('DOMContentLoaded', async () => {
+      const navGuest = document.getElementById('navGuest');
+      const navLoggedIn = document.getElementById('navLoggedIn');
+      const navNickname = document.getElementById('navNickname');
+      const navLogout = document.getElementById('navLogout');
+      const { data: { user } } = await sb.auth.getUser();
+      if (user) {
+        navGuest.style.display = 'none'; navLoggedIn.style.display = 'inline';
+        const { data: profile } = await sb.from('profiles').select('nickname').eq('user_id', user.id).single();
+        navNickname.textContent = profile?.nickname || '树友';
+        navLogout.addEventListener('click', (e) => { e.preventDefault(); sb.auth.signOut().then(() => window.location.href='welcome.html'); });
+        loadChats();
+        checkMatchLimit();
+      } else { window.location.href = 'welcome.html'; }
+    });
+  </script>
+
+  <script src="ai-float.js"></script>
+  <script src="user-popup.js"></script>
+</body>
+</html>

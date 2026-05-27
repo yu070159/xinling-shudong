@@ -1,0 +1,951 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>个人中心 - 心灵树洞</title>
+  <meta name="description" content="一个匿名倾诉与互助的温暖社区。">
+  <meta name="keywords" content="心灵树洞, 匿名倾诉, 心理互助">
+  <meta name="author" content="心灵树洞">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="心灵树洞">
+  <meta property="og:title" content="心灵树洞 - 匿名倾诉与互助社区">
+  <meta property="og:description" content="在深夜森林里，写下你的心事，有人会温柔地倾听。">
+  <meta property="og:url" content="https://xinling-shudong.vercel.app/">
+  <meta property="og:image" content="https://xinling-shudong.vercel.app/images/og-image.jpg">
+  <meta itemprop="name" content="心灵树洞 - 匿名倾诉与互助社区">
+  <meta itemprop="description" content="在深夜森林里，写下你的心事，有人会温柔地倾听。">
+  <meta itemprop="image" content="https://xinling-shudong.vercel.app/images/wechat-share-icon.jpg">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="心灵树洞 | Soul Tree Hollow">
+  <meta name="twitter:description" content="一个匿名倾诉与互助的温暖社区。">
+  <meta name="twitter:image" content="https://xinling-shudong.vercel.app/images/og-image.jpg">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🌳</text></svg>">
+  <link rel="preconnect" href="https://unpkg.com" crossorigin>
+  <link rel="preconnect" href="https://oazntpskcghfxzcylnef.supabase.co" crossorigin>
+  <link rel="stylesheet" href="style.css">
+  <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+  <script src="utils.js"></script>
+  <style>
+    .profile-container { max-width: 560px; margin: 0 auto; padding: 20px; color: var(--text-primary); }
+    .profile-title { text-align: center; color: var(--accent); font-size: 28px; margin: 30px 0 20px; }
+    
+    .tab-nav { display: flex; gap: 0; margin-bottom: 24px; border-bottom: 1px solid var(--border-light); }
+    .tab-btn {
+      flex: 1; padding: 12px 8px; background: none; border: none; color: var(--text-secondary);
+      font-size: 14px; cursor: pointer; border-bottom: 2px solid transparent; transition: 0.2s;
+    }
+    .tab-btn.active { color: var(--accent); border-bottom-color: var(--accent); }
+    .tab-btn:hover { color: var(--accent-light); }
+
+    .profile-label { color: var(--text-secondary); font-size: 13px; margin-bottom: 6px; display: block; }
+    .profile-input {
+      background: var(--bg-input); border: 1px solid var(--border-medium);
+      color: var(--text-primary); border-radius: 12px; padding: 14px; width: 100%;
+      margin-bottom: 20px; font-size: 16px; outline: none; box-sizing: border-box;
+    }
+    .profile-input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-glow); }
+    textarea.profile-input { height: 100px; resize: vertical; }
+    .mbti-hint { color: var(--text-secondary); font-size: 12px; margin-top: -14px; margin-bottom: 20px; }
+    .mbti-hint a { color: var(--accent); text-decoration: none; }
+    .save-btn {
+      width: 100%; background: var(--accent); color: white;
+      padding: 12px; border-radius: 25px; border: none; cursor: pointer; font-size: 16px;
+      margin-bottom: 20px; transition: 0.2s;
+    }
+    .save-btn:hover:not(:disabled) { transform: scale(1.02); }
+    .save-btn:disabled { opacity: 0.7; cursor: not-allowed; }
+
+    .item-card {
+      background: var(--bg-card); border: 1px solid var(--border-light);
+      border-radius: 12px; padding: 16px; margin-bottom: 12px; cursor: pointer; transition: 0.2s;
+      display: flex; justify-content: space-between; align-items: center;
+    }
+    .item-card:hover { background: var(--bg-input); border-color: var(--border-hover); }
+    .item-title { color: var(--text-primary); font-size: 15px; margin-bottom: 0; display: flex; align-items: center; gap: 10px; }
+    .item-meta { color: var(--text-secondary); font-size: 12px; }
+    .item-actions { margin-top: 0; display: flex; gap: 10px; }
+    .action-accept { background: var(--accent); color: white; border: none; padding: 6px 16px; border-radius: 6px; cursor: pointer; font-size: 13px; }
+    .action-reject { background: transparent; color: var(--danger); border: 1px solid var(--danger); padding: 6px 16px; border-radius: 6px; cursor: pointer; font-size: 13px; }
+    .action-delete { background: transparent; color: var(--text-muted); border: 1px solid var(--border-medium); padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 13px; }
+    .action-delete:hover { color: var(--danger); border-color: var(--danger); }
+    .badge { background: var(--danger); color: white; border-radius: 10px; padding: 2px 8px; font-size: 11px; margin-left: 6px; }
+
+    .profile-info { color: var(--text-secondary); font-size: 13px; text-align: center; margin-bottom: 8px; }
+    .profile-info-divider { height: 1px; background: var(--border-light); margin: 20px 0; }
+    #logoutBtn { background: none; border: none; color: var(--danger); cursor: pointer; font-size: 14px; margin-top: 20px; display: block; width: 100%; text-align: center; }
+    #saveMsg { text-align: center; font-size: 14px; margin-bottom: 16px; min-height: 20px; }
+    #saveMsg.success { color: var(--accent); } 
+    #saveMsg.error { color: var(--danger); }
+    .empty-state { text-align: center; color: var(--text-muted); padding: 40px 20px; font-size: 14px; }
+    .empty-state a { color: var(--accent); text-decoration: none; }
+    .avatar-upload { text-align: center; margin-bottom: 20px; }
+    #avatarPreview { width: 100px; height: 100px; border-radius: 50%; object-fit: cover; border: 2px solid var(--border-light); cursor: pointer; display: block; margin: 0 auto; }
+    .avatar-placeholder {
+      width: 100px; height: 100px; border-radius: 50%; background: var(--accent-glow); display: flex; align-items: center; justify-content: center; font-size: 40px; cursor: pointer; margin: 0 auto; border: 2px solid var(--accent); color: var(--accent);
+    }
+    
+    .show-settings-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-light);
+      border-radius: 12px;
+      padding: 16px;
+      margin-bottom: 20px;
+    }
+    .show-settings-title { color: var(--text-primary); font-size: 15px; font-weight: 600; margin-bottom: 12px; }
+    .show-setting-item { display: flex; align-items: center; gap: 10px; padding: 8px 0; cursor: pointer; color: var(--text-secondary); font-size: 14px; }
+    .show-setting-item input[type="checkbox"] { width: 18px; height: 18px; cursor: pointer; }
+    .user-avatar-placeholder { display: inline-flex; align-items: center; justify-content: center; border-radius: 50%; background: var(--accent-glow); border: 2px solid var(--accent); color: var(--accent); cursor: pointer; }
+    
+    .stat-summary { display: flex; justify-content: center; gap: 16px; margin-bottom: 20px; flex-wrap: wrap; }
+    .stat-item { text-align: center; background: var(--bg-card); border: 1px solid var(--border-light); border-radius: 10px; padding: 10px 16px; min-width: 70px; }
+    .stat-num { font-size: 22px; font-weight: 700; color: var(--accent); }
+    .stat-label { font-size: 11px; color: var(--text-secondary); margin-top: 2px; }
+
+    .phq9-trend { margin-top: 8px; margin-bottom: 16px; }
+    .phq9-trend-title { font-size: 13px; color: var(--text-secondary); margin-bottom: 8px; }
+    .phq9-bar-row { display: flex; align-items: center; gap: 8px; margin-bottom: 5px; font-size: 12px; }
+    .phq9-bar-date { width: 52px; text-align: right; color: var(--text-secondary); flex-shrink: 0; }
+    .phq9-bar-wrap { flex: 1; background: var(--bg-input); border-radius: 4px; overflow: hidden; }
+    .phq9-bar-fill { height: 18px; border-radius: 4px; min-width: 3px; display: flex; align-items: center; padding-left: 6px; color: white; font-size: 11px; white-space: nowrap; transition: width 0.5s; }
+
+    /* 回音壁卡片 */
+    .echo-wall { margin-bottom: 20px; }
+    .echo-wall-title { color: var(--accent); font-size: 16px; margin-bottom: 12px; }
+    .echo-card {
+      background: linear-gradient(135deg, rgba(212,160,46,0.08), rgba(122,168,120,0.08));
+      border: 1px solid var(--border-light); border-left: 4px solid var(--warm-heart);
+      border-radius: 12px; padding: 14px 16px; margin-bottom: 10px;
+      position: relative;
+    }
+    .echo-card-message { font-size: 14px; color: var(--text-primary); line-height: 1.6; margin-bottom: 8px; }
+    .echo-card-music { font-size: 13px; margin-bottom: 4px; }
+    .echo-card-music a { color: var(--accent); text-decoration: none; }
+    .echo-card-music a:hover { text-decoration: underline; }
+    .echo-card-time { font-size: 11px; color: var(--text-muted); }
+    .echo-card-delete {
+      position: absolute; top: 8px; right: 12px; background: none; border: none;
+      color: var(--text-muted); cursor: pointer; font-size: 14px; padding: 2px 6px;
+    }
+    .echo-card-delete:hover { color: var(--danger); }
+    .echo-empty { text-align: center; color: var(--text-muted); padding: 20px; font-size: 13px; }
+    .echo-empty a { color: var(--accent); text-decoration: none; }
+
+    /* 微光公益 */
+    .donate-section { margin-bottom: 20px; }
+    .donate-title { color: var(--accent); font-size: 16px; margin-bottom: 8px; }
+    .donate-balance { font-size: 13px; color: var(--text-secondary); margin-bottom: 12px; }
+    .donate-balance strong { color: var(--warm-heart); font-size: 18px; }
+    .donate-btns { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
+    .donate-btn {
+      flex: 1; min-width: 80px; background: var(--bg-card); border: 1px solid var(--border-medium);
+      color: var(--text-primary); padding: 10px 8px; border-radius: 10px; cursor: pointer;
+      font-size: 13px; transition: 0.2s; text-align: center;
+    }
+    .donate-btn:hover:not(:disabled) { border-color: var(--warm-heart); background: rgba(224, 120, 57, 0.08); }
+    .donate-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    .donate-btn .donate-amount { font-size: 18px; font-weight: 700; color: var(--warm-heart); display: block; }
+    .badge-row { display: flex; gap: 10px; flex-wrap: wrap; }
+    .badge-item { text-align: center; font-size: 12px; color: var(--text-secondary); opacity: 0.4; }
+    .badge-item.earned { opacity: 1; }
+    .badge-item .badge-icon { font-size: 24px; display: block; margin-bottom: 2px; }
+    .badge-item .badge-name { font-weight: 600; }
+  </style>
+</head>
+<body>
+  <header class="forest-header">
+      <a href="index.html" class="forest-logo">
+          <span class="logo-icon">🌳</span>
+          <span class="logo-text">心灵树洞</span>
+      </a>
+      <nav class="forest-nav">
+          <a href="index.html">广场</a>
+          <a href="books.html">书洞</a>
+          <a href="shuling.html">树灵</a>
+          <a href="chat.html">树友对话</a>
+          <a href="mood-ring.html">年轮</a>
+      </nav>
+      <div class="forest-user-actions" id="navUserArea">
+          <span id="navGuest">
+              <a href="login.html">登录</a>
+              <a href="register.html">注册</a>
+          </span>
+          <span id="navLoggedIn" style="display:none">
+              <span class="user-greeting" id="navNickname"></span>
+              <a href="profile.html">个人中心</a>
+              <a href="feedback.html">反馈</a>
+              <a href="#" class="logout-btn" id="navLogout">退出</a>
+          </span>
+      </div>
+  </header>
+
+  <div class="profile-container">
+    <h1 class="profile-title">个人中心</h1>
+
+    <div class="stat-summary" id="statSummary">
+      <div class="stat-item"><div class="stat-num" id="statPosts">-</div><div class="stat-label">发帖</div></div>
+      <div class="stat-item"><div class="stat-num" id="statComments">-</div><div class="stat-label">回应</div></div>
+      <div class="stat-item"><div class="stat-num" id="statHearts">-</div><div class="stat-label">获暖心</div></div>
+      <div class="stat-item"><div class="stat-num" id="statFavorites">-</div><div class="stat-label">收藏</div></div>
+      <div class="stat-item"><div class="stat-num" id="statGlimmer">-</div><div class="stat-label">微光</div></div>
+    </div>
+
+    <div class="tab-nav">
+      <button class="tab-btn active" data-tab="tab-profile">个人资料</button>
+      <button class="tab-btn" data-tab="tab-content">我的内容</button>
+      <button class="tab-btn" data-tab="tab-friends">好友申请<span id="friendBadge" class="badge" style="display:none"></span></button>
+    </div>
+
+    <div id="tab-profile" class="tab-content">
+      <div class="avatar-upload">
+        <div id="avatarPlaceholder" class="avatar-placeholder">🌱</div>
+        <img id="avatarPreview" src="" alt="头像" style="display:none;">
+        <input type="file" id="avatarInput" accept="image/*" style="display:none;">
+      </div>
+      <div id="saveMsg" class="smooth-text"></div>
+      <label class="profile-label">昵称</label>
+      <input type="text" id="profileNickname" class="profile-input" placeholder="你的昵称">
+      <label class="profile-label">MBTI 类型</label>
+      <input type="text" id="profileMbti" class="profile-input" placeholder="例如 INFJ">
+      <div class="mbti-hint">还没有测过？<a href="mbti-test.html">去做 MBTI 测试</a></div>
+      <div class="mbti-hint">心理状态自评：<span id="phq9Status">加载中...</span> <a href="mental-test.html">去做心理测评</a></div>
+      <div class="mbti-hint">倾听者认证：<span id="peerCertStatus">加载中...</span></div>
+      <div class="phq9-trend" id="phq9Trend" style="display:none;"></div>
+      <label class="profile-label">个人简介</label>
+      <textarea id="profileBio" class="profile-input" placeholder="写一段话介绍自己...（选填）"></textarea>
+      <button id="profileSaveBtn" class="save-btn">保存资料</button>
+      <div class="profile-info-divider"></div>
+      <p class="profile-info" id="regDate">注册时间：加载中...</p>
+      <p class="profile-info" id="questionCount">已发表心事：加载中...</p>
+      
+      <div class="show-settings-card">
+        <h3 class="show-settings-title">对外展示设置</h3>
+        <label class="show-setting-item"><input type="checkbox" id="showMbtiCheck"> 允许展示 MBTI 类型</label>
+        <label class="show-setting-item"><input type="checkbox" id="showBioCheck"> 允许展示个人简介</label>
+        <label class="show-setting-item"><input type="checkbox" id="showJoinDateCheck"> 允许展示注册时间</label>
+        <label class="show-setting-item"><input type="checkbox" id="showHeartsCheck"> 允许展示暖心数量</label>
+        <label class="show-setting-item"><input type="checkbox" id="showFavoritesCheck"> 允许展示收藏数量</label>
+        <label class="show-setting-item"><input type="checkbox" id="showPostsCheck"> 允许展示发帖/回应数量</label>
+        <label class="show-setting-item"><input type="checkbox" id="showFriendsCheck"> 允许展示树友数量</label>
+      </div>
+
+      <div class="echo-wall" id="echoWall" style="display:none;">
+        <div class="profile-info-divider"></div>
+        <h3 class="echo-wall-title">💌 收到的回音</h3>
+        <div id="echoCardsList"></div>
+        <div id="echoEmpty" class="echo-empty" style="display:none;">还没有收到回音，<a href="index.html">去广场</a>给别人送去温暖吧</div>
+      </div>
+
+      <div class="donate-section" id="donateSection">
+        <div class="profile-info-divider"></div>
+        <h3 class="donate-title">💛 微光公益</h3>
+        <div class="donate-balance">当前余额：<strong id="donateBalance">0</strong> 微光</div>
+        <div class="donate-btns">
+          <button class="donate-btn" data-amount="100"><span class="donate-amount">100</span>微光使者 🥉</button>
+          <button class="donate-btn" data-amount="500"><span class="donate-amount">500</span>温暖之光 🥈</button>
+          <button class="donate-btn" data-amount="1000"><span class="donate-amount">1000</span>星火相传 🥇</button>
+        </div>
+        <div id="donateMsg" class="form-message"></div>
+        <div class="badge-row" id="donateBadges">
+          <div class="badge-item" data-badge="100"><span class="badge-icon">🥉</span><span class="badge-name">微光使者</span></div>
+          <div class="badge-item" data-badge="500"><span class="badge-icon">🥈</span><span class="badge-name">温暖之光</span></div>
+          <div class="badge-item" data-badge="1000"><span class="badge-icon">🥇</span><span class="badge-name">星火相传</span></div>
+        </div>
+      </div>
+
+      <button id="logoutBtn">退出树洞</button>
+    </div>
+
+    <div id="tab-content" class="tab-content" style="display:none;">
+      <h3 style="color:var(--text-secondary); margin-bottom:12px;">我发布的心事</h3>
+      <div id="myQuestionsList"></div>
+      <div id="myQuestionsEmpty" class="empty-state" style="display:none;">还没有发布过心事</div>
+      <div class="profile-info-divider"></div>
+      <h3 style="color:var(--text-secondary); margin-bottom:12px;">我的回应</h3>
+      <div id="myAnswersList"></div>
+      <div id="myAnswersEmpty" class="empty-state" style="display:none;">还没有回应过任何心事</div>
+      <div class="profile-info-divider"></div>
+      <h3 style="color:var(--text-secondary); margin-bottom:12px;">我的收藏</h3>
+      <div id="favoritesList"></div>
+      <div id="favoritesEmpty" class="empty-state" style="display:none;">还没有收藏任何心事</div>
+    </div>
+
+    <div id="tab-friends" class="tab-content" style="display:none;">
+      <h3 style="color:var(--text-secondary); margin-bottom:16px;">待处理的申请</h3>
+      <div id="pendingRequests"></div>
+      <div id="pendingEmpty" class="empty-state" style="display:none;">没有待处理的好友申请</div>
+      <div class="profile-info-divider"></div>
+      <h3 style="color:var(--text-secondary); margin-bottom:16px;">我的树友</h3>
+      <div id="acceptedFriends"></div>
+      <div id="friendsEmpty" class="empty-state" style="display:none;">还没有树友，在树洞里相遇吧。</div>
+    </div>
+  </div>
+
+  <script>
+    const sb = window.TreeHole.supabase;
+
+    let currentUser = null;
+    let newAvatarUrl = null;
+
+    async function getCurrentUser() {
+      if (!sb) return null;
+      const { data: { user } } = await sb.auth.getUser();
+      return user;
+    }
+
+    async function getUserProfile() {
+      if (!currentUser) return null;
+      const { data } = await sb.from('profiles').select('*').eq('user_id', currentUser.id).single();
+      return data;
+    }
+
+    async function updateProfile(dataObj) {
+      const { data: { session } } = await sb.auth.getSession();
+      if (!session) throw new Error('未登录');
+      // 过滤掉 null 值，避免覆盖已有数据
+      const cleanObj = {};
+      for (const [k, v] of Object.entries(dataObj)) {
+        if (v !== null) cleanObj[k] = v;
+      }
+      const response = await fetch(
+        `${window.TreeHole.config.SUPABASE_URL}/rest/v1/profiles?user_id=eq.${session.user.id}`,
+        {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json',
+            'apikey': window.TreeHole.config.SUPABASE_ANON_KEY,
+            'Authorization': `Bearer ${session.access_token}`,
+            'Prefer': 'return=minimal'
+          },
+          body: JSON.stringify(cleanObj)
+        }
+      );
+      if (!response.ok) { const errText = await response.text(); throw new Error(errText || '更新失败'); }
+      return { success: true };
+    }
+
+    function signOut() {
+      sb.auth.signOut().then(() => { window.location.href = 'welcome.html'; });
+    }
+
+    // escapeHtml, updateTextSmoothly 由 utils.js 全局提供
+
+    function setAvatarDisplay(url) {
+      const placeholder = document.getElementById('avatarPlaceholder');
+      const previewImg = document.getElementById('avatarPreview');
+      if (!placeholder || !previewImg) return;
+      if (url) {
+        placeholder.style.display = 'none';
+        previewImg.style.display = 'block';
+        previewImg.src = url;
+      } else {
+        placeholder.style.display = 'flex';
+        previewImg.style.display = 'none';
+        previewImg.src = '';
+      }
+    }
+
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        document.querySelectorAll('.tab-content').forEach(c => c.style.display = 'none');
+        document.getElementById(btn.dataset.tab).style.display = 'block';
+        if (btn.dataset.tab === 'tab-content') loadMyContent();
+        if (btn.dataset.tab === 'tab-friends') loadFriendRequests();
+      });
+    });
+
+    async function loadMyContent() {
+      if (!currentUser) return;
+
+      const { data: questions } = await sb.from('questions')
+        .select('id, content, created_at')
+        .eq('user_id', currentUser.id)
+        .order('created_at', { ascending: false });
+
+      const qContainer = document.getElementById('myQuestionsList');
+      const qEmpty = document.getElementById('myQuestionsEmpty');
+      qContainer.innerHTML = '';
+      if (!questions || questions.length === 0) {
+        qEmpty.style.display = 'block';
+      } else {
+        qEmpty.style.display = 'none';
+        questions.forEach(q => {
+          const card = document.createElement('div');
+          card.className = 'item-card';
+          card.style.cursor = 'pointer';
+          card.innerHTML = `
+            <div>
+              <div class="item-title">${escapeHtml(q.content).substring(0, 50)}...</div>
+              <div class="item-meta">${new Date(q.created_at).toLocaleDateString()}</div>
+            </div>
+          `;
+          card.addEventListener('click', () => { window.location.href = `detail.html?id=${q.id}`; });
+          qContainer.appendChild(card);
+        });
+      }
+
+      const { data: answers } = await sb.from('answers')
+        .select('id, content, question_id, created_at, questions(content)')
+        .eq('user_id', currentUser.id)
+        .order('created_at', { ascending: false });
+
+      const aContainer = document.getElementById('myAnswersList');
+      const aEmpty = document.getElementById('myAnswersEmpty');
+      aContainer.innerHTML = '';
+      if (!answers || answers.length === 0) {
+        aEmpty.style.display = 'block';
+      } else {
+        aEmpty.style.display = 'none';
+        answers.forEach(a => {
+          const card = document.createElement('div');
+          card.className = 'item-card';
+          card.style.cursor = 'pointer';
+          card.innerHTML = `
+            <div>
+              <div class="item-title">${escapeHtml(a.content).substring(0, 50)}...</div>
+              <div class="item-meta">回复于 ${new Date(a.created_at).toLocaleDateString()}</div>
+            </div>
+          `;
+          card.addEventListener('click', () => { window.location.href = `detail.html?id=${a.question_id}`; });
+          aContainer.appendChild(card);
+        });
+      }
+
+      const { data: favs } = await sb.from('favorites')
+        .select('question_id, created_at, questions(content)')
+        .eq('user_id', currentUser.id)
+        .order('created_at', { ascending: false });
+
+      const fContainer = document.getElementById('favoritesList');
+      const fEmpty = document.getElementById('favoritesEmpty');
+      fContainer.innerHTML = '';
+      if (!favs || favs.length === 0) {
+        fEmpty.style.display = 'block';
+      } else {
+        fEmpty.style.display = 'none';
+        favs.forEach(f => {
+          const q = f.questions;
+          const card = document.createElement('div');
+          card.className = 'item-card';
+          card.style.cursor = 'pointer';
+          card.innerHTML = `
+            <div>
+              <div class="item-title">${(q?.content || '已删除的心事').substring(0, 50)}...</div>
+              <div class="item-meta">收藏于 ${new Date(f.created_at).toLocaleDateString()}</div>
+            </div>
+          `;
+          card.addEventListener('click', () => { window.location.href = `detail.html?id=${f.question_id}`; });
+          fContainer.appendChild(card);
+        });
+      }
+
+      document.getElementById('statPosts').textContent = (questions?.length || 0);
+      document.getElementById('statComments').textContent = (answers?.length || 0);
+      document.getElementById('statFavorites').textContent = (favs?.length || 0);
+    }
+
+    async function batchGetNicknames(userIds) {
+      const map = {};
+      if (userIds.size === 0) return map;
+      const { data: profiles } = await sb.from('profiles').select('user_id, nickname').in('user_id', [...userIds]);
+      if (profiles) profiles.forEach(p => { map[p.user_id] = p.nickname || '匿名树友'; });
+      return map;
+    }
+
+    async function loadFriendRequests() {
+      if (!currentUser) return;
+
+      const pendingContainer = document.getElementById('pendingRequests');
+      const pendingEmpty = document.getElementById('pendingEmpty');
+      pendingContainer.innerHTML = '';
+
+      const friendsContainer = document.getElementById('acceptedFriends');
+      const friendsEmpty = document.getElementById('friendsEmpty');
+      friendsContainer.innerHTML = '';
+
+      // 并行获取待处理申请、已接受好友、token
+      const [pendingResult, sessionResult] = await Promise.all([
+        sb.from('friend_requests').select('id, from_user, created_at').eq('to_user', currentUser.id).eq('status', 'pending'),
+        sb.auth.getSession()
+      ]);
+      const { data: pending, error: pendingError } = pendingResult;
+      const token = sessionResult.data.session?.access_token;
+
+      let records = [];
+      try {
+        const response = await fetch(
+          `${window.TreeHole.config.SUPABASE_URL}/rest/v1/friend_requests?or=(from_user.eq.${currentUser.id},to_user.eq.${currentUser.id})&status=eq.accepted&select=id,from_user,to_user`,
+          {
+            headers: {
+              'apikey': window.TreeHole.config.SUPABASE_ANON_KEY,
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json'
+            }
+          }
+        );
+        if (response.ok) records = await response.json();
+      } catch (err) {
+        console.error('加载树友列表失败:', err);
+      }
+
+      // 收集所有需要查询昵称的用户ID，批量查询一次
+      const userIds = new Set();
+      if (pending) pending.forEach(r => userIds.add(r.from_user));
+      if (records) records.forEach(r => {
+        if (r.from_user !== currentUser.id) userIds.add(r.from_user);
+        if (r.to_user !== currentUser.id) userIds.add(r.to_user);
+      });
+      const nicknameMap = await batchGetNicknames(userIds);
+
+      // 渲染待处理申请
+      if (pendingError) {
+        console.error('查询好友申请失败:', pendingError);
+        pendingEmpty.style.display = 'block';
+        pendingEmpty.textContent = '加载失败，请刷新重试';
+      } else if (!pending || pending.length === 0) {
+        pendingEmpty.style.display = 'block';
+        pendingEmpty.textContent = '没有待处理的好友申请';
+      } else {
+        pendingEmpty.style.display = 'none';
+        for (const req of pending) {
+          const nickname = nicknameMap[req.from_user] || '匿名树友';
+          const card = document.createElement('div');
+          card.className = 'item-card';
+          card.innerHTML = `
+            <div>
+              <div class="item-title">${escapeHtml(nickname)} 想加你为树友</div>
+              <div class="item-meta">${new Date(req.created_at).toLocaleDateString()}</div>
+            </div>
+            <div class="item-actions">
+              <button class="action-accept" data-id="${req.id}" data-from="${req.from_user}">接受</button>
+              <button class="action-reject" data-id="${req.id}">拒绝</button>
+              <button class="action-delete" data-id="${req.id}">删除</button>
+            </div>
+          `;
+          pendingContainer.appendChild(card);
+        }
+        pendingContainer.querySelectorAll('.action-accept').forEach(btn => {
+          btn.addEventListener('click', async (e) => {
+            e.stopPropagation();
+            btn.disabled = true;
+            btn.textContent = '...';
+            try {
+              await sb.from('friend_requests').update({ status: 'accepted' }).eq('id', btn.dataset.id);
+              // 通知申请方
+              var fromUser = btn.dataset.from;
+              if (fromUser && window.TreeHole.Notifications) {
+                window.TreeHole.Notifications.create({
+                  userId: fromUser,
+                  type: 'friend_accept',
+                  fromUserId: currentUser.id,
+                  entityId: String(btn.dataset.id),
+                  link: 'chat-detail.html?user=' + currentUser.id,
+                  contentPreview: '接受了你的好友申请'
+                }).catch(function(){});
+              }
+              loadFriendRequests();
+            } catch (err) {
+              btn.disabled = false;
+              btn.textContent = '接受';
+              alert('操作失败，请稍后重试');
+            }
+          });
+        });
+        pendingContainer.querySelectorAll('.action-reject').forEach(btn => {
+          btn.addEventListener('click', async (e) => {
+            e.stopPropagation();
+            btn.disabled = true;
+            btn.textContent = '...';
+            try {
+              await sb.from('friend_requests').delete().eq('id', btn.dataset.id);
+              loadFriendRequests();
+            } catch (err) {
+              btn.disabled = false;
+              btn.textContent = '拒绝';
+              alert('操作失败，请稍后重试');
+            }
+          });
+        });
+        pendingContainer.querySelectorAll('.action-delete').forEach(btn => {
+          btn.addEventListener('click', async (e) => {
+            e.stopPropagation();
+            if (!confirm('确定要删除这条申请吗？')) return;
+            btn.disabled = true;
+            btn.textContent = '...';
+            try {
+              await sb.from('friend_requests').delete().eq('id', btn.dataset.id);
+              loadFriendRequests();
+            } catch (err) {
+              btn.disabled = false;
+              btn.textContent = '删除';
+              alert('删除失败，请稍后重试');
+            }
+          });
+        });
+      }
+
+      // 渲染已接受好友
+      if (!records || records.length === 0) {
+        friendsEmpty.style.display = 'block';
+      } else {
+        friendsEmpty.style.display = 'none';
+        const friendIds = new Set();
+        records.forEach(r => {
+          if (r.from_user === currentUser.id) friendIds.add(r.to_user);
+          else friendIds.add(r.from_user);
+        });
+
+        for (const fid of friendIds) {
+          const name = nicknameMap[fid] || '匿名树友';
+          const card = document.createElement('div');
+          card.className = 'item-card';
+          card.innerHTML = `
+            <div class="item-title">
+              <span class="user-avatar-placeholder" data-user-id="${fid}" style="width:32px;height:32px;font-size:14px;">🌱</span>
+              ${escapeHtml(name)}
+            </div>
+            <button class="action-delete remove-friend-btn" data-friend-id="${fid}">解除</button>
+          `;
+          card.querySelector('.remove-friend-btn').addEventListener('click', async (e) => {
+            e.stopPropagation();
+            if (!confirm('确定要解除与该树友的好友关系吗？')) return;
+            try {
+              const friendRecordIds = records.filter(r => (r.from_user === currentUser.id && r.to_user === fid) || (r.from_user === fid && r.to_user === currentUser.id)).map(r => r.id);
+              if (friendRecordIds.length === 0) {
+                alert('未找到好友关系记录');
+                return;
+              }
+              const deleteResponse = await fetch(
+                `${window.TreeHole.config.SUPABASE_URL}/rest/v1/friend_requests?id=in.(${friendRecordIds.join(',')})`,
+                {
+                  method: 'DELETE',
+                  headers: {
+                    'apikey': window.TreeHole.config.SUPABASE_ANON_KEY,
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                  }
+                }
+              );
+              if (!deleteResponse.ok) throw new Error('删除失败');
+              // 同时清除双方的所有聊天记录
+              try {
+                await Promise.all([
+                  sb.from('messages').delete().eq('sender_id', currentUser.id).eq('receiver_id', fid),
+                  sb.from('messages').delete().eq('sender_id', fid).eq('receiver_id', currentUser.id)
+                ]);
+              } catch (msgErr) {
+                console.warn('清除聊天记录失败:', msgErr);
+              }
+              loadFriendRequests();
+            } catch (err) {
+              console.error('解除好友失败:', err);
+              alert('解除失败，请稍后重试');
+            }
+          });
+          friendsContainer.appendChild(card);
+        }
+      }
+
+      const { count } = await sb.from('friend_requests').select('*', { count: 'exact', head: true }).eq('to_user', currentUser.id).eq('status', 'pending');
+      const badge = document.getElementById('friendBadge');
+      if (count > 0) { badge.style.display = 'inline'; badge.textContent = count; }
+      else { badge.style.display = 'none'; }
+    }
+
+    window.addEventListener('DOMContentLoaded', async () => {
+      const navGuest = document.getElementById('navGuest');
+      const navLoggedIn = document.getElementById('navLoggedIn');
+      const navNickname = document.getElementById('navNickname');
+      const navLogout = document.getElementById('navLogout');
+
+      currentUser = await getCurrentUser();
+      if (!currentUser) { window.location.href = 'welcome.html'; return; }
+
+      navGuest.style.display = 'none';
+      navLoggedIn.style.display = 'inline';
+      const profile = await getUserProfile();
+      navNickname.textContent = profile?.nickname || '树友';
+      navLogout.addEventListener('click', (e) => { e.preventDefault(); signOut(); });
+
+      if (profile) {
+        document.getElementById('profileNickname').value = profile.nickname || '';
+        document.getElementById('profileMbti').value = profile.mbti || '';
+        document.getElementById('profileBio').value = profile.bio || '';
+        setAvatarDisplay(profile.avatar_url);
+        document.getElementById('showMbtiCheck').checked = profile.show_mbti !== false;
+        document.getElementById('showBioCheck').checked = profile.show_bio !== false;
+        document.getElementById('showJoinDateCheck').checked = profile.show_join_date !== false;
+        document.getElementById('showHeartsCheck').checked = profile.show_hearts !== false;
+        document.getElementById('showFavoritesCheck').checked = profile.show_favorites !== false;
+        document.getElementById('showPostsCheck').checked = profile.show_posts !== false;
+        document.getElementById('showFriendsCheck').checked = profile.show_friends !== false;
+
+        if (profile.created_at) {
+          const d = new Date(profile.created_at);
+          document.getElementById('regDate').textContent = `注册时间：${d.getFullYear()}年${String(d.getMonth()+1).padStart(2,'0')}月${String(d.getDate()).padStart(2,'0')}日`;
+        }
+        const { count: qCount } = await sb.from('questions').select('*', { count: 'exact', head: true }).eq('user_id', currentUser.id);
+        document.getElementById('questionCount').textContent = `已发表心事：${qCount || 0} 条`;
+        const phq9El = document.getElementById('phq9Status');
+        if (profile.phq9_score !== null && profile.phq9_score !== undefined) {
+          if (profile.phq9_date) {
+            const d = new Date(profile.phq9_date);
+            phq9El.textContent = `上次测评：${profile.phq9_score} 分（${d.getFullYear()}年${String(d.getMonth()+1).padStart(2,'0')}月${String(d.getDate()).padStart(2,'0')}日）`;
+          } else {
+            phq9El.textContent = `上次测评：${profile.phq9_score} 分`;
+          }
+        } else {
+          phq9El.textContent = '未测评';
+        }
+
+        const certEl = document.getElementById('peerCertStatus');
+        if (profile.is_peer_supporter) {
+          certEl.innerHTML = '<span class="peer-supporter-badge">🌿 认证倾听者</span> <a href="peer-cert.html">重新考试</a>';
+        } else {
+          certEl.innerHTML = '未认证 — <a href="peer-cert.html">参加倾听者认证 →</a>';
+        }
+      }
+
+      // PHQ-9 历史趋势图（localStorage）
+      (function renderPhq9Trend() {
+        try {
+          var history = JSON.parse(localStorage.getItem('phq9_history') || '[]');
+          if (history.length < 2) return;
+          var trend = document.getElementById('phq9Trend');
+          if (!trend) return;
+          trend.style.display = 'block';
+          var recent = history.slice(-10);
+          var maxScore = 27;
+          var getColor = function(s) {
+            if (s <= 4) return '#5ba07a';
+            if (s <= 9) return '#d4a02e';
+            if (s <= 14) return '#e07b39';
+            if (s <= 19) return '#e05555';
+            return '#c0392b';
+          };
+          var html = '<div class="phq9-trend-title">📊 PHQ-9 历史趋势</div>';
+          recent.forEach(function(entry) {
+            var d = new Date(entry.date);
+            var dateStr = (d.getMonth() + 1) + '/' + d.getDate();
+            var pct = Math.max((entry.score / maxScore) * 100, 3);
+            html += '<div class="phq9-bar-row">' +
+              '<span class="phq9-bar-date">' + dateStr + '</span>' +
+              '<div class="phq9-bar-wrap"><div class="phq9-bar-fill" style="width:' + pct + '%;background:' + getColor(entry.score) + ';">' + entry.score + '分 ' + entry.level + '</div></div>' +
+              '</div>';
+          });
+          trend.innerHTML = html;
+        } catch (e) {}
+      })();
+
+      // ====== 统计获暖心数：先查用户的问题和回答，再统计它们的暖心 ======
+      let heartsCount = 0;
+      let myQuestionsData = [];
+      let myAnswersData = [];
+      try {
+        const { data: qData } = await sb.from('questions').select('id').eq('user_id', currentUser.id);
+        const { data: aData } = await sb.from('answers').select('id').eq('user_id', currentUser.id);
+        myQuestionsData = qData || [];
+        myAnswersData = aData || [];
+        const questionIds = myQuestionsData.map(q => q.id);
+        const answerIds = myAnswersData.map(a => a.id);
+
+        if (questionIds.length > 0) {
+          const { count: qHearts } = await sb.from('reactions').select('*', { count: 'exact', head: true })
+            .eq('target_type', 'question')
+            .in('target_id', questionIds);
+          heartsCount += qHearts || 0;
+        }
+        if (answerIds.length > 0) {
+          const { count: aHearts } = await sb.from('reactions').select('*', { count: 'exact', head: true })
+            .eq('target_type', 'answer')
+            .in('target_id', answerIds);
+          heartsCount += aHearts || 0;
+        }
+      } catch (e) {
+        console.warn('获取暖心数异常', e);
+      }
+      document.getElementById('statHearts').textContent = heartsCount;
+      document.getElementById('statPosts').textContent = myQuestionsData.length;
+      document.getElementById('statComments').textContent = myAnswersData.length;
+
+      try {
+        const { count: favCount } = await sb.from('favorites').select('*', { count: 'exact', head: true }).eq('user_id', currentUser.id);
+        document.getElementById('statFavorites').textContent = favCount || 0;
+      } catch (e) {
+        console.warn('获取收藏数异常', e);
+      }
+
+      // 微光余额
+      try {
+        const { data: ledger } = await sb.from('glimmer_ledger').select('amount').eq('user_id', currentUser.id);
+        const balance = (ledger || []).reduce(function(s, r) { return s + r.amount; }, 0);
+        document.getElementById('statGlimmer').textContent = balance;
+      } catch (e) {
+        console.warn('获取微光余额异常', e);
+        document.getElementById('statGlimmer').textContent = '0';
+      }
+
+      const avatarPlaceholder = document.getElementById('avatarPlaceholder');
+      const avatarPreview = document.getElementById('avatarPreview');
+      const triggerUpload = () => document.getElementById('avatarInput').click();
+      if (avatarPlaceholder) avatarPlaceholder.addEventListener('click', triggerUpload);
+      if (avatarPreview) avatarPreview.addEventListener('click', triggerUpload);
+
+      document.getElementById('avatarInput').addEventListener('change', async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        try {
+          const fileExt = file.name.split('.').pop();
+          const fileName = `${currentUser.id}.${fileExt}`;
+          const { error: uploadError } = await sb.storage.from('avatars').upload(fileName, file, { upsert: true });
+          if (uploadError) throw uploadError;
+          const { data: urlData } = sb.storage.from('avatars').getPublicUrl(fileName);
+          newAvatarUrl = urlData.publicUrl;
+          setAvatarDisplay(newAvatarUrl);
+        } catch (err) { alert('上传失败: ' + err.message); }
+      });
+
+      const saveBtn = document.getElementById('profileSaveBtn');
+      const saveMsg = document.getElementById('saveMsg');
+      saveBtn.addEventListener('click', async () => {
+        const nickname = document.getElementById('profileNickname').value.trim();
+        const mbti = document.getElementById('profileMbti').value.trim();
+        const bio = document.getElementById('profileBio').value.trim();
+        const showMbti = document.getElementById('showMbtiCheck').checked;
+        const showBio = document.getElementById('showBioCheck').checked;
+        const showJoinDate = document.getElementById('showJoinDateCheck').checked;
+        const showHearts = document.getElementById('showHeartsCheck').checked;
+        const showFavorites = document.getElementById('showFavoritesCheck').checked;
+        const showPosts = document.getElementById('showPostsCheck').checked;
+        const showFriends = document.getElementById('showFriendsCheck').checked;
+        if (!nickname) { updateTextSmoothly('saveMsg', '请填写昵称'); saveMsg.className = 'smooth-text error'; return; }
+        saveBtn.disabled = true; saveBtn.textContent = '保存中...';
+        saveMsg.className = 'smooth-text';
+        updateTextSmoothly('saveMsg', '');
+        try {
+          await updateProfile({ nickname, mbti, bio, avatar_url: newAvatarUrl, show_mbti: showMbti, show_bio: showBio, show_join_date: showJoinDate, show_hearts: showHearts, show_favorites: showFavorites, show_posts: showPosts, show_friends: showFriends });
+          updateTextSmoothly('saveMsg', '✅ 资料已保存');
+          saveMsg.className = 'smooth-text success';
+          navNickname.textContent = nickname;
+          setTimeout(() => location.reload(), 800);
+        } catch (err) {
+          updateTextSmoothly('saveMsg', '保存失败：' + err.message);
+          saveMsg.className = 'smooth-text error';
+        } finally {
+          saveBtn.disabled = false;
+          saveBtn.textContent = '保存资料';
+        }
+      });
+
+      document.getElementById('logoutBtn').addEventListener('click', signOut);
+
+      const { count: pendingCount } = await sb.from('friend_requests').select('*', { count: 'exact', head: true }).eq('to_user', currentUser.id).eq('status', 'pending');
+      if (pendingCount > 0) { document.getElementById('friendBadge').style.display = 'inline'; document.getElementById('friendBadge').textContent = pendingCount; }
+
+      // 回音壁：加载收到的回音卡
+      try {
+        const { data: echoCards } = await sb.from('echo_cards')
+          .select('id, message, music_url, created_at')
+          .eq('to_user_id', currentUser.id)
+          .order('created_at', { ascending: false });
+        if (echoCards && echoCards.length > 0) {
+          document.getElementById('echoWall').style.display = 'block';
+          document.getElementById('echoEmpty').style.display = 'none';
+          const list = document.getElementById('echoCardsList');
+          echoCards.forEach(function(card) {
+            const div = document.createElement('div');
+            div.className = 'echo-card';
+            div.innerHTML =
+              '<button class="echo-card-delete" data-id="' + card.id + '">✕</button>' +
+              '<div class="echo-card-message">' + escapeHtml(card.message) + '</div>' +
+              (card.music_url ? '<div class="echo-card-music">🎵 <a href="' + escapeHtml(card.music_url) + '" target="_blank" rel="noopener">' + escapeHtml(card.music_url) + '</a></div>' : '') +
+              '<div class="echo-card-time">' + formatDate(card.created_at) + '</div>';
+            list.appendChild(div);
+          });
+          // 删除按钮
+          list.querySelectorAll('.echo-card-delete').forEach(function(btn) {
+            btn.addEventListener('click', async function() {
+              if (!confirm('确定要移除这张回音卡吗？')) return;
+              btn.disabled = true;
+              try {
+                await sb.from('echo_cards').delete().eq('id', btn.dataset.id);
+                btn.closest('.echo-card').remove();
+                if (list.querySelectorAll('.echo-card').length === 0) {
+                  document.getElementById('echoEmpty').style.display = 'block';
+                }
+              } catch (err) {
+                btn.disabled = false;
+                alert('删除失败，请稍后重试');
+              }
+            });
+          });
+        } else {
+          document.getElementById('echoWall').style.display = 'block';
+          document.getElementById('echoEmpty').style.display = 'block';
+        }
+      } catch (err) {
+        console.warn('加载回音卡失败:', err);
+      }
+
+      // 微光公益：余额、捐赠、徽章
+      try {
+        var { data: fullLedger } = await sb.from('glimmer_ledger').select('amount').eq('user_id', currentUser.id);
+        var glimmerBalance = (fullLedger || []).reduce(function(s, r) { return s + r.amount; }, 0);
+        document.getElementById('donateBalance').textContent = glimmerBalance;
+        document.getElementById('statGlimmer').textContent = glimmerBalance;
+
+        // 捐赠徽章状态
+        var donated = profile.glimmer_donated || 0;
+        document.querySelectorAll('#donateBadges .badge-item').forEach(function(item) {
+          if (donated >= parseInt(item.dataset.badge)) item.classList.add('earned');
+        });
+
+        // 捐赠按钮
+        document.querySelectorAll('.donate-btn').forEach(function(btn) {
+          btn.addEventListener('click', async function() {
+            var amount = parseInt(btn.dataset.amount);
+            if (glimmerBalance < amount) {
+              updateTextSmoothly('donateMsg', '微光不足，多在社区互动获取吧', 'error');
+              document.getElementById('donateMsg').style.display = 'block';
+              return;
+            }
+            if (!confirm('确定要捐赠 ' + amount + ' 微光吗？这是荣誉性的虚拟捐赠，不会产生实际金钱交易。')) return;
+            btn.disabled = true;
+            try {
+              await sb.from('glimmer_ledger').insert({
+                user_id: currentUser.id, amount: -amount,
+                reason: 'donate', reference_id: String(amount)
+              });
+              if (window.TreeHole.refreshGlimmer) window.TreeHole.refreshGlimmer();
+              var newDonated = donated + amount;
+              await updateProfile({ glimmer_donated: newDonated });
+              glimmerBalance -= amount;
+              donated = newDonated;
+              document.getElementById('donateBalance').textContent = glimmerBalance;
+              document.getElementById('statGlimmer').textContent = glimmerBalance;
+              document.querySelectorAll('#donateBadges .badge-item').forEach(function(item) {
+                if (donated >= parseInt(item.dataset.badge)) item.classList.add('earned');
+              });
+              updateTextSmoothly('donateMsg', '✅ 感谢你的善意！累计捐赠 ' + donated + ' 微光', 'success');
+              document.getElementById('donateMsg').style.display = 'block';
+            } catch (err2) {
+              updateTextSmoothly('donateMsg', '捐赠失败，请稍后重试', 'error');
+              document.getElementById('donateMsg').style.display = 'block';
+            } finally {
+              btn.disabled = false;
+            }
+          });
+        });
+      } catch (e3) {
+        console.warn('加载微光公益失败:', e3);
+        document.getElementById('donateSection').style.display = 'none';
+      }
+    });
+  </script>
+
+  <script src="ai-float.js"></script>
+  <script src="user-popup.js"></script>
+</body>
+</html>

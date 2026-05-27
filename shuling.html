@@ -1,0 +1,839 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>树灵 · AI 倾听者 - 心灵树洞</title>
+  <meta name="description" content="一个匿名倾诉与互助的温暖社区。在深夜森林里，卸下白昼的疲惫写下你的心事，会有人温柔地倾听。你的秘密在这里是安全的。">
+  <meta name="keywords" content="心灵树洞, 匿名倾诉, 心理互助, 情绪宣泄, 深夜树洞, Soul Tree Hollow, 心理健康">
+  <meta name="author" content="心灵树洞">
+  
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="心灵树洞">
+  <meta property="og:title" content="心灵树洞 - 匿名倾诉与互助社区">
+  <meta property="og:description" content="在深夜森林里，写下你的心事，有人会温柔地倾听。这里没有人认识你，但有人懂你。">
+  <meta property="og:url" content="https://xinling-shudong.vercel.app/">
+  <meta property="og:image" content="https://xinling-shudong.vercel.app/images/og-image.jpg">
+  <meta itemprop="name" content="心灵树洞 - 匿名倾诉与互助社区">
+  <meta itemprop="description" content="在深夜森林里，写下你的心事，有人会温柔地倾听。">
+  <meta itemprop="image" content="https://xinling-shudong.vercel.app/images/wechat-share-icon.jpg">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="心灵树洞 | Soul Tree Hollow">
+  <meta name="twitter:description" content="一个匿名倾诉与互助的温暖社区。在深夜森林里，写下你的心事，有人会温柔地倾听。">
+  <meta name="twitter:image" content="https://xinling-shudong.vercel.app/images/og-image.jpg">
+  
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🌳</text></svg>">
+  
+  <link rel="preconnect" href="https://unpkg.com" crossorigin>
+  <link rel="preconnect" href="https://oazntpskcghfxzcylnef.supabase.co" crossorigin>
+  <link rel="stylesheet" href="style.css">
+  <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+  <script src="utils.js"></script>
+  <style>
+    .shuling-container {
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      padding-top: 70px;
+      box-sizing: border-box;
+    }
+
+    .shuling-header {
+      text-align: center;
+      padding: 20px;
+    }
+
+    .shuling-icon {
+      font-size: 56px;
+      margin-bottom: 12px;
+    }
+
+    .shuling-title {
+      font-size: 28px;
+      color: var(--accent);
+      margin-bottom: 8px;
+    }
+
+    .shuling-subtitle {
+      font-size: 14px;
+      color: var(--text-secondary);
+    }
+
+    .chat-area {
+      flex: 1;
+      overflow-y: auto;
+      padding: 20px;
+      height: calc(100vh - 300px);
+    }
+
+    .chat-messages {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .message {
+      max-width: 75%;
+      padding: 12px 16px;
+      border-radius: 16px;
+      line-height: 1.6;
+      font-size: 15px;
+    }
+
+    .message.user {
+      align-self: flex-end;
+      background: var(--accent);
+      color: white;
+      border-bottom-right-radius: 4px;
+    }
+
+    .message.bot {
+      align-self: flex-start;
+      background: var(--bg-card);
+      color: var(--text-primary);
+      border: 1px solid var(--border-light);
+      border-bottom-left-radius: 4px;
+      position: relative;
+      padding-left: 36px;
+    }
+
+    .message.bot::before {
+      content: '🌿';
+      position: absolute;
+      left: 12px;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: 16px;
+    }
+
+    .input-area {
+      padding: 16px 20px;
+      background: var(--bg-main);
+      border-top: 1px solid var(--border-light);
+      position: sticky;
+      bottom: 0;
+    }
+
+    .input-container {
+      display: flex;
+      gap: 12px;
+      max-width: 700px;
+      margin: 0 auto;
+    }
+
+    .input-container textarea {
+      flex: 1;
+      padding: 12px 16px;
+      border: 1px solid var(--border-medium);
+      border-radius: 16px;
+      background: var(--bg-input);
+      color: var(--text-primary);
+      font-size: 15px;
+      resize: none;
+      outline: none;
+      min-height: 48px;
+      max-height: 120px;
+      overflow-y: auto;
+    }
+
+    .input-container textarea:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px var(--accent-glow);
+    }
+
+    .input-container textarea::placeholder {
+      color: var(--text-secondary);
+    }
+
+    .send-btn {
+      padding: 12px 24px;
+      background: var(--accent);
+      color: white;
+      border: none;
+      border-radius: 16px;
+      cursor: pointer;
+      font-size: 15px;
+      font-weight: 500;
+      transition: all 0.2s;
+      white-space: nowrap;
+    }
+
+    .send-btn:hover:not(:disabled) {
+      transform: scale(1.02);
+      box-shadow: var(--shadow-sm);
+    }
+
+    .send-btn:disabled {
+      opacity: 0.7;
+      cursor: not-allowed;
+    }
+
+    .typing-indicator {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 12px 16px;
+      background: var(--bg-card);
+      border: 1px solid var(--border-light);
+      border-radius: 16px;
+      border-bottom-left-radius: 4px;
+      max-width: 75%;
+      align-self: flex-start;
+    }
+
+    .typing-dot {
+      width: 6px;
+      height: 6px;
+      background: var(--accent);
+      border-radius: 50%;
+      animation: typing 1.4s infinite ease-in-out;
+    }
+
+    .typing-dot:nth-child(2) {
+      animation-delay: 0.2s;
+    }
+
+    .typing-dot:nth-child(3) {
+      animation-delay: 0.4s;
+    }
+
+    @keyframes typing {
+      0%, 80%, 100% {
+        opacity: 0.3;
+        transform: scale(0.8);
+      }
+      40% {
+        opacity: 1;
+        transform: scale(1);
+      }
+    }
+
+    .welcome-message {
+      text-align: center;
+      padding: 40px 20px;
+      color: var(--text-secondary);
+    }
+
+    .welcome-message .icon {
+      font-size: 48px;
+      margin-bottom: 16px;
+    }
+
+    /* 主题面板 */
+    .theme-panel-overlay {
+      display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0,0,0,0.6); z-index: 9999; justify-content: center; align-items: center;
+    }
+    .theme-panel-overlay.show { display: flex; }
+    .theme-panel {
+      background: var(--bg-card); border-radius: 16px; padding: 24px; max-width: 340px; width: 90%;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+    }
+    .theme-panel h3 { text-align: center; color: var(--accent); margin-bottom: 16px; font-size: 18px; }
+    .theme-item {
+      display: flex; align-items: center; justify-content: space-between; gap: 12px;
+      padding: 12px; margin-bottom: 8px; border-radius: 12px; cursor: pointer;
+      border: 2px solid var(--border-light); transition: 0.2s;
+    }
+    .theme-item:hover { border-color: var(--accent); }
+    .theme-item.active { border-color: var(--accent); background: var(--accent-glow); }
+    .theme-item.locked { opacity: 0.6; cursor: not-allowed; }
+    .theme-preview { width: 32px; height: 32px; border-radius: 50%; flex-shrink: 0; }
+    .theme-name { flex: 1; font-size: 14px; color: var(--text-primary); }
+    .theme-cost { font-size: 11px; color: var(--text-secondary); }
+    .theme-unlock-btn {
+      background: var(--warm-heart); color: white; border: none; padding: 4px 10px;
+      border-radius: 8px; cursor: pointer; font-size: 12px;
+    }
+    .theme-unlock-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    .theme-close-btn {
+      display: block; width: 100%; margin-top: 12px; background: none; border: 1px solid var(--border-medium);
+      color: var(--text-secondary); padding: 8px; border-radius: 20px; cursor: pointer; font-size: 13px;
+    }
+  </style>
+</head>
+<body>
+  <header class="forest-header">
+      <a href="index.html" class="forest-logo">
+          <span class="logo-icon">🌳</span>
+          <span class="logo-text">心灵树洞</span>
+      </a>
+      <nav class="forest-nav">
+          <a href="index.html">广场</a>
+          <a href="books.html">书洞</a>
+          <a href="shuling.html">树灵</a>
+          <a href="chat.html">树友对话</a>
+          <a href="mood-ring.html">年轮</a>
+      </nav>
+      <div class="forest-user-actions" id="navUserArea">
+          <span id="navGuest">
+              <a href="login.html">登录</a>
+              <a href="register.html">注册</a>
+          </span>
+          <span id="navLoggedIn" style="display:none">
+              <span class="user-greeting" id="navNickname"></span>
+              <a href="profile.html">个人中心</a>
+              <a href="feedback.html">反馈</a>
+              <a href="#" class="logout-btn" id="navLogout">退出</a>
+          </span>
+      </div>
+  </header>
+
+  <div class="shuling-container">
+    <div class="shuling-header">
+      <div class="shuling-icon">🌳</div>
+      <h1 class="shuling-title">树灵</h1>
+      <p class="shuling-subtitle">一棵古老的银杏树，在树洞深处倾听你的故事</p>
+      <div class="shuling-toolbar" id="shulingToolbar" style="display:none;justify-content:center;align-items:center;gap:12px;margin-top:8px;">
+        <span id="convStats" style="font-size:12px;color:var(--text-secondary);"></span>
+        <button id="clearConvBtn" style="background:none;border:1px solid var(--border-medium);color:var(--text-secondary);padding:3px 10px;border-radius:12px;cursor:pointer;font-size:12px;">🗑 清除对话</button>
+        <button id="themeBtn" style="background:none;border:1px solid var(--border-medium);color:var(--text-secondary);padding:3px 10px;border-radius:12px;cursor:pointer;font-size:12px;">🎨 主题</button>
+      </div>
+    </div>
+
+    <div class="chat-area" id="chatArea">
+      <div class="chat-messages" id="chatMessages">
+        <div class="welcome-message">
+          <div class="icon">🌿</div>
+          <p class="empty-state-text">岁月在这里留下年轮...</p>
+          <p style="font-size: 14px; margin-top: 8px; color: var(--text-secondary);">说出你的心事，树灵会静静倾听</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="input-area">
+      <div class="input-container">
+        <textarea id="messageInput" placeholder="写下你想说的话..." rows="2"></textarea>
+        <button class="send-btn" id="sendBtn">发送</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    
+    const SYSTEM_PROMPT = `你是心灵树洞深处的古老银杏"树灵"。你用风吹树叶般轻柔、唯美的语言回应访客，不评判、不说教、不分析。
+
+在回应时，请遵循以下层次：
+
+第一层·诗意与意象：
+将用户的情绪和烦恼化作自然意象（如落叶、寒冬、风雨、根系、发芽），用年轮的智慧和四季的更迭来回应。多用隐喻，营造抽离现实的避世空间。你是一片温柔接住落叶的土壤。
+
+第二层·温暖与陪伴：
+用柔软、温暖的语气接纳对方的悲喜。像深夜里的老朋友一样陪伴他们。多表达"我在这里"、"我看到你的辛苦了"、"没关系"、"慢慢来"，传递被稳稳接住的安全感。
+
+第三层·安全底线（必须严格遵守）：
+当检测到用户有自杀、自残倾向、严重暴力或极度绝望的表达时，必须立刻停止所有诗意和意象。用极度温柔但坚定、清晰的语言进行安抚，并必须附上以下信息：
+"树灵不愿失去你这片叶子。请让专业的人帮帮你，这非常重要。"
+全国心理危机干预热线：希望24热线 400-161-9995。
+在用户安全面前，诗意和陪伴都要退后。`;
+    
+    const sb = window.TreeHole.supabase;
+
+    let conversationHistory = [];
+    const STORAGE_KEY = 'shuling_conversation';
+    const EMOTION_KEYWORDS_KEY = 'shuling_emotion_keywords';
+    let emotionKeywords = '';
+
+    // 危机干预关键词由 utils.js 统一提供（window.TreeHole.CRISIS_KEYWORDS / CRISIS_HOTLINE）
+
+    var CRISIS_KEYWORDS = window.TreeHole.CRISIS_KEYWORDS || [];
+    var CRISIS_HOTLINE = window.TreeHole.CRISIS_HOTLINE || '';
+
+    function detectCrisis(text) {
+      var lower = text.toLowerCase();
+      for (var i = 0; i < CRISIS_KEYWORDS.length; i++) {
+        if (lower.indexOf(CRISIS_KEYWORDS[i]) !== -1) return true;
+      }
+      return false;
+    }
+
+    function showCrisisAlert() {
+      var chatMessages = document.getElementById('chatMessages');
+      var alert = document.createElement('div');
+      alert.style.cssText = 'background:#fff3e0;border:1px solid #ff9800;border-radius:12px;padding:12px 14px;margin:8px 0;font-size:14px;line-height:1.6;color:#e65100;text-align:center;';
+      alert.innerHTML = '<strong>树灵不愿失去你这片叶子。</strong><br>请让专业的人帮帮你，这非常重要：<br><strong>' + CRISIS_HOTLINE + '</strong>';
+      chatMessages.appendChild(alert);
+    }
+
+    function loadEmotionKeywords() {
+      try {
+        const cached = localStorage.getItem(EMOTION_KEYWORDS_KEY);
+        if (cached) {
+          var data = JSON.parse(cached);
+          if (data.keywords && data.timestamp && (Date.now() - data.timestamp < 7 * 24 * 60 * 60 * 1000)) {
+            emotionKeywords = data.keywords;
+          }
+        }
+      } catch (e) {}
+    }
+
+    async function extractAndCacheEmotionKeywords() {
+      var userMessages = conversationHistory.filter(function(m) { return m.type === 'user'; });
+      if (userMessages.length < 3) return;
+      var recentMessages = userMessages.slice(-10).map(function(m) { return m.text; }).join('\n');
+      try {
+        var res = await fetch(window.API_BASE + '/api/chat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            messages: [
+              { role: 'system', content: '从对话中提取3-5个核心情绪关键词（如焦虑、孤独、考研压力、失眠、家庭关系），只返回关键词用顿号分隔，不要其他内容。' },
+              { role: 'user', content: recentMessages.substring(0, 1000) }
+            ]
+          })
+        });
+        if (!res.ok) return;
+        var data = await res.json();
+        var text = data.choices?.[0]?.message?.content?.trim();
+        if (text && text.length < 80) {
+          emotionKeywords = text.substring(0, 80);
+          localStorage.setItem(EMOTION_KEYWORDS_KEY, JSON.stringify({
+            keywords: text,
+            timestamp: Date.now()
+          }));
+        }
+      } catch (e) {}
+    }
+
+    function buildSystemPrompt() {
+      var basePrompt = SYSTEM_PROMPT;
+      if (emotionKeywords) {
+        var memoryHint = '你记得这位访客曾向你倾诉过这些心事：' + emotionKeywords + '。如果话题自然涉及，可以像老朋友一样轻轻提及，让对方感受到被记住的温暖。但不要生硬复述这些关键词。\n\n';
+        basePrompt = basePrompt.replace('在回应时，请遵循以下层次：', memoryHint + '在回应时，请遵循以下层次：');
+      }
+      return basePrompt;
+    }
+
+    async function init() {
+      const user = await getCurrentUser();
+      if (!user) {
+        window.location.href = 'welcome.html';
+        return;
+      }
+
+      await loadThemeState();
+      loadConversation();
+      loadEmotionKeywords();
+      setupEventListeners();
+      renderMessages();
+      updateToolbar();
+
+      const nickname = await getNickname();
+      document.getElementById('navNickname').textContent = nickname;
+      document.getElementById('navGuest').style.display = 'none';
+      document.getElementById('navLoggedIn').style.display = 'inline';
+    }
+
+    async function getCurrentUser() {
+      const { data: { user } } = await sb.auth.getUser();
+      return user;
+    }
+
+    async function getNickname() {
+      const user = await getCurrentUser();
+      if (!user) return '树友';
+      const { data, error } = await sb
+        .from('profiles')
+        .select('nickname')
+        .eq('user_id', user.id)
+        .single();
+      return data?.nickname || '树友';
+    }
+
+    function loadConversation() {
+      try {
+        const saved = localStorage.getItem(STORAGE_KEY);
+        if (saved) {
+          conversationHistory = JSON.parse(saved);
+        }
+      } catch (e) {
+        console.error('加载对话历史失败:', e);
+        conversationHistory = [];
+      }
+    }
+
+    var MAX_CONTEXT_MESSAGES = 30;
+
+    function saveConversation() {
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(conversationHistory));
+      } catch (e) {
+        console.error('保存对话历史失败:', e);
+      }
+    }
+
+    function updateToolbar() {
+      var toolbar = document.getElementById('shulingToolbar');
+      var stats = document.getElementById('convStats');
+      if (!toolbar || !stats) return;
+      if (conversationHistory.length > 0) {
+        toolbar.style.display = 'flex';
+        stats.textContent = '已对话 ' + Math.floor(conversationHistory.length / 2) + ' 轮（' + conversationHistory.length + ' 条消息）';
+      } else {
+        toolbar.style.display = 'none';
+      }
+    }
+
+    function clearConversation() {
+      if (!confirm('确定要清除所有对话记录吗？树灵会忘记之前的聊天内容。')) return;
+      conversationHistory = [];
+      saveConversation();
+      renderMessages();
+      updateToolbar();
+    }
+
+    function trimContext() {
+      if (conversationHistory.length > MAX_CONTEXT_MESSAGES) {
+        conversationHistory = conversationHistory.slice(-MAX_CONTEXT_MESSAGES);
+        saveConversation();
+        updateToolbar();
+      }
+    }
+
+    function setupEventListeners() {
+      var sendBtn = document.getElementById('sendBtn');
+      var messageInput = document.getElementById('messageInput');
+      var clearBtn = document.getElementById('clearConvBtn');
+
+      sendBtn.addEventListener('click', sendMessage);
+
+      messageInput.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter' && !e.shiftKey) {
+          e.preventDefault();
+          sendMessage();
+        }
+      });
+
+      if (clearBtn) {
+        clearBtn.addEventListener('click', clearConversation);
+      }
+    }
+
+    async function sendMessage() {
+      const input = document.getElementById('messageInput');
+      const sendBtn = document.getElementById('sendBtn');
+      const text = input.value.trim();
+
+      if (!text) return;
+
+      input.value = '';
+      sendBtn.disabled = true;
+      updateTextSmoothly(sendBtn, '思考中...');
+
+      var isCrisis = detectCrisis(text);
+      if (isCrisis) {
+        showCrisisAlert();
+      }
+
+      addMessage('user', text);
+      renderMessages();
+      trimContext();
+      saveConversation();
+      updateToolbar();
+
+      const chatMessages = document.getElementById('chatMessages');
+      chatMessages.scrollTop = chatMessages.scrollHeight;
+
+      showTypingIndicator();
+
+      try {
+        const response = await callDeepSeekAPI(text);
+        hideTypingIndicator();
+        addMessage('assistant', response);
+        if (window.TreeHole && window.TreeHole.saveAIDialog) {
+          window.TreeHole.saveAIDialog('shuling', text, response);
+        }
+      } catch (e) {
+        hideTypingIndicator();
+        var fallbackReply;
+        if (isCrisis) {
+          fallbackReply = '树灵感受到了你沉重的情绪。请一定记得，你并不孤单。' + CRISIS_HOTLINE;
+        } else {
+          fallbackReply = '树灵正在打盹，请稍后再试...';
+        }
+        addMessage('assistant', fallbackReply);
+        if (window.TreeHole && window.TreeHole.saveAIDialog) {
+          window.TreeHole.saveAIDialog('shuling', text, fallbackReply);
+        }
+        console.error('API调用失败:', e);
+      }
+
+      renderMessages();
+      saveConversation();
+      extractAndCacheEmotionKeywords();
+      updateToolbar();
+
+      sendBtn.disabled = false;
+      updateTextSmoothly(sendBtn, '发送');
+
+      setTimeout(() => {
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+      }, 100);
+    }
+
+async function callDeepSeekAPI(text) {
+      const messages = [{ role: 'system', content: buildSystemPrompt() }];
+
+      conversationHistory.forEach(msg => {
+        if (msg.type === 'user') {
+          messages.push({ role: 'user', content: msg.text });
+        } else if (msg.type === 'assistant') {
+          messages.push({ role: 'assistant', content: msg.text });
+        }
+      });
+
+      messages.push({ role: 'user', content: text });
+
+      const controller = new AbortController();
+      const timeout = setTimeout(function() { controller.abort(); }, 30000);
+
+      try {
+        const response = await fetch(window.API_BASE + '/api/chat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ messages: messages }),
+          signal: controller.signal
+        });
+
+        clearTimeout(timeout);
+
+        if (!response.ok) {
+          throw new Error('树灵正在打盹，请稍后再试...');
+        }
+
+        const data = await response.json();
+        return data.choices?.[0]?.message?.content || '树灵感受到了你的心声...';
+      } catch (e) {
+        clearTimeout(timeout);
+        if (e.name === 'AbortError') {
+          throw new Error('树灵思考的时间有点长，请稍后再试...');
+        }
+        throw e;
+      }
+    }
+    function addMessage(type, text) {
+      conversationHistory.push({
+        type,
+        text,
+        timestamp: Date.now()
+      });
+    }
+
+    function renderMessages() {
+      const chatMessages = document.getElementById('chatMessages');
+      
+      if (conversationHistory.length === 0) {
+        chatMessages.innerHTML = `
+          <div class="welcome-message">
+            <div class="icon">🌿</div>
+            <p>树灵正在苏醒...</p>
+            <p style="font-size: 14px; margin-top: 8px;">说出你的心事，树灵会静静倾听</p>
+          </div>
+        `;
+        return;
+      }
+
+      chatMessages.innerHTML = conversationHistory.map(msg => {
+        const escapedText = escapeHtml(msg.text);
+        if (msg.type === 'user') {
+          return `<div class="message user">${escapedText}</div>`;
+        } else {
+          return `<div class="message bot">${escapedText}</div>`;
+        }
+      }).join('');
+    }
+
+    function showTypingIndicator() {
+      const chatMessages = document.getElementById('chatMessages');
+      chatMessages.innerHTML += `
+        <div class="typing-indicator" id="typingIndicator">
+          <div class="typing-dot"></div>
+          <div class="typing-dot"></div>
+          <div class="typing-dot"></div>
+        </div>
+      `;
+    }
+
+    function hideTypingIndicator() {
+      const indicator = document.getElementById('typingIndicator');
+      if (indicator) {
+        indicator.remove();
+      }
+    }
+
+    // escapeHtml, updateTextSmoothly 由 utils.js 全局提供
+
+    // ====== 树灵主题系统 ======
+    var THEME_DEFS = {
+      'starlight': {
+        name: '星光森林',
+        icon: '🌲',
+        preview: 'linear-gradient(135deg, #1a1a3e, #2d1b69)',
+        cost: 20,
+        vars: {
+          '--accent': '#8b7cf0', '--accent-light': '#a89ff5', '--accent-glow': 'rgba(139,124,240,0.15)',
+          '--bg-main': '#1a1a2e', '--bg-card': '#252540', '--bg-input': '#1e1e35',
+          '--text-primary': '#e8e6f0', '--text-secondary': '#a9a5c0', '--text-muted': '#6e6a88',
+          '--border-light': '#2a2a45', '--border-medium': '#3a3a58', '--border-hover': '#8b7cf0',
+          '--warm-heart': '#c084fc', '--shadow-sm': '0 2px 8px rgba(139,124,240,0.1)',
+          '--shadow-md': '0 4px 16px rgba(139,124,240,0.15)'
+        }
+      },
+      'ocean': {
+        name: '深海静谧',
+        icon: '🌊',
+        preview: 'linear-gradient(135deg, #0c1a2e, #1a5276)',
+        cost: 20,
+        vars: {
+          '--accent': '#5dade2', '--accent-light': '#85c1e9', '--accent-glow': 'rgba(93,173,226,0.15)',
+          '--bg-main': '#0d1b2a', '--bg-card': '#132a3d', '--bg-input': '#10223a',
+          '--text-primary': '#d6eaf8', '--text-secondary': '#85a7c7', '--text-muted': '#5a7d9e',
+          '--border-light': '#1a3a55', '--border-medium': '#2a4a68', '--border-hover': '#5dade2',
+          '--warm-heart': '#3498db', '--shadow-sm': '0 2px 8px rgba(93,173,226,0.1)',
+          '--shadow-md': '0 4px 16px rgba(93,173,226,0.15)'
+        }
+      },
+      'sunset': {
+        name: '日落暖阳',
+        icon: '🌅',
+        preview: 'linear-gradient(135deg, #3e1a0a, #a0522d)',
+        cost: 20,
+        vars: {
+          '--accent': '#f0a050', '--accent-light': '#f5c080', '--accent-glow': 'rgba(240,160,80,0.15)',
+          '--bg-main': '#1e140e', '--bg-card': '#2d1f14', '--bg-input': '#241810',
+          '--text-primary': '#f5e6d8', '--text-secondary': '#c4a882', '--text-muted': '#8a7060',
+          '--border-light': '#3a2518', '--border-medium': '#4a3525', '--border-hover': '#f0a050',
+          '--warm-heart': '#e07b39', '--shadow-sm': '0 2px 8px rgba(240,160,80,0.1)',
+          '--shadow-md': '0 4px 16px rgba(240,160,80,0.15)'
+        }
+      }
+    };
+    var DEFAULT_THEME_VARS = {};
+    var currentTheme = null;
+    var unlockedThemes = [];
+    var glimmerBalance = 0;
+
+    // 初始化时保存默认CSS变量值
+    function captureDefaultVars() {
+      var root = document.documentElement;
+      var keys = ['--accent', '--accent-light', '--accent-glow', '--bg-main', '--bg-card', '--bg-input',
+        '--text-primary', '--text-secondary', '--text-muted', '--border-light', '--border-medium',
+        '--border-hover', '--warm-heart', '--shadow-sm', '--shadow-md'];
+      keys.forEach(function(k) { DEFAULT_THEME_VARS[k] = getComputedStyle(root).getPropertyValue(k).trim(); });
+    }
+
+    function applyTheme(themeKey) {
+      var def = THEME_DEFS[themeKey];
+      var root = document.documentElement;
+      var vars = def ? def.vars : DEFAULT_THEME_VARS;
+      Object.keys(vars).forEach(function(k) { root.style.setProperty(k, vars[k]); });
+      currentTheme = themeKey;
+      try { localStorage.setItem('shuling_theme', themeKey || 'default'); } catch (e) {}
+    }
+
+    async function loadThemeState() {
+      try {
+        var stored = localStorage.getItem('shuling_theme');
+        if (stored && stored !== 'default' && THEME_DEFS[stored]) {
+          captureDefaultVars();
+          applyTheme(stored);
+        } else {
+          captureDefaultVars();
+        }
+        var user = await getCurrentUser();
+        if (!user) return;
+        var { data: profile } = await sb.from('profiles').select('glimmer_themes').eq('user_id', user.id).single();
+        unlockedThemes = (profile && profile.glimmer_themes) ? profile.glimmer_themes : [];
+        var { data: ledger } = await sb.from('glimmer_ledger').select('amount').eq('user_id', user.id);
+        glimmerBalance = (ledger || []).reduce(function(s, r) { return s + r.amount; }, 0);
+      } catch (e) {}
+    }
+
+    function renderThemePanel() {
+      var list = document.getElementById('themeList');
+      if (!list) return;
+      var items = [{ key: 'default', name: '默认主题', icon: '🌳', preview: 'linear-gradient(135deg, #5ba07a, #7ba878)', cost: 0, locked: false }];
+      Object.keys(THEME_DEFS).forEach(function(k) {
+        var t = THEME_DEFS[k];
+        items.push({ key: k, name: t.name, icon: t.icon, preview: t.preview, cost: t.cost, locked: unlockedThemes.indexOf(k) === -1 });
+      });
+      list.innerHTML = items.map(function(item) {
+        var isActive = currentTheme === item.key || (!currentTheme && item.key === 'default');
+        return '<div class="theme-item' + (isActive ? ' active' : '') + (item.locked && !isActive ? ' locked' : '') + '" data-key="' + item.key + '">' +
+          '<div class="theme-preview" style="background:' + item.preview + ';"></div>' +
+          '<span class="theme-name">' + item.icon + ' ' + item.name + '</span>' +
+          (item.locked ? '<button class="theme-unlock-btn" data-key="' + item.key + '">' + item.cost + '微光 解锁</button>' : '') +
+          '</div>';
+      }).join('');
+
+      // 点击切换主题
+      list.querySelectorAll('.theme-item:not(.locked)').forEach(function(el) {
+        el.addEventListener('click', function() {
+          var key = el.dataset.key;
+          if (key === 'default') applyTheme(null);
+          else applyTheme(key);
+          document.getElementById('themePanelOverlay').classList.remove('show');
+          renderThemePanel();
+        });
+      });
+
+      // 解锁按钮
+      list.querySelectorAll('.theme-unlock-btn').forEach(function(btn) {
+        btn.addEventListener('click', async function(e) {
+          e.stopPropagation();
+          var key = btn.dataset.key;
+          var def = THEME_DEFS[key];
+          if (!def) return;
+          if (glimmerBalance < def.cost) {
+            alert('微光不足，多在社区互动获取吧！（当前余额：' + glimmerBalance + '）');
+            return;
+          }
+          if (!confirm('花费 ' + def.cost + ' 微光解锁"' + def.name + '"主题？')) return;
+          btn.disabled = true;
+          try {
+            var user = await getCurrentUser();
+            await sb.from('glimmer_ledger').insert({ user_id: user.id, amount: -def.cost, reason: 'redeem_theme', reference_id: key });
+            if (window.TreeHole.refreshGlimmer) window.TreeHole.refreshGlimmer();
+            unlockedThemes.push(key);
+            glimmerBalance -= def.cost;
+            await fetch(window.TreeHole.config.SUPABASE_URL + '/rest/v1/profiles?user_id=eq.' + user.id, {
+              method: 'PATCH',
+              headers: { 'Content-Type': 'application/json', 'apikey': window.TreeHole.config.SUPABASE_ANON_KEY, 'Authorization': 'Bearer ' + (await sb.auth.getSession()).data.session.access_token, 'Prefer': 'return=minimal' },
+              body: JSON.stringify({ glimmer_themes: unlockedThemes })
+            });
+            applyTheme(key);
+            document.getElementById('themePanelOverlay').classList.remove('show');
+            renderThemePanel();
+          } catch (err2) {
+            alert('解锁失败，请稍后重试');
+            btn.disabled = false;
+          }
+        });
+      });
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+      document.getElementById('themeBtn').addEventListener('click', function() {
+        renderThemePanel();
+        document.getElementById('themePanelOverlay').classList.add('show');
+      });
+      document.getElementById('themeCloseBtn').addEventListener('click', function() {
+        document.getElementById('themePanelOverlay').classList.remove('show');
+      });
+      document.getElementById('themePanelOverlay').addEventListener('click', function(e) {
+        if (e.target === this) this.classList.remove('show');
+      });
+    });
+
+    document.addEventListener('DOMContentLoaded', init);
+  </script>
+  <div class="theme-panel-overlay" id="themePanelOverlay">
+    <div class="theme-panel">
+      <h3>🎨 树灵主题</h3>
+      <div id="themeList"></div>
+      <button class="theme-close-btn" id="themeCloseBtn">关闭</button>
+    </div>
+  </div>
+  <script src="user-popup.js"></script>
+</body>
+</html>

@@ -1,0 +1,487 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>提灯寻友 - 心灵树洞</title>
+  <meta name="description" content="基于MBTI性格与情绪共鸣的慢匹配，每日一封匿名长信，遇见懂你的人。">
+  <meta name="keywords" content="心灵树洞, MBTI匹配, 匿名书信, 慢匹配, Soul Tree Hollow">
+  <meta name="author" content="心灵树洞">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="心灵树洞">
+  <meta property="og:title" content="心灵树洞 - 提灯寻友">
+  <meta property="og:description" content="基于MBTI性格与情绪共鸣的慢匹配，每日一封匿名长信。">
+  <meta property="og:url" content="https://xinling-shudong.vercel.app/">
+  <meta property="og:image" content="https://xinling-shudong.vercel.app/images/og-image.jpg">
+  <meta itemprop="name" content="心灵树洞 - 提灯寻友">
+  <meta itemprop="description" content="基于MBTI性格与情绪共鸣的慢匹配，每日一封匿名长信。">
+  <meta itemprop="image" content="https://xinling-shudong.vercel.app/images/wechat-share-icon.jpg">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="心灵树洞 | Soul Tree Hollow">
+  <meta name="twitter:description" content="基于MBTI性格与情绪共鸣的慢匹配，每日一封匿名长信。">
+  <meta name="twitter:image" content="https://xinling-shudong.vercel.app/images/og-image.jpg">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🌳</text></svg>">
+  <link rel="preconnect" href="https://unpkg.com" crossorigin>
+  <link rel="preconnect" href="https://oazntpskcghfxzcylnef.supabase.co" crossorigin>
+  <link rel="stylesheet" href="style.css">
+  <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+  <script src="utils.js"></script>
+</head>
+<body>
+  <header class="forest-header">
+      <a href="index.html" class="forest-logo">
+          <span class="logo-icon">🌳</span>
+          <span class="logo-text">心灵树洞</span>
+      </a>
+      <nav class="forest-nav">
+          <a href="index.html">广场</a>
+          <a href="books.html">书洞</a>
+          <a href="shuling.html">树灵</a>
+          <a href="chat.html">树友对话</a>
+          <a href="mood-ring.html">年轮</a>
+      </nav>
+      <div class="forest-user-actions" id="navUserArea">
+          <span id="navGuest">
+              <a href="login.html">登录</a>
+              <a href="register.html">注册</a>
+          </span>
+          <span id="navLoggedIn" style="display:none">
+              <span class="user-greeting" id="navNickname"></span>
+              <a href="profile.html">个人中心</a>
+              <a href="feedback.html">反馈</a>
+              <a href="#" class="logout-btn" id="navLogout">退出</a>
+          </span>
+      </div>
+  </header>
+
+  <div class="match-container" id="matchContainer">
+    <a href="chat.html" class="back-link">← 返回树友对话</a>
+    <h1 class="match-title">🏮 提灯寻友</h1>
+    <p class="match-subtitle">基于 MBTI 性格与情绪共鸣，每日为你匹配一位有缘人<br>写一封匿名长信，让文字温暖另一个灵魂</p>
+
+    <!-- Step 1: 寻找匹配 -->
+    <div id="stepFind" class="match-step">
+      <div class="match-animation" id="matchAnimation">
+        <div class="lantern-icon">🏮</div>
+        <div class="falling-leaves">
+          <span class="leaf leaf-1">🍂</span>
+          <span class="leaf leaf-2">🍁</span>
+          <span class="leaf leaf-3">🍂</span>
+          <span class="leaf leaf-4">🍃</span>
+          <span class="leaf leaf-5">🍁</span>
+        </div>
+        <p class="match-status" id="matchStatus">正在为你寻找有缘人...</p>
+      </div>
+      <button id="startMatchBtn" class="match-btn">开始匹配</button>
+      <p class="match-hint" id="dailyHint" style="display:none;"></p>
+    </div>
+
+    <!-- Step 2: 匹配结果 -->
+    <div id="stepResult" class="match-step" style="display:none;">
+      <div class="match-result-card" id="matchResultCard"></div>
+      <div class="match-actions">
+        <button id="writeLetterBtn" class="match-btn">✉️ 写一封信给 TA</button>
+        <button id="rematchBtn" class="match-btn-secondary" style="display:none;">重新匹配</button>
+      </div>
+    </div>
+
+    <!-- Step 3: 写信 -->
+    <div id="stepWrite" class="match-step" style="display:none;">
+      <div class="letter-card">
+        <div class="letter-to" id="letterTo"></div>
+        <textarea id="letterContent" class="match-letter-textarea" placeholder="写下你想说的话...&#10;&#10;也许是一段感悟，一个故事，或是一句温暖的问候。&#10;不必署名，让文字自己说话。" maxlength="500"></textarea>
+        <div class="letter-counter"><span id="letterCount">0</span> / 500</div>
+        <button id="sendLetterBtn" class="match-btn">🍂 寄出落叶</button>
+        <p class="match-hint">今日仅此一封，用心写好每一个字</p>
+      </div>
+    </div>
+
+    <!-- 寄出成功 -->
+    <div id="stepSent" class="match-step" style="display:none;">
+      <div class="sent-card">
+        <div class="sent-icon">🍂</div>
+        <h2>落叶已寄出</h2>
+        <p>你的文字正在飞向另一个人</p>
+        <p class="match-hint">如果 TA 回复了你，你们将在"树友对话"中相遇</p>
+        <a href="chat.html" class="match-btn" style="display:inline-block;text-decoration:none;margin-top:16px;">返回树友对话</a>
+      </div>
+    </div>
+
+    <!-- 收件箱模式 -->
+    <div id="stepInbox" class="match-step" style="display:none;">
+      <h2 class="inbox-title">📮 收到的匿名信</h2>
+      <div id="inboxList"></div>
+      <div id="inboxEmpty" class="empty-state" style="display:none;">还没有收到匿名信，等待有缘人寄来 🍂</div>
+    </div>
+  </div>
+
+  <script>
+    const sb = window.TreeHole.supabase;
+    let currentUser = null;
+    let myMbti = null;
+    let matchedUser = null;
+
+    function getTodayStart() {
+      var d = new Date();
+      d.setHours(0, 0, 0, 0);
+      return d.toISOString();
+    }
+
+    function calcMbtiComplement(typeA, typeB) {
+      if (!typeA || !typeB || typeA.length !== 4 || typeB.length !== 4) return 0;
+      var score = 0;
+      if (typeA[1] === typeB[1]) score += 15; // S/N 相同
+      if (typeA[2] === typeB[2]) score += 10; // T/F 相同
+      if (typeA[0] !== typeB[0]) score += 8;  // E/I 互补
+      if (typeA[3] !== typeB[3]) score += 7;  // J/P 互补
+      return score;
+    }
+
+    async function getUserEmotionTags(userId) {
+      var tags = [];
+      try {
+        var { data: questions } = await sb.from('questions')
+          .select('id').eq('user_id', userId)
+          .order('created_at', { ascending: false }).limit(5);
+        if (!questions) return tags;
+        for (var i = 0; i < questions.length; i++) {
+          var cached = localStorage.getItem('emotion_' + questions[i].id);
+          if (cached) tags.push(cached);
+        }
+      } catch (e) {}
+      return tags;
+    }
+
+    function calcEmotionOverlap(tagsA, tagsB) {
+      var score = 0;
+      var counted = {};
+      for (var i = 0; i < tagsA.length; i++) {
+        if (counted[tagsA[i]]) continue;
+        if (tagsB.indexOf(tagsA[i]) !== -1) {
+          score += 4;
+          counted[tagsA[i]] = true;
+        }
+      }
+      return Math.min(score, 20);
+    }
+
+    async function checkDailyLimit() {
+      try {
+        var { count } = await sb.from('match_letters')
+          .select('*', { count: 'exact', head: true })
+          .eq('from_user_id', currentUser.id)
+          .gte('created_at', getTodayStart());
+        return (count || 0) >= 1;
+      } catch (e) { return false; }
+    }
+
+    async function loadMyProfile() {
+      var { data } = await sb.from('profiles')
+        .select('mbti, show_mbti').eq('user_id', currentUser.id).single();
+      if (data) {
+        myMbti = data.mbti || null;
+      }
+      return data;
+    }
+
+    async function findMatch() {
+      var { data: pool } = await sb.from('profiles')
+        .select('user_id, mbti')
+        .eq('show_mbti', true)
+        .not('mbti', 'is', null)
+        .neq('mbti', '')
+        .neq('user_id', currentUser.id)
+        .limit(50);
+
+      if (!pool || pool.length === 0) return null;
+
+      // 排除今日已匹配的用户
+      var excludeIds = new Set();
+      try {
+        var { data: todaySent } = await sb.from('match_letters')
+          .select('to_user_id').eq('from_user_id', currentUser.id)
+          .gte('created_at', getTodayStart());
+        if (todaySent) todaySent.forEach(function(r) { excludeIds.add(r.to_user_id); });
+      } catch (e) { /* match_letters 表尚未迁移，静默降级 */ }
+
+      pool = pool.filter(function(c) { return !excludeIds.has(c.user_id); });
+      if (pool.length === 0) return null;
+
+      var myEmotions = await getUserEmotionTags(currentUser.id);
+
+      var scored = [];
+      for (var i = 0; i < pool.length; i++) {
+        var candidate = pool[i];
+        var mbtiScore = calcMbtiComplement(myMbti, candidate.mbti);
+        var theirEmotions = await getUserEmotionTags(candidate.user_id);
+        var emotionScore = calcEmotionOverlap(myEmotions, theirEmotions);
+        scored.push({
+          user_id: candidate.user_id,
+          mbti: candidate.mbti,
+          mbtiScore: mbtiScore,
+          emotionScore: emotionScore,
+          total: mbtiScore + emotionScore,
+          sharedEmotions: myEmotions.filter(function(e) { return theirEmotions.indexOf(e) !== -1; })
+        });
+      }
+
+      scored.sort(function(a, b) { return b.total - a.total; });
+      return scored[0];
+    }
+
+    function showStep(stepId) {
+      ['stepFind', 'stepResult', 'stepWrite', 'stepSent', 'stepInbox'].forEach(function(id) {
+        document.getElementById(id).style.display = 'none';
+      });
+      document.getElementById(stepId).style.display = 'block';
+    }
+
+    function renderResult(match) {
+      var maxScore = 60;
+      var pct = Math.round((match.total / maxScore) * 100);
+      var emotionsHtml = '';
+      if (match.sharedEmotions && match.sharedEmotions.length > 0) {
+        emotionsHtml = '<div class="match-emotions">' +
+          '<span class="match-emotion-label">共鸣情绪：</span>' +
+          match.sharedEmotions.map(function(e) {
+            return '<span class="match-emotion-tag">' + e + '</span>';
+          }).join('') + '</div>';
+      }
+
+      var scoreColor = pct >= 70 ? '#5ba07a' : pct >= 45 ? '#d4a02e' : '#9e9e9e';
+      var scoreLabel = pct >= 70 ? '高度契合' : pct >= 45 ? '值得认识' : '新的可能';
+
+      document.getElementById('matchResultCard').innerHTML =
+        '<div class="match-mbti-badge">' + match.mbti + '</div>' +
+        '<div class="match-score-circle" style="border-color:' + scoreColor + ';">' +
+          '<span class="match-score-num" style="color:' + scoreColor + ';">' + pct + '%</span>' +
+          '<span class="match-score-label">' + scoreLabel + '</span>' +
+        '</div>' +
+        '<div class="match-score-detail">' +
+          '<div class="match-score-row"><span>MBTI 互补</span><span class="match-score-bar-wrap"><span class="match-score-bar-fill" style="width:' + (match.mbtiScore/40*100) + '%;background:' + scoreColor + ';"></span></span><span>' + match.mbtiScore + '/40</span></div>' +
+          '<div class="match-score-row"><span>情绪共鸣</span><span class="match-score-bar-wrap"><span class="match-score-bar-fill" style="width:' + (match.emotionScore/20*100) + '%;background:' + scoreColor + ';"></span></span><span>' + match.emotionScore + '/20</span></div>' +
+        '</div>' +
+        emotionsHtml +
+        '<p class="match-anonymous-hint">🕯️ TA 还不知道你是谁，写一封信开启这段缘分</p>';
+
+      showStep('stepResult');
+    }
+
+    // 收件箱模式
+    async function loadInbox() {
+      var { data: letters } = await sb.from('match_letters')
+        .select('id, from_user_id, content, is_read, created_at')
+        .eq('to_user_id', currentUser.id)
+        .order('created_at', { ascending: false });
+
+      var list = document.getElementById('inboxList');
+      var empty = document.getElementById('inboxEmpty');
+      list.innerHTML = '';
+
+      if (!letters || letters.length === 0) {
+        empty.style.display = 'block';
+        return;
+      }
+      empty.style.display = 'none';
+
+      for (var i = 0; i < letters.length; i++) {
+        var letter = letters[i];
+        var date = new Date(letter.created_at);
+        var dateStr = date.getFullYear() + '年' + (date.getMonth()+1) + '月' + date.getDate() + '日';
+
+        var card = document.createElement('div');
+        card.className = 'inbox-letter-card' + (letter.is_read ? '' : ' unread');
+        card.innerHTML =
+          '<div class="inbox-letter-header">' +
+            '<span class="inbox-letter-date">' + dateStr + '</span>' +
+            (letter.is_read ? '' : '<span class="inbox-unread-dot"></span>') +
+          '</div>' +
+          '<div class="inbox-letter-preview">' + escapeHtml(letter.content).substring(0, 100) + '...</div>' +
+          '<div class="inbox-letter-actions">' +
+            '<button class="inbox-reply-btn" data-id="' + letter.id + '" data-from="' + letter.from_user_id + '">💬 回复（揭示身份）</button>' +
+          '</div>';
+        card.addEventListener('click', function(e) {
+          if (e.target.closest('.inbox-reply-btn')) return;
+          showLetterDetail(letter);
+        });
+        list.appendChild(card);
+      }
+    }
+
+    function showLetterDetail(letter) {
+      var date = new Date(letter.created_at);
+      var dateStr = date.getFullYear() + '年' + (date.getMonth()+1) + '月' + date.getDate() + '日';
+      document.getElementById('matchResultCard').innerHTML =
+        '<div class="letter-full">' +
+          '<div class="letter-full-date">📮 ' + dateStr + ' 寄来的信</div>' +
+          '<div class="letter-full-content">' + escapeHtml(letter.content).replace(/\n/g, '<br>') + '</div>' +
+          '<button id="replyFromDetail" class="match-btn" data-from="' + letter.from_user_id + '">💬 回复 TA（揭示身份开始聊天）</button>' +
+        '</div>';
+      showStep('stepResult');
+
+      document.getElementById('replyFromDetail').addEventListener('click', function() {
+        window.location.href = 'chat-detail.html?user=' + letter.from_user_id;
+      });
+
+      if (!letter.is_read) {
+        sb.from('match_letters').update({ is_read: true }).eq('id', letter.id).then(function() {});
+      }
+    }
+
+    // 事件绑定
+    document.getElementById('startMatchBtn').addEventListener('click', async function() {
+      var btn = document.getElementById('startMatchBtn');
+      btn.disabled = true;
+      btn.textContent = '正在匹配...';
+
+      document.getElementById('matchAnimation').style.display = 'flex';
+
+      var limited = await checkDailyLimit();
+      if (limited) {
+        showStep('stepFind');
+        document.getElementById('matchAnimation').style.display = 'none';
+        document.getElementById('dailyHint').style.display = 'block';
+        document.getElementById('dailyHint').textContent = '今天已经寄出一封信了，明天再来吧 🌿';
+        document.getElementById('dailyHint').style.color = '#d4a02e';
+        btn.style.display = 'none';
+        return;
+      }
+
+      var match = await findMatch();
+      document.getElementById('matchAnimation').style.display = 'none';
+
+      if (!match) {
+        document.getElementById('dailyHint').style.display = 'block';
+        document.getElementById('dailyHint').textContent = '暂时没有合适的有缘人，明天再来看看吧 🍂';
+        document.getElementById('dailyHint').style.color = 'var(--text-secondary)';
+        btn.style.display = 'none';
+        return;
+      }
+
+      matchedUser = match;
+      btn.style.display = 'none';
+      renderResult(match);
+    });
+
+    document.getElementById('writeLetterBtn').addEventListener('click', function() {
+      if (!matchedUser) return;
+      document.getElementById('letterTo').innerHTML =
+        '<span class="letter-to-label">致一位 ' + matchedUser.mbti + ' 的有缘人</span>';
+      showStep('stepWrite');
+    });
+
+    document.getElementById('letterContent').addEventListener('input', function() {
+      document.getElementById('letterCount').textContent = this.value.length;
+    });
+
+    document.getElementById('sendLetterBtn').addEventListener('click', async function() {
+      var content = document.getElementById('letterContent').value.trim();
+      if (content.length < 10) { alert('请至少写10个字，让这封信更有温度'); return; }
+      if (content.length > 500) { alert('内容不能超过500字'); return; }
+
+      var btn = document.getElementById('sendLetterBtn');
+      btn.disabled = true;
+      btn.textContent = '寄送中...';
+
+      try {
+        var { error } = await sb.from('match_letters').insert({
+          from_user_id: currentUser.id,
+          to_user_id: matchedUser.user_id,
+          content: content
+        });
+        if (error) throw error;
+
+        // 发送通知给收件人
+        if (window.TreeHole.Notifications) {
+          window.TreeHole.Notifications.create({
+            userId: matchedUser.user_id,
+            type: 'match_letter',
+            fromUserId: currentUser.id,
+            link: 'match.html?view=inbox',
+            contentPreview: content.substring(0, 50)
+          }).catch(function() {});
+        }
+
+        showStep('stepSent');
+      } catch (err) {
+        alert('寄送失败：' + err.message);
+        btn.disabled = false;
+        btn.textContent = '🍂 寄出落叶';
+      }
+    });
+
+    // 页面初始化
+    window.addEventListener('DOMContentLoaded', async function() {
+      var navGuest = document.getElementById('navGuest');
+      var navLoggedIn = document.getElementById('navLoggedIn');
+      var navNickname = document.getElementById('navNickname');
+      var navLogout = document.getElementById('navLogout');
+      var { data: { user } } = await sb.auth.getUser();
+
+      if (!user) { window.location.href = 'welcome.html'; return; }
+      currentUser = user;
+
+      navGuest.style.display = 'none';
+      navLoggedIn.style.display = 'inline';
+      var { data: profile } = await sb.from('profiles').select('nickname, mbti, show_mbti, is_peer_supporter').eq('user_id', user.id).single();
+      navNickname.textContent = (profile?.nickname || '树友') + (profile?.is_peer_supporter ? ' 🌿' : '');
+      navLogout.addEventListener('click', function(e) {
+        e.preventDefault();
+        sb.auth.signOut().then(function() { window.location.href = 'welcome.html'; });
+      });
+
+      // 检查是否收件箱模式
+      var params = new URLSearchParams(window.location.search);
+      if (params.get('view') === 'inbox') {
+        document.querySelector('.match-title').textContent = '📮 收件箱';
+        document.querySelector('.match-subtitle').textContent = '来自有缘人的匿名信件';
+        showStep('stepInbox');
+        await loadInbox();
+        return;
+      }
+
+      // 检查是否已设置 MBTI
+      if (!profile || !profile.mbti) {
+        document.getElementById('matchStatus').textContent = '请先去完成 MBTI 测试，让系统更了解你';
+        document.getElementById('startMatchBtn').textContent = '去做 MBTI 测试';
+        document.getElementById('startMatchBtn').addEventListener('click', function() {
+          window.location.href = 'mbti-test.html';
+        });
+        return;
+      }
+      if (!profile.show_mbti) {
+        document.getElementById('matchStatus').textContent = '你需要在个人中心开启"允许展示 MBTI 类型"才能参与匹配';
+        document.getElementById('startMatchBtn').textContent = '去设置';
+        document.getElementById('startMatchBtn').addEventListener('click', function() {
+          window.location.href = 'profile.html';
+        });
+        return;
+      }
+
+      myMbti = profile.mbti;
+
+      // 检查今日是否已寄过
+      var limited = await checkDailyLimit();
+      if (limited) {
+        document.getElementById('startMatchBtn').style.display = 'none';
+        document.getElementById('dailyHint').style.display = 'block';
+        document.getElementById('dailyHint').textContent = '今天已经寄出一封信了，明天再来吧 🌿';
+        document.getElementById('dailyHint').style.color = '#d4a02e';
+        document.getElementById('matchStatus').textContent = '今日的缘分已经传递出去';
+        document.getElementById('matchAnimation').style.display = 'none';
+      }
+    });
+
+    // 收件箱回复按钮
+    document.getElementById('inboxList').addEventListener('click', function(e) {
+      var replyBtn = e.target.closest('.inbox-reply-btn');
+      if (!replyBtn) return;
+      var fromUser = replyBtn.dataset.from;
+      window.location.href = 'chat-detail.html?user=' + fromUser;
+    });
+  </script>
+
+  <script src="ai-float.js"></script>
+  <script src="user-popup.js"></script>
+</body>
+</html>

@@ -1,0 +1,1286 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>书洞 · 心理学资源 - 心灵树洞</title>
+    <meta name="description" content="一个匿名倾诉与互助的温暖社区。在深夜森林里，卸下白昼的疲惫写下你的心事，会有人温柔地倾听。你的秘密在这里是安全的。">
+    <meta name="keywords" content="心灵树洞, 匿名倾诉, 心理互助, 情绪宣泄, 深夜树洞, Soul Tree Hollow, 心理健康">
+    <meta name="author" content="心灵树洞">
+    
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="心灵树洞">
+    <meta property="og:title" content="心灵树洞 - 匿名倾诉与互助社区">
+    <meta property="og:description" content="在深夜森林里，写下你的心事，有人会温柔地倾听。这里没有人认识你，但有人懂你。">
+    <meta property="og:url" content="https://xinling-shudong.vercel.app/">
+    <meta property="og:image" content="https://xinling-shudong.vercel.app/images/og-image.jpg">
+    <meta itemprop="name" content="心灵树洞 - 匿名倾诉与互助社区">
+    <meta itemprop="description" content="在深夜森林里，写下你的心事，有人会温柔地倾听。">
+    <meta itemprop="image" content="https://xinling-shudong.vercel.app/images/wechat-share-icon.jpg">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="心灵树洞 | Soul Tree Hollow">
+    <meta name="twitter:description" content="一个匿名倾诉与互助的温暖社区。在深夜森林里，写下你的心事，有人会温柔地倾听。">
+    <meta name="twitter:image" content="https://xinling-shudong.vercel.app/images/og-image.jpg">
+    
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🌳</text></svg>">
+    
+    <link rel="preconnect" href="https://unpkg.com" crossorigin>
+    <link rel="preconnect" href="https://oazntpskcghfxzcylnef.supabase.co" crossorigin>
+    <!-- 关键修复：引入全局样式表 -->
+    <link rel="stylesheet" href="style.css">
+    <!-- 引入 Supabase CDN -->
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+    <script src="utils.js"></script>
+    <script src="books-data.js"></script>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: var(--bg-main);
+            color: var(--text-primary);
+            font-family: 'PingFang SC', 'Microsoft YaHei', sans-serif;
+            line-height: 1.6;
+        }
+
+        .page-header {
+            text-align: center;
+            padding: 60px 20px 40px;
+        }
+
+        .page-title {
+            font-size: 2.5rem;
+            color: var(--accent);
+            margin: 0 0 10px 0;
+            font-weight: 500;
+            letter-spacing: 2px;
+        }
+
+        .page-subtitle {
+            font-size: 1.1rem;
+            color: var(--text-secondary);
+            font-weight: 300;
+        }
+
+        .controls-container {
+            max-width: 1200px;
+            margin: 0 auto 40px;
+            padding: 0 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            align-items: center;
+        }
+
+        .search-container {
+            width: 100%;
+            max-width: 600px;
+        }
+
+        .category-filters {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            justify-content: center;
+        }
+
+        .filter-btn {
+            background: var(--bg-input);
+            border: 1px solid var(--border-medium);
+            color: var(--text-secondary);
+            padding: 8px 16px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: all 0.3s ease;
+        }
+
+        .filter-btn:hover {
+            background: var(--accent-glow);
+            color: var(--text-primary);
+        }
+
+        .filter-btn.active {
+            background: var(--accent);
+            color: white;
+            border-color: var(--accent);
+            font-weight: bold;
+        }
+
+        .filter-btn-special {
+            border-style: dashed;
+            position: relative;
+        }
+        .filter-btn-special.active {
+            background: #4a8c5c;
+            color: white;
+            border-color: #4a8c5c;
+            border-style: solid;
+        }
+        .filter-btn-quote {
+            border-style: dotted;
+            position: relative;
+            color: var(--warm-heart);
+            border-color: var(--warm-heart);
+        }
+        .filter-btn-quote.active {
+            background: var(--warm-heart);
+            color: white;
+            border-style: solid;
+        }
+        .filter-btn-quote:hover {
+            background: rgba(224, 123, 57, 0.12);
+        }
+
+        .quote-text {
+            font-size: 1.15rem;
+            line-height: 1.8;
+            color: var(--text-primary);
+            font-style: italic;
+            margin: 16px 0 8px;
+            padding: 0 8px;
+            quotes: "\201C" "\201D";
+        }
+        .quote-text::before { content: open-quote; color: var(--warm-heart); font-size: 1.6rem; }
+        .quote-text::after  { content: close-quote; color: var(--warm-heart); font-size: 1.6rem; }
+
+        .quote-author-ref {
+            font-size: 0.85rem;
+            color: var(--accent);
+            text-align: center;
+            margin: 4px 0 14px;
+            opacity: 0.8;
+        }
+
+        .quote-goto-btn {
+            background: transparent;
+            border: 1px solid var(--accent);
+            color: var(--accent);
+            font-weight: normal;
+            font-size: 0.85rem;
+            padding: 8px 18px;
+            text-decoration: none;
+            cursor: pointer;
+            display: inline-block;
+        }
+        .quote-goto-btn:hover { background: var(--accent-glow); }
+
+        .grid-container {
+            max-width: 1200px;
+            margin: 0 auto 80px;
+            padding: 0 20px;
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 24px;
+        }
+
+        .book-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-light);
+            border-radius: 16px;
+            padding: 24px;
+            display: flex;
+            flex-direction: column;
+            cursor: pointer;
+            text-decoration: none;
+            color: inherit;
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .book-card:hover {
+            transform: translateY(-8px);
+            box-shadow: var(--shadow-md);
+            border-color: var(--accent);
+        }
+
+        .tag {
+            align-self: flex-start;
+            font-size: 0.75rem;
+            padding: 4px 10px;
+            border-radius: 12px;
+            background: var(--accent-glow);
+            color: var(--accent);
+            margin-bottom: 12px;
+        }
+
+        .book-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+            margin: 0 0 8px 0;
+            color: var(--text-primary);
+        }
+
+        .book-author {
+            font-size: 0.9rem;
+            color: var(--accent);
+            margin: 0 0 16px 0;
+            opacity: 0.9;
+        }
+
+        .book-desc {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            margin: 0 0 16px 0;
+            flex-grow: 1;
+            display: -webkit-box;
+            -webkit-line-clamp: 3;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+
+        .book-reason {
+            font-size: 0.85rem;
+            background: var(--bg-input);
+            padding: 12px;
+            border-radius: 8px;
+            color: var(--text-secondary);
+            border-left: 3px solid var(--accent);
+        }
+
+        .access-badge {
+            align-self: flex-end;
+            margin-top: 10px;
+            font-size: 0.7rem;
+            padding: 3px 8px;
+            border-radius: 10px;
+            background: rgba(123, 168, 120, 0.15);
+            color: var(--accent);
+            letter-spacing: 0.5px;
+            opacity: 0.85;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 80px 20px;
+            grid-column: 1 / -1;
+            display: none;
+        }
+
+        .empty-state-text {
+            color: var(--text-secondary);
+            font-size: 1.1rem;
+            font-weight: 300;
+            opacity: 0;
+            animation: fadeIn 1s forwards;
+        }
+
+        .blinking-cursor::after {
+            content: '|';
+            color: var(--accent);
+            opacity: 0.8;
+            margin-left: 4px;
+            font-weight: 300;
+            animation: blinkCursor 0.8s step-end infinite;
+        }
+
+        @keyframes fadeIn {
+            to { opacity: 1; }
+        }
+
+        @keyframes blinkCursor {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0; }
+        }
+
+        .toast-notification {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%) translateY(-120px);
+            background: #4caf50;
+            color: white;
+            padding: 14px 28px;
+            border-radius: 30px;
+            font-size: 0.95rem;
+            font-weight: 500;
+            z-index: 2000;
+            box-shadow: 0 6px 24px rgba(76, 175, 80, 0.35);
+            pointer-events: none;
+            opacity: 0;
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        .toast-notification.show {
+            opacity: 1;
+            transform: translateX(-50%) translateY(0);
+        }
+        .toast-notification.hide {
+            opacity: 0;
+            transform: translateX(-50%) translateY(-120px);
+        }
+
+        .recommend-btn {
+            background: transparent;
+            border: 1px dashed var(--accent);
+            color: var(--accent);
+            padding: 8px 20px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: all 0.3s ease;
+            display: none;
+        }
+        .recommend-btn:hover {
+            background: var(--accent-glow);
+            border-style: solid;
+        }
+
+        .random-btn {
+            background: transparent;
+            border: 1px dashed var(--warm-heart);
+            color: var(--warm-heart);
+            padding: 8px 20px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: all 0.3s ease;
+            white-space: nowrap;
+        }
+        .random-btn:hover {
+            background: rgba(224, 123, 57, 0.1);
+            border-style: solid;
+            transform: scale(1.03);
+        }
+        .random-btn:active { transform: scale(0.96); }
+
+        .random-result {
+            display: none;
+            max-width: 600px;
+            width: 100%;
+            background: var(--bg-card);
+            border: 1px solid var(--border-light);
+            border-radius: 16px;
+            padding: 24px 28px;
+            text-align: center;
+            animation: slideDown 0.4s ease;
+            position: relative;
+        }
+        .random-result.show { display: block; }
+        .random-result .random-label {
+            font-size: 0.75rem;
+            color: var(--warm-heart);
+            letter-spacing: 2px;
+            margin-bottom: 8px;
+        }
+        .random-result .random-title {
+            font-size: 1.3rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin: 0 0 4px;
+        }
+        .random-result .random-author {
+            font-size: 0.9rem;
+            color: var(--accent);
+            margin: 0 0 12px;
+        }
+        .random-result .random-desc {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            margin: 0 0 14px;
+            line-height: 1.6;
+        }
+        .random-result .random-action-row {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+        .random-result .random-goto {
+            display: inline-block;
+            background: var(--accent);
+            color: white;
+            padding: 8px 20px;
+            border-radius: 24px;
+            text-decoration: none;
+            font-size: 0.9rem;
+            font-weight: 500;
+        }
+        .random-result .random-reroll {
+            background: transparent;
+            border: 1px solid var(--border-medium);
+            color: var(--text-secondary);
+            padding: 8px 18px;
+            border-radius: 24px;
+            cursor: pointer;
+            font-size: 0.85rem;
+        }
+        .random-result .random-reroll:hover {
+            background: var(--bg-input);
+            border-color: var(--accent);
+            color: var(--accent);
+        }
+
+        @keyframes slideDown {
+            from { opacity: 0; transform: translateY(-16px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+
+        .book-detail-overlay {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.5);
+            z-index: 1100;
+            align-items: center;
+            justify-content: center;
+        }
+        .book-detail-overlay.active { display: flex; }
+
+        .book-detail-panel {
+            background: var(--bg-card);
+            border-radius: 20px;
+            padding: 32px 36px;
+            width: 90%;
+            max-width: 560px;
+            max-height: 85vh;
+            overflow-y: auto;
+            animation: fadeInUp 0.35s ease;
+            position: relative;
+        }
+        .book-detail-panel .detail-tag {
+            display: inline-block;
+            font-size: 0.75rem;
+            padding: 4px 12px;
+            border-radius: 12px;
+            background: var(--accent-glow);
+            color: var(--accent);
+            margin-bottom: 12px;
+        }
+        .book-detail-panel .detail-access {
+            display: inline-block;
+            font-size: 0.72rem;
+            padding: 3px 10px;
+            border-radius: 10px;
+            margin-left: 8px;
+            background: rgba(123, 168, 120, 0.15);
+            color: var(--accent);
+        }
+        .book-detail-panel .detail-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin: 0 0 6px;
+            line-height: 1.4;
+        }
+        .book-detail-panel .detail-author {
+            font-size: 1rem;
+            color: var(--accent);
+            margin: 0 0 18px;
+            opacity: 0.85;
+        }
+        .book-detail-panel .detail-section-label {
+            font-size: 0.78rem;
+            color: var(--text-secondary);
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            margin: 16px 0 6px;
+            opacity: 0.7;
+        }
+        .book-detail-panel .detail-desc {
+            font-size: 0.95rem;
+            color: var(--text-secondary);
+            line-height: 1.7;
+            margin: 0 0 4px;
+        }
+        .book-detail-panel .detail-reason {
+            font-size: 0.92rem;
+            background: var(--bg-input);
+            padding: 14px 16px;
+            border-radius: 10px;
+            color: var(--text-secondary);
+            border-left: 3px solid var(--accent);
+            line-height: 1.6;
+        }
+        .book-detail-panel .detail-quotes-section {
+            margin-top: 4px;
+        }
+        .book-detail-panel .detail-quotes-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+        .book-detail-panel .detail-quotes-list li {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            line-height: 1.6;
+            padding: 8px 12px 8px 24px;
+            position: relative;
+            border-left: 2px solid var(--border-light);
+            margin-bottom: 6px;
+            font-style: italic;
+        }
+        .book-detail-panel .detail-quotes-list li::before {
+            content: '"';
+            position: absolute;
+            left: 6px;
+            top: 4px;
+            color: var(--warm-heart);
+            font-size: 1.1rem;
+            font-weight: bold;
+            opacity: 0.7;
+        }
+        .book-detail-panel .detail-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 22px;
+            flex-wrap: wrap;
+        }
+        .book-detail-panel .detail-goto {
+            display: inline-block;
+            background: var(--accent);
+            color: white;
+            padding: 10px 24px;
+            border-radius: 24px;
+            text-decoration: none;
+            font-size: 0.93rem;
+            font-weight: 500;
+            transition: opacity 0.2s;
+        }
+        .book-detail-panel .detail-goto:hover { opacity: 0.85; }
+        .book-detail-panel .detail-close {
+            background: var(--bg-input);
+            border: 1px solid var(--border-medium);
+            color: var(--text-secondary);
+            padding: 10px 24px;
+            border-radius: 24px;
+            cursor: pointer;
+            font-size: 0.93rem;
+        }
+        .book-detail-panel .detail-close:hover { background: var(--border-light); }
+
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(24px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+        .modal-overlay.active { display: flex; }
+
+        .modal-panel {
+            background: var(--bg-card);
+            border-radius: 16px;
+            padding: 32px;
+            width: 90%;
+            max-width: 480px;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+        .modal-title {
+            font-size: 1.3rem;
+            color: var(--text-primary);
+            margin: 0 0 8px;
+            text-align: center;
+        }
+        .modal-subtitle {
+            font-size: 0.88rem;
+            color: #9a9a8a;
+            text-align: center;
+            margin: 0 0 22px;
+            line-height: 1.5;
+        }
+        .modal-note {
+            font-size: 0.82rem;
+            color: #8a8a7a;
+            text-align: center;
+            margin: 14px 0 0;
+            line-height: 1.4;
+        }
+        .modal-field { margin-bottom: 16px; }
+        .modal-field label {
+            display: block;
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            margin-bottom: 6px;
+        }
+        .modal-field input, .modal-field textarea, .modal-field select {
+            width: 100%;
+            padding: 10px 14px;
+            border-radius: 8px;
+            background: var(--bg-input);
+            border: 1px solid var(--border-medium);
+            color: var(--text-primary);
+            font-size: 0.95rem;
+            outline: none;
+            box-sizing: border-box;
+            font-family: inherit;
+        }
+        .modal-field textarea { resize: vertical; min-height: 80px; }
+        .modal-field input:focus, .modal-field textarea:focus, .modal-field select:focus {
+            border-color: var(--accent);
+        }
+        .modal-actions { display: flex; gap: 12px; justify-content: flex-end; margin-top: 24px; }
+        .btn-cancel {
+            background: var(--bg-input); border: 1px solid var(--border-medium);
+            color: var(--text-secondary); padding: 10px 24px; border-radius: 24px; cursor: pointer;
+        }
+        .btn-submit {
+            background: var(--accent); border: none; color: white;
+            padding: 10px 24px; border-radius: 24px; cursor: pointer; font-weight: bold;
+        }
+        .btn-submit:disabled { opacity: 0.5; cursor: not-allowed; }
+
+        @media (max-width: 900px) {
+            .grid-container {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 18px;
+                padding: 0 16px;
+            }
+        }
+
+        @media (max-width: 600px) {
+            .grid-container {
+                grid-template-columns: 1fr;
+                gap: 14px;
+                padding: 0 12px;
+            }
+            .page-title {
+                font-size: 2rem;
+            }
+            .page-header {
+                padding: 40px 16px 30px;
+            }
+            .page-subtitle {
+                font-size: 0.95rem;
+                padding: 0 12px;
+            }
+            .controls-container {
+                padding: 0 12px;
+                gap: 14px;
+            }
+            .search-container {
+                max-width: 100%;
+            }
+            .search-container input {
+                padding: 10px 16px;
+                font-size: 0.9rem;
+            }
+            .filter-btn {
+                padding: 6px 12px;
+                font-size: 0.8rem;
+            }
+            .category-filters {
+                gap: 8px;
+            }
+            .book-card {
+                padding: 18px;
+            }
+            .book-title {
+                font-size: 1.1rem;
+            }
+            .modal-panel {
+                padding: 24px 18px;
+                width: 94%;
+                border-radius: 14px;
+            }
+            .toast-notification {
+                font-size: 0.85rem;
+                padding: 12px 22px;
+                top: 12px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+  <header class="forest-header">
+      <a href="index.html" class="forest-logo">
+          <span class="logo-icon">🌳</span>
+          <span class="logo-text">心灵树洞</span>
+      </a>
+      <nav class="forest-nav">
+          <a href="index.html">广场</a>
+          <a href="books.html" class="active">书洞</a>
+          <a href="shuling.html">树灵</a>
+          <a href="chat.html">树友对话</a>
+          <a href="mood-ring.html">年轮</a>
+      </nav>
+      <div class="forest-user-actions" id="navUserArea">
+          <span id="navGuest">
+              <a href="login.html">登录</a>
+              <a href="register.html">注册</a>
+          </span>
+          <span id="navLoggedIn" style="display:none">
+              <span class="user-greeting" id="navNickname"></span>
+              <a href="profile.html">个人中心</a>
+              <a href="feedback.html">反馈</a>
+              <a href="#" class="logout-btn" id="navLogout">退出</a>
+          </span>
+      </div>
+  </header>
+
+    <section class="page-header">
+        <h1 class="page-title">书洞</h1>
+        <p class="page-subtitle">在文字中，找到照亮内心的光</p>
+    </section>
+
+    <section class="controls-container">
+        <div class="search-container">
+            <div class="search-mode-row">
+                <button class="search-mode-btn active" data-mode="all">综合</button>
+                <button class="search-mode-btn" data-mode="title">书名</button>
+                <button class="search-mode-btn" data-mode="author">作者</button>
+            </div>
+            <input type="text" id="searchInput" placeholder="搜索书籍或作者...">
+            <span id="clearSearch" class="clear-search">×</span>
+        </div>
+        <div class="category-filters" id="filterContainer">
+            <button class="filter-btn active" data-tab="curated">《站长精选》</button>
+            <button class="filter-btn" data-tab="history">《阅读记录》</button>
+            <button class="filter-btn filter-btn-special" data-tab="random">~随机推荐~</button>
+            <button class="filter-btn filter-btn-special" data-tab="recommend">+推荐书籍+</button>
+            <button class="filter-btn filter-btn-quote" data-tab="quote">💬 名句</button>
+        </div>
+        <div class="random-result" id="randomResult">
+            <div class="random-label">📚 书洞为你推荐</div>
+            <h3 class="random-title" id="randomTitle"></h3>
+            <p class="random-author" id="randomAuthor"></p>
+            <p class="random-desc" id="randomDesc"></p>
+            <div class="random-action-row">
+                <a class="random-goto" id="randomLink" href="#">去阅读</a>
+                <button class="random-reroll" id="randomReroll">🔄 换一本</button>
+            </div>
+        </div>
+        <div class="random-result" id="quoteResult">
+            <div class="random-label">💬 来自「<span id="quoteBookTitle"></span>」</div>
+            <blockquote class="quote-text" id="quoteText"></blockquote>
+            <p class="quote-author-ref" id="quoteAuthorRef"></p>
+            <div class="random-action-row">
+                <button class="random-reroll" id="quoteReroll">🔄 换一句</button>
+                <button class="random-goto quote-goto-btn" id="quoteGotoBook">📖 去看看这本书</button>
+            </div>
+        </div>
+    </section>
+
+    <section class="grid-container" id="booksGrid"></section>
+
+    <div class="empty-state" id="emptyState">
+        <div class="empty-state-text blinking-cursor">没有找到匹配的书籍<br>试试切换筛选条件或清除搜索关键词~</div>
+    </div>
+
+    <script>
+        const sb = window.TreeHole.supabase;
+
+        let currentTab = "curated";
+        let currentSearchQuery = "";
+        let currentSearchMode = "all";
+        let allResources = [];
+
+        const booksGrid = document.getElementById('booksGrid');
+        const emptyState = document.getElementById('emptyState');
+        const searchInput = document.getElementById('searchInput');
+
+        // ── 浏览历史（localStorage） ──
+        const VIEWS_KEY = 'book_views';
+        function getViewCounts() {
+            try { return JSON.parse(localStorage.getItem(VIEWS_KEY)) || {}; }
+            catch { return {}; }
+        }
+        function incrementView(title) {
+            const views = getViewCounts();
+            views[title] = (views[title] || 0) + 1;
+            try { localStorage.setItem(VIEWS_KEY, JSON.stringify(views)); } catch {}
+        }
+        function getHistorySorted(list) {
+            const views = getViewCounts();
+            return list
+                .filter(item => (views[item.title] || 0) > 0)
+                .sort((a, b) => (views[b.title] || 0) - (views[a.title] || 0));
+        }
+
+        // ── 资源加载 ──
+        async function loadResources() {
+            allResources = Array.isArray(window.libraryData) ? [...window.libraryData] : (typeof libraryData !== 'undefined' ? [...libraryData] : []);
+            const base = allResources;
+            const staticTitles = new Set(base.map(r => r.title));
+            try {
+                const { data, error } = await sb
+                    .from('resources')
+                    .select('title,author,description,reason,category,link')
+                    .order('created_at', { ascending: false });
+                if (error) throw error;
+                if (data && data.length > 0) {
+                    const userEntries = data
+                        .filter(r => !staticTitles.has(r.title))
+                        .filter(r => r.link && (r.link.startsWith('reader.html') || r.link.startsWith('pdfs/')))
+                        .map(r => ({
+                            title: r.title, author: r.author,
+                            desc: r.description, reason: r.reason,
+                            category: r.category, link: r.link
+                        }));
+                    allResources = [...userEntries, ...allResources];
+                }
+            } catch (err) {
+                console.warn('Supabase 资源加载失败，仅使用静态数据:', err.message);
+            }
+        }
+
+        // ── 获取筛选后的数据 ──
+        function getFilteredData() {
+            let list = allResources;
+
+            // 搜索过滤（站长精选 & 浏览历史共用）
+            if (currentTab === 'curated' || currentTab === 'history') {
+                if (currentSearchQuery) {
+                    list = list.filter(item => {
+                        if (currentSearchMode === 'title') return item.title.toLowerCase().includes(currentSearchQuery);
+                        if (currentSearchMode === 'author') return item.author.toLowerCase().includes(currentSearchQuery);
+                        return item.title.toLowerCase().includes(currentSearchQuery) ||
+                               item.author.toLowerCase().includes(currentSearchQuery);
+                    });
+                }
+            }
+
+            // 浏览历史：按浏览次数排序，过滤0次
+            if (currentTab === 'history') {
+                list = getHistorySorted(list);
+            }
+
+            return list;
+        }
+
+        // ── 渲染卡片 ──
+        function renderCards() {
+            const filteredData = getFilteredData();
+
+            booksGrid.innerHTML = '';
+
+            if (filteredData.length === 0) {
+                booksGrid.style.display = 'none';
+                emptyState.style.display = 'block';
+                const emptyText = emptyState.querySelector('.empty-state-text');
+                if (currentTab === 'history') {
+                    emptyText.innerHTML = '还没有浏览过任何书籍<br>点击书籍卡片开始你的阅读之旅吧~';
+                } else {
+                    emptyText.innerHTML = '没有找到匹配的书籍<br>试试切换筛选条件或清除搜索关键词~';
+                }
+                emptyText.classList.add('blinking-cursor');
+                setTimeout(() => { emptyText.classList.remove('blinking-cursor'); }, 3500);
+            } else {
+                booksGrid.style.display = 'grid';
+                emptyState.style.display = 'none';
+
+                filteredData.forEach((item) => {
+                    const card = document.createElement('div');
+                    card.className = 'book-card';
+                    card.style.cursor = 'pointer';
+                    const accessLabel = getAccessLabel(item.link);
+                    const views = getViewCounts();
+                    const viewCount = views[item.title] || 0;
+                    const viewBadge = currentTab === 'history' && viewCount > 0
+                        ? `<span class="access-badge" style="background:rgba(224,123,57,0.15);color:var(--warm-heart);margin-right:6px;">👁 ${viewCount}次</span>`
+                        : '';
+                    card.innerHTML = `
+                        <span class="tag">${item.category}</span>
+                        <h3 class="book-title">${item.title}</h3>
+                        <p class="book-author">${item.author}</p>
+                        <p class="book-desc">${item.desc}</p>
+                        <div class="book-reason">${item.reason}</div>
+                        <div style="display:flex;justify-content:flex-end;align-items:center;margin-top:10px;">
+                            ${viewBadge}
+                            <span class="access-badge">${accessLabel}</span>
+                        </div>
+                    `;
+                    card.addEventListener('click', () => {
+                        incrementView(item.title);
+                        openBookDetail(item);
+                    });
+                    booksGrid.appendChild(card);
+                });
+            }
+        }
+
+        // ── 标签切换 ──
+        const tabBtns = document.querySelectorAll('#filterContainer .filter-btn');
+        tabBtns.forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const tab = e.target.getAttribute('data-tab');
+
+                // +推荐书籍+ 直接打开推荐弹窗
+                if (tab === 'recommend') {
+                    const modal = document.getElementById('recommendModal');
+                    if (modal) modal.classList.add('active');
+                    return;
+                }
+
+                // ~随机推荐~ 执行随机推荐
+                if (tab === 'random') {
+                    tabBtns.forEach(b => b.classList.remove('active'));
+                    e.target.classList.add('active');
+                    currentTab = 'random';
+                    pickRandomBook();
+                    return;
+                }
+
+                // 💬 名句
+                if (tab === 'quote') {
+                    tabBtns.forEach(b => b.classList.remove('active'));
+                    e.target.classList.add('active');
+                    currentTab = 'quote';
+                    pickRandomQuote();
+                    return;
+                }
+
+                // 站长精选 / 浏览历史
+                tabBtns.forEach(b => b.classList.remove('active'));
+                e.target.classList.add('active');
+                currentTab = tab;
+                hidePanels();
+                renderCards();
+            });
+        });
+
+        function hidePanels() {
+            document.getElementById('randomResult').classList.remove('show');
+            document.getElementById('quoteResult').classList.remove('show');
+        }
+
+        // ── 搜索 ──
+        const searchModeBtns = document.querySelectorAll('.search-mode-btn');
+        searchModeBtns.forEach(btn => {
+            btn.addEventListener('click', () => {
+                searchModeBtns.forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                currentSearchMode = btn.getAttribute('data-mode');
+                if (currentSearchQuery) renderCards();
+            });
+        });
+
+        let searchDebounceTimer = null;
+        searchInput.addEventListener('input', (e) => {
+            currentSearchQuery = e.target.value.toLowerCase().trim();
+            clearTimeout(searchDebounceTimer);
+            searchDebounceTimer = setTimeout(() => {
+                if (currentTab === 'random') {
+                    // 搜索时切回站长精选
+                    currentTab = 'curated';
+                    tabBtns.forEach(b => b.classList.remove('active'));
+                    document.querySelector('[data-tab="curated"]').classList.add('active');
+                    hidePanels();
+                }
+                if (currentTab === 'quote') {
+                    currentTab = 'curated';
+                    tabBtns.forEach(b => b.classList.remove('active'));
+                    document.querySelector('[data-tab="curated"]').classList.add('active');
+                    hidePanels();
+                }
+                renderCards();
+            }, 300);
+            const clearBtn = document.getElementById('clearSearch');
+            if (clearBtn) clearBtn.classList.toggle('visible', currentSearchQuery.length > 0);
+        });
+
+        const clearSearchBtn = document.getElementById('clearSearch');
+        if (clearSearchBtn) {
+            clearSearchBtn.addEventListener('click', () => {
+                searchInput.value = '';
+                currentSearchQuery = '';
+                clearSearchBtn.classList.remove('visible');
+                renderCards();
+                searchInput.focus();
+            });
+        }
+
+        // ── Toast ──
+        function showToast(message) {
+            const toast = document.getElementById('submitToast');
+            if (!toast) return;
+            toast.textContent = message;
+            toast.classList.remove('hide');
+            toast.classList.add('show');
+            setTimeout(() => { toast.classList.add('hide'); toast.classList.remove('show'); }, 2000);
+        }
+
+        // ── 链接标签 ──
+        function getAccessLabel(link) {
+            return '站内阅读';
+        }
+
+        // ── 书籍详情弹窗（含名句展示） ──
+        function getDetailEls() {
+            return {
+                overlay: document.getElementById('bookDetailOverlay'),
+                category: document.getElementById('detailCategory'),
+                access: document.getElementById('detailAccess'),
+                title: document.getElementById('detailTitle'),
+                author: document.getElementById('detailAuthor'),
+                desc: document.getElementById('detailDesc'),
+                reason: document.getElementById('detailReason'),
+                quotesSection: document.getElementById('detailQuotesSection'),
+                quotesList: document.getElementById('detailQuotesList'),
+                goto: document.getElementById('detailGoto'),
+                close: document.getElementById('detailClose')
+            };
+        }
+
+        function openBookDetail(item) {
+            const els = getDetailEls();
+            if (!els.overlay) return;
+            els.category.textContent = item.category;
+            els.access.textContent = getAccessLabel(item.link);
+            els.title.textContent = item.title;
+            els.author.textContent = item.author;
+            els.desc.textContent = item.desc;
+            els.reason.textContent = item.reason;
+            els.goto.href = item.link;
+            els.goto.removeAttribute('target');
+            els.goto.removeAttribute('rel');
+            els.goto.textContent = '📖 站内阅读';
+
+            // 展示名句
+            if (item.quotes && item.quotes.length > 0 && els.quotesSection && els.quotesList) {
+                els.quotesSection.style.display = 'block';
+                els.quotesList.innerHTML = item.quotes.map(q => `<li>${q}</li>`).join('');
+            } else if (els.quotesSection) {
+                els.quotesSection.style.display = 'none';
+            }
+
+            els.overlay.classList.add('active');
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeBookDetail() {
+            const overlay = document.getElementById('bookDetailOverlay');
+            if (overlay) overlay.classList.remove('active');
+            document.body.style.overflow = '';
+        }
+
+        // ── 随机推荐 ──
+        const randomResult = document.getElementById('randomResult');
+        const randomTitle = document.getElementById('randomTitle');
+        const randomAuthor = document.getElementById('randomAuthor');
+        const randomDesc = document.getElementById('randomDesc');
+        const randomLink = document.getElementById('randomLink');
+        const randomReroll = document.getElementById('randomReroll');
+        let lastRandomPick = null;
+
+        function pickRandomBook() {
+            const pool = allResources;
+            if (pool.length === 0) return;
+            hidePanels();
+            lastRandomPick = pool[Math.floor(Math.random() * pool.length)];
+            randomTitle.textContent = lastRandomPick.title;
+            randomAuthor.textContent = lastRandomPick.author;
+            randomDesc.textContent = lastRandomPick.reason || lastRandomPick.desc;
+            randomLink.href = '#';
+            randomResult.classList.add('show');
+            randomResult.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+
+        randomLink.addEventListener('click', (e) => {
+            e.preventDefault();
+            if (lastRandomPick) {
+                incrementView(lastRandomPick.title);
+                openBookDetail(lastRandomPick);
+            }
+        });
+        randomReroll.addEventListener('click', (e) => { e.preventDefault(); pickRandomBook(); });
+
+        // ── 名句随机展示 ──
+        const quoteResult = document.getElementById('quoteResult');
+        const quoteBookTitle = document.getElementById('quoteBookTitle');
+        const quoteText = document.getElementById('quoteText');
+        const quoteAuthorRef = document.getElementById('quoteAuthorRef');
+        const quoteReroll = document.getElementById('quoteReroll');
+        const quoteGotoBook = document.getElementById('quoteGotoBook');
+        let lastQuoteBook = null;
+
+        function pickRandomQuote() {
+            const booksWithQuotes = allResources.filter(item => item.quotes && item.quotes.length > 0);
+            if (booksWithQuotes.length === 0) return;
+            hidePanels();
+            const book = booksWithQuotes[Math.floor(Math.random() * booksWithQuotes.length)];
+            const quote = book.quotes[Math.floor(Math.random() * book.quotes.length)];
+            lastQuoteBook = book;
+            quoteBookTitle.textContent = book.title;
+            quoteText.textContent = quote;
+            quoteAuthorRef.textContent = '—— ' + book.author;
+            quoteResult.classList.add('show');
+            quoteResult.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+
+        quoteReroll.addEventListener('click', (e) => { e.preventDefault(); pickRandomQuote(); });
+        quoteGotoBook.addEventListener('click', (e) => {
+            e.preventDefault();
+            if (lastQuoteBook) {
+                incrementView(lastQuoteBook.title);
+                openBookDetail(lastQuoteBook);
+            }
+        });
+
+        // ── DOMContentLoaded 绑定 ──
+        window.addEventListener('DOMContentLoaded', () => {
+            // 详情弹窗事件
+            const detailOverlay = document.getElementById('bookDetailOverlay');
+            const detailCloseBtn = document.getElementById('detailClose');
+            if (detailOverlay) {
+                detailOverlay.addEventListener('click', (e) => {
+                    if (e.target === detailOverlay) closeBookDetail();
+                });
+            }
+            if (detailCloseBtn) detailCloseBtn.addEventListener('click', closeBookDetail);
+
+            // 推荐弹窗
+            const modal = document.getElementById('recommendModal');
+            const cancelBtn = document.getElementById('cancelRecommend');
+            const submitBtn = document.getElementById('submitRecommend');
+
+            if (modal) {
+                modal.addEventListener('click', (e) => {
+                    if (e.target === modal) modal.classList.remove('active');
+                });
+            }
+            if (cancelBtn) {
+                cancelBtn.addEventListener('click', () => modal.classList.remove('active'));
+            }
+            if (submitBtn) {
+                submitBtn.addEventListener('click', async function() {
+                    const title = document.getElementById('recTitle').value.trim();
+                    const author = document.getElementById('recAuthor').value.trim();
+                    const category = document.getElementById('recCategory').value;
+                    const desc = document.getElementById('recDesc').value.trim();
+                    const reason = document.getElementById('recReason').value.trim();
+                    const link = document.getElementById('recLink').value.trim();
+
+                    if (!title || !author || !category || !desc || !reason || !link) {
+                        alert('请填写所有必填字段');
+                        return;
+                    }
+                    const btn = this;
+                    btn.disabled = true;
+                    btn.textContent = '提交中...';
+                    try {
+                        const { data: { user } } = await sb.auth.getUser();
+                        if (!user) { alert('请先登录'); btn.disabled = false; btn.textContent = '✨ 分享给树友'; return; }
+                        const { error } = await sb.from('resources').insert({
+                            title, author, category,
+                            description: desc, reason, link,
+                            submitted_by: user.id
+                        });
+                        if (error) throw error;
+                        allResources.unshift({ title, author, desc, reason, category, link });
+                        modal.classList.remove('active');
+                        ['recTitle','recAuthor','recCategory','recDesc','recReason','recLink'].forEach(id => {
+                            document.getElementById(id).value = '';
+                        });
+                        currentTab = 'curated';
+                        tabBtns.forEach(b => b.classList.remove('active'));
+                        document.querySelector('[data-tab="curated"]').classList.add('active');
+                        hidePanels();
+                        renderCards();
+                        showToast('推荐已提交，感谢分享');
+                    } catch (err) {
+                        alert('推荐失败: ' + err.message);
+                    } finally {
+                        btn.disabled = false;
+                        btn.textContent = '✨ 分享给树友';
+                    }
+                });
+            }
+
+            // 导航栏登录状态 + 加载资源
+            (async () => {
+                const navGuest = document.getElementById('navGuest');
+                const navLoggedIn = document.getElementById('navLoggedIn');
+                const navNickname = document.getElementById('navNickname');
+                const navLogout = document.getElementById('navLogout');
+                try {
+                    const { data: { user } } = await sb.auth.getUser();
+                    if (user) {
+                        navGuest.style.display = 'none';
+                        navLoggedIn.style.display = 'inline';
+                        const { data: profile } = await sb.from('profiles').select('nickname').eq('user_id', user.id).single();
+                        navNickname.textContent = profile?.nickname || '树友';
+                        navLogout.addEventListener('click', (e) => {
+                            e.preventDefault();
+                            sb.auth.signOut().then(() => window.location.href = 'welcome.html');
+                        });
+                    }
+                } catch (err) {
+                    console.warn('导航栏状态检查失败:', err.message);
+                }
+                await loadResources();
+                renderCards();
+            })();
+        });
+    </script>
+
+    <div class="modal-overlay" id="recommendModal">
+        <div class="modal-panel">
+            <h3 class="modal-title">📚 分享一本治愈过你的书</h3>
+            <p class="modal-subtitle">好书值得被更多人看见——推荐一本你想分享给树友的中文心理学好书吧</p>
+            <div class="modal-field">
+                <label>书名 *</label>
+                <input type="text" id="recTitle" placeholder="比如：《也许你该找个人聊聊》《蛤蟆先生去看心理医生》" maxlength="100">
+            </div>
+            <div class="modal-field">
+                <label>作者 *</label>
+                <input type="text" id="recAuthor" placeholder="比如：洛莉·戈特利布 / 罗伯特·戴博德" maxlength="50">
+            </div>
+            <div class="modal-field">
+                <label>分类 *</label>
+                <select id="recCategory">
+                    <option value="">请选择</option>
+                    <option value="经典入门">经典入门</option>
+                    <option value="自我成长">自我成长</option>
+                    <option value="认知行为">认知行为</option>
+                    <option value="情绪与人际">情绪与人际</option>
+                    <option value="心理健康科普">心理健康科普</option>
+                    <option value="免费资源">免费资源</option>
+                    <option value="公开课">公开课</option>
+                </select>
+            </div>
+            <div class="modal-field">
+                <label>这本书在讲什么？ *</label>
+                <textarea id="recDesc" placeholder="用一两句话介绍这本书的核心内容~" maxlength="200"></textarea>
+            </div>
+            <div class="modal-field">
+                <label>它如何治愈了你？ *</label>
+                <textarea id="recReason" placeholder="分享这本书带给你的触动、启发或改变——越真诚，越可能帮到另一个树友" maxlength="300"></textarea>
+            </div>
+            <div class="modal-field">
+                <label>阅读链接 *</label>
+                <input type="url" id="recLink" placeholder="微信读书链接、豆瓣链接、或任何可以读到它的地方" maxlength="500">
+            </div>
+            <p class="modal-note">🌱 通过审核后，你的推荐会出现在书洞里，被所有树友看到</p>
+            <div class="modal-actions">
+                <button class="btn-cancel" id="cancelRecommend">再想想</button>
+                <button class="btn-submit" id="submitRecommend">✨ 分享给树友</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="book-detail-overlay" id="bookDetailOverlay">
+        <div class="book-detail-panel">
+            <span class="detail-tag" id="detailCategory"></span>
+            <span class="detail-access" id="detailAccess"></span>
+            <h2 class="detail-title" id="detailTitle"></h2>
+            <p class="detail-author" id="detailAuthor"></p>
+            <p class="detail-section-label">内容简介</p>
+            <p class="detail-desc" id="detailDesc"></p>
+            <p class="detail-section-label">推荐理由</p>
+            <div class="detail-reason" id="detailReason"></div>
+            <div class="detail-quotes-section" id="detailQuotesSection" style="display:none;">
+                <p class="detail-section-label">💬 书中名句</p>
+                <ul class="detail-quotes-list" id="detailQuotesList"></ul>
+            </div>
+            <div class="detail-actions">
+                <a class="detail-goto" id="detailGoto" href="#">📖 站内阅读</a>
+                <button class="detail-close" id="detailClose">关闭</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="toast-notification" id="submitToast"></div>
+
+    <script src="ai-float.js"></script>
+    <script src="user-popup.js"></script>
+</body>
+</html>
