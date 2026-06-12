@@ -1,205 +1,567 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>树洞广场 - 心灵树洞</title>
-  <meta name="description" content="一个匿名倾诉与互助的温暖社区。在深夜森林里，卸下白昼的疲惫写下你的心事，会有人温柔地倾听。你的秘密在这里是安全的。">
-  <meta name="keywords" content="心灵树洞, 匿名倾诉, 心理互助, 情绪宣泄, 深夜树洞, Soul Tree Hollow, 心理健康">
-  <meta name="author" content="心灵树洞">
-  
-  <meta property="og:type" content="website">
-  <meta property="og:site_name" content="心灵树洞">
-  <meta property="og:title" content="心灵树洞 - 匿名倾诉与互助社区">
-  <meta property="og:description" content="在深夜森林里，写下你的心事，有人会温柔地倾听。这里没有人认识你，但有人懂你。">
-  <meta property="og:url" content="https://xinling-shudong.vercel.app/">
-  <meta property="og:image" content="https://xinling-shudong.vercel.app/images/og-image.jpg">
-  <meta itemprop="name" content="心灵树洞 - 匿名倾诉与互助社区">
-  <meta itemprop="description" content="在深夜森林里，写下你的心事，有人会温柔地倾听。">
-  <meta itemprop="image" content="https://xinling-shudong.vercel.app/images/wechat-share-icon.jpg">
-  <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:title" content="心灵树洞 | Soul Tree Hollow">
-  <meta name="twitter:description" content="一个匿名倾诉与互助的温暖社区。在深夜森林里，写下你的心事，有人会温柔地倾听。">
-  <meta name="twitter:image" content="https://xinling-shudong.vercel.app/images/og-image.jpg">
-  
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🌳</text></svg>">
-  
-  <link rel="preconnect" href="https://unpkg.com" crossorigin>
-  <link rel="preconnect" href="https://oazntpskcghfxzcylnef.supabase.co" crossorigin>
-  <link rel="stylesheet" href="style.css">
-  <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
-  <script src="utils.js"></script>
-  <script src="app.js" defer></script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=5.0,user-scalable=yes">
+<meta name="color-scheme" content="light dark">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>👤</text></svg>">
+<title>管家玉 - 个人简历</title>
+<style>
+:root{
+--bg:#f8f7f4;
+--surface:#ffffff;
+--surface2:#f2f0ec;
+--text:#27272a;
+--text2:#52525b;
+--text3:#a1a1aa;
+--accent:#4f46e5;
+--accent2:#6366f1;
+--accent-glow:#818cf8;
+--border:#e4e4e7;
+--shadow-sm:0 1px 2px rgba(0,0,0,.05);
+--shadow:0 4px 12px rgba(0,0,0,.06);
+--shadow-lg:0 12px 32px rgba(0,0,0,.1);
+--radius:12px;
+--radius-sm:6px;
+--radius-lg:16px;
+--font:'Segoe UI','PingFang SC','Microsoft YaHei','Noto Sans SC',system-ui,-apple-system,sans-serif;
+--transition:180ms cubic-bezier(.4,0,.2,1);
+--nav-height:52px;
+--max-w:780px;
+--gradient-hero:linear-gradient(135deg,#4f46e5 0%,#6366f1 40%,#818cf8 70%,#a5b4fc 100%);
+--gradient-card:linear-gradient(145deg,#f8f7f4 0%,#eef0ff 100%);
+}
+body.dark{
+--bg:#18181b;
+--surface:#27272a;
+--surface2:#1f1f23;
+--text:#e4e4e7;
+--text2:#a1a1aa;
+--text3:#71717a;
+--accent:#6366f1;
+--accent2:#818cf8;
+--accent-glow:#a5b4fc;
+--border:#3f3f46;
+--gradient-card:linear-gradient(145deg,#27272a 0%,#1c1c2e 100%);
+--gradient-hero:linear-gradient(135deg,#4338ca 0%,#4f46e5 40%,#6366f1 70%,#818cf8 100%);
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth;scroll-padding-top:70px;-webkit-tap-highlight-color:transparent;-webkit-font-smoothing:antialiased}
+body{font-family:var(--font);background:var(--bg);color:var(--text);line-height:1.6;transition:background var(--transition),color var(--transition);min-height:100vh;overflow-x:hidden}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}}
+
+#intro-overlay{position:fixed;inset:0;z-index:10000;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;transition:opacity .4s ease,visibility .4s ease}
+#intro-overlay.fade-out{opacity:0;visibility:hidden;pointer-events:none}
+#intro-overlay .intro-content{z-index:2;text-align:center;padding:20px}
+#intro-overlay .intro-title{font-size:clamp(1.2rem,2.8vw,2rem);font-weight:800;letter-spacing:.04em;background:var(--gradient-hero);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;filter:drop-shadow(0 0 10px rgba(79,70,229,.35));min-height:1.3em}
+#intro-overlay .intro-title .cursor-blink{display:inline-block;width:2px;height:1em;background:var(--accent);margin-left:2px;vertical-align:text-bottom;animation:cursorBlink .7s step-end infinite}
+@keyframes cursorBlink{50%{opacity:0}}
+#intro-overlay .skip-hint{position:absolute;bottom:24px;left:50%;transform:translateX(-50%);color:var(--text3);font-size:.65rem;animation:pulseHint 1.8s ease-in-out infinite;pointer-events:none}
+@keyframes pulseHint{0%,100%{opacity:.4}50%{opacity:1}}
+
+#top-nav{position:fixed;top:0;left:0;right:0;z-index:9000;background:var(--surface);border-bottom:1px solid var(--border);backdrop-filter:blur(16px);height:var(--nav-height);display:flex;align-items:center;padding:0 10px;gap:4px;overflow-x:auto;white-space:nowrap;scrollbar-width:none}
+#top-nav::-webkit-scrollbar{display:none}
+#top-nav .nav-brand{font-weight:700;font-size:.88rem;color:var(--accent);flex-shrink:0;margin-right:4px;cursor:pointer;padding:5px 8px;border-radius:var(--radius-sm);transition:background var(--transition)}
+#top-nav .nav-brand:hover{background:var(--surface2)}
+#top-nav .nav-link{flex-shrink:0;padding:5px 10px;border-radius:16px;font-size:.72rem;cursor:pointer;color:var(--text2);text-decoration:none;transition:all var(--transition);font-weight:500;border:1px solid transparent;background:transparent}
+#top-nav .nav-link:hover{color:var(--accent);background:var(--surface2);border-color:var(--border)}
+#top-nav .nav-link.active{color:#fff;background:var(--accent);border-color:var(--accent);font-weight:600;box-shadow:0 2px 6px rgba(79,70,229,.25)}
+#top-nav .nav-icon-btn{flex-shrink:0;width:32px;height:32px;border-radius:50%;border:1px solid var(--border);background:var(--surface);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:.85rem;color:var(--text2);transition:all var(--transition);padding:0}
+#top-nav .nav-icon-btn:hover{background:var(--surface2);color:var(--accent);border-color:var(--accent)}
+
+#global-tooltip{position:fixed;z-index:9500;pointer-events:none;opacity:0;transform:translate(-50%,-110%);transition:opacity .18s ease;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);padding:5px;box-shadow:var(--shadow-lg);max-width:170px;display:flex;flex-direction:column;align-items:center}
+#global-tooltip.visible{opacity:1}
+#global-tooltip img{width:100%;height:auto;max-height:130px;object-fit:contain;border-radius:4px;display:block}
+#global-tooltip .tooltip-label{font-size:.55rem;color:var(--text3);text-align:center}
+
+#main-content{padding-top:calc(var(--nav-height) + 14px);max-width:var(--max-w);margin:0 auto;padding-left:12px;padding-right:12px;padding-bottom:50px}
+#main-content.hidden-sections .section-block:not(.visible){display:none}
+.section-block{margin-bottom:16px;scroll-margin-top:70px}
+.section-block.visible{animation:fadeInUp .35s ease forwards}
+@keyframes fadeInUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+
+.reveal{opacity:0;transform:translateY(18px);transition:opacity .5s cubic-bezier(.22,1,.36,1),transform .5s cubic-bezier(.22,1,.36,1)}
+.reveal.revealed{opacity:1;transform:translateY(0)}
+.reveal-up{opacity:0;transform:translateY(25px);transition:opacity .5s cubic-bezier(.22,1,.36,1),transform .5s cubic-bezier(.22,1,.36,1)}
+.reveal-up.revealed{opacity:1;transform:translateY(0)}
+.reveal-scale{opacity:0;transform:scale(.93);transition:opacity .4s cubic-bezier(.22,1,.36,1),transform .4s cubic-bezier(.22,1,.36,1)}
+.reveal-scale.revealed{opacity:1;transform:scale(1)}
+.reveal-stagger>*:nth-child(1){transition-delay:0s}
+.reveal-stagger>*:nth-child(2){transition-delay:.06s}
+.reveal-stagger>*:nth-child(3){transition-delay:.12s}
+.reveal-stagger>*:nth-child(4){transition-delay:.18s}
+.reveal-stagger>*:nth-child(5){transition-delay:.24s}
+.reveal-stagger>*:nth-child(6){transition-delay:.30s}
+
+#hero{text-align:center;padding:26px 18px 22px;background:var(--gradient-card);border-radius:var(--radius-lg);border:1px solid var(--border);box-shadow:var(--shadow);position:relative;overflow:hidden}
+#hero::before{content:'';position:absolute;inset:-2px;border-radius:calc(var(--radius-lg)+2px);background:var(--gradient-hero);z-index:-1;opacity:.10;animation:heroBorderGlow 3s ease-in-out infinite}
+@keyframes heroBorderGlow{0%,100%{opacity:.08}50%{opacity:.20}}
+#hero .hero-avatar{width:76px;height:76px;border-radius:50%;object-fit:cover;border:3px solid var(--accent);box-shadow:0 0 14px rgba(79,70,229,.16);margin-bottom:10px;background:var(--surface2);animation:avatarGlow 3s ease-in-out infinite}
+@keyframes avatarGlow{0%,100%{box-shadow:0 0 14px rgba(79,70,229,.16)}50%{box-shadow:0 0 24px rgba(99,102,241,.35)}}
+#hero .hero-name{font-size:1.4rem;font-weight:800;background:var(--gradient-hero);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;display:inline-block;letter-spacing:.01em}
+#hero .hero-target{display:inline-block;margin-top:4px;padding:4px 12px;border-radius:12px;background:var(--accent);color:#fff;font-size:.72rem;font-weight:600}
+#hero .hero-tagline{font-size:.82rem;color:var(--text2);margin-top:7px;line-height:1.5}
+#hero .hero-badges{display:flex;flex-wrap:wrap;gap:5px;justify-content:center;margin-top:10px}
+#hero .hero-badge{padding:4px 10px;border-radius:12px;font-size:.67rem;font-weight:600;background:var(--accent);color:#fff;box-shadow:0 2px 5px rgba(79,70,229,.16);transition:transform var(--transition),box-shadow var(--transition);opacity:0;animation:badgePopIn .35s cubic-bezier(.22,1,.36,1) forwards}
+#hero .hero-badge:nth-child(1){animation-delay:.3s}
+#hero .hero-badge:nth-child(2){animation-delay:.4s}
+#hero .hero-badge:nth-child(3){animation-delay:.5s}
+#hero .hero-badge:nth-child(4){animation-delay:.6s}
+#hero .hero-badge:nth-child(5){animation-delay:.7s}
+#hero .hero-badge:nth-child(6){animation-delay:.8s}
+@keyframes badgePopIn{from{opacity:0;transform:translateY(5px) scale(.9)}to{opacity:1;transform:translateY(0) scale(1)}}
+#hero .hero-badge:hover{transform:translateY(-1px);box-shadow:0 3px 8px rgba(79,70,229,.25)}
+.quick-info{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:6px;margin-top:12px;padding:10px;background:var(--bg);border-radius:var(--radius);border:1px solid var(--border)}
+.quick-info .qi-item{text-align:center}
+.quick-info .qi-label{font-size:.55rem;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;font-weight:600}
+.quick-info .qi-value{font-size:.74rem;font-weight:600;color:var(--text);margin-top:2px}
+#hero .hero-contact-row{display:flex;flex-wrap:wrap;gap:5px;justify-content:center;margin-top:12px}
+#hero .hero-contact-btn{padding:6px 12px;border-radius:18px;font-size:.7rem;font-weight:500;cursor:pointer;border:1.5px solid var(--border);background:var(--surface);color:var(--text);transition:all var(--transition);display:inline-flex;align-items:center;gap:4px;position:relative;text-decoration:none}
+#hero .hero-contact-btn:hover{border-color:var(--accent);color:var(--accent);box-shadow:var(--shadow);transform:translateY(-1px)}
+#hero .hero-contact-btn.copied{border-color:#22c55e!important;color:#22c55e!important;background:#f0fdf4!important}
+body.dark #hero .hero-contact-btn.copied{background:#052e16!important;color:#4ade80!important}
+#hero .hero-resume-download{background:var(--gradient-hero);color:#fff;border-color:transparent;font-weight:700;font-size:.75rem;padding:8px 16px;box-shadow:0 3px 12px rgba(79,70,229,.28)}
+#hero .hero-resume-download:hover{transform:translateY(-2px);box-shadow:0 5px 18px rgba(79,70,229,.4);color:#fff}
+#hero .hero-resume-preview{font-size:.7rem;color:var(--text2);cursor:pointer;background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:4px 14px;font-family:var(--font);transition:all var(--transition);text-decoration:none;display:inline-block}
+#hero .hero-resume-preview:hover{color:var(--accent);border-color:var(--accent);background:var(--surface2);box-shadow:var(--shadow-sm)}
+
+.section-header{font-size:.95rem;font-weight:700;margin-bottom:8px;color:var(--text);display:flex;align-items:center;gap:8px}
+.section-header .sh-line{flex:1;height:1px;background:var(--border)}
+
+#highlights .highlight-cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:7px}
+#highlights .highlight-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:12px 10px;text-align:center;box-shadow:var(--shadow-sm);transition:all var(--transition)}
+#highlights .highlight-card:hover{transform:translateY(-2px);box-shadow:var(--shadow);border-color:var(--accent-glow)}
+#highlights .highlight-num{font-size:1.5rem;font-weight:800;color:var(--accent)}
+#highlights .highlight-label{font-size:.65rem;color:var(--text3);margin-top:2px}
+
+#skills .skill-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:8px}
+#skills .skill-category{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:11px;box-shadow:var(--shadow-sm)}
+#skills .skill-cat-title{font-weight:700;font-size:.78rem;margin-bottom:7px;color:var(--accent)}
+#skills .skill-item{display:flex;align-items:center;gap:5px;margin-bottom:5px;font-size:.67rem;color:var(--text2)}
+#skills .skill-bar-bg{flex:1;height:5px;background:var(--surface2);border-radius:3px;overflow:hidden}
+#skills .skill-bar-fill{height:100%;border-radius:3px;background:var(--gradient-hero);transition:width .5s ease}
+#skills .skill-label{font-size:.55rem;padding:2px 6px;border-radius:6px;background:var(--surface2);color:var(--text3);font-weight:500;white-space:nowrap}
+
+.exp-card,.proj-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:13px;margin-bottom:8px;box-shadow:var(--shadow-sm);transition:all var(--transition)}
+.exp-card:hover,.proj-card:hover{transform:translateY(-1px);box-shadow:var(--shadow);border-color:var(--accent-glow)}
+.exp-card .exp-header,.proj-card .proj-header{display:flex;flex-wrap:wrap;align-items:baseline;gap:5px;margin-bottom:3px}
+.exp-card .exp-title,.proj-card .proj-title{font-weight:700;font-size:.84rem;color:var(--text)}
+.exp-card .exp-meta,.proj-card .proj-meta{font-size:.62rem;color:var(--text3);font-weight:500}
+.exp-card ul,.proj-card ul{list-style:none;padding:0}
+.exp-card li,.proj-card li{font-size:.72rem;color:var(--text2);padding:2px 0 2px 12px;position:relative;line-height:1.5}
+.exp-card li::before,.proj-card li::before{content:'-';position:absolute;left:0;color:var(--accent);font-weight:700}
+.proj-card .proj-link{display:inline-block;margin-top:5px;font-size:.67rem;color:var(--accent);text-decoration:none;font-weight:600;transition:color var(--transition)}
+.proj-card .proj-link:hover{color:var(--accent2);text-decoration:underline}
+
+.tab-nav{display:flex;gap:3px;flex-wrap:wrap;margin-bottom:10px;border-bottom:1px solid var(--border);padding-bottom:5px}
+.tab-btn{padding:6px 12px;border-radius:14px;font-size:.72rem;font-weight:500;cursor:pointer;border:1px solid transparent;background:transparent;color:var(--text2);transition:all var(--transition);white-space:nowrap}
+.tab-btn:hover{background:var(--surface2);color:var(--text)}
+.tab-btn[aria-selected="true"]{background:var(--accent);color:#fff;border-color:var(--accent);font-weight:600;box-shadow:0 2px 5px rgba(79,70,229,.2)}
+.tab-panel{display:none;animation:fadeInUp .3s ease}
+.tab-panel[aria-hidden="false"]{display:block}
+
+.image-showcase-row{display:grid;grid-template-columns:1fr 1fr;gap:7px}
+.image-showcase-row .showcase-img-wrapper{border-radius:var(--radius);overflow:hidden;border:1px solid var(--border);aspect-ratio:16/10;background:var(--surface2);display:flex;align-items:center;justify-content:center;transition:all var(--transition)}
+.image-showcase-row .showcase-img-wrapper img{width:100%;height:100%;object-fit:cover;display:block}
+.image-showcase-row .showcase-img-wrapper:hover{border-color:var(--accent);box-shadow:var(--shadow);transform:translateY(-1px)}
+
+.interactive-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:16px 14px;box-shadow:var(--shadow);transition:all var(--transition);position:relative}
+.interactive-card:hover{border-color:var(--accent-glow);box-shadow:var(--shadow-lg);transform:translateY(-1px)}
+.interactive-card .card-header{display:flex;align-items:center;gap:8px;margin-bottom:6px}
+.interactive-card .card-icon{width:36px;height:36px;border-radius:8px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:1.2rem;background:var(--gradient-hero);color:#fff}
+.interactive-card .card-title{font-weight:700;font-size:.85rem;color:var(--text)}
+.interactive-card .card-desc{font-size:.72rem;color:var(--text2);line-height:1.5;margin-bottom:8px}
+.interactive-card .card-action-btn{display:inline-block;padding:8px 16px;border-radius:18px;font-weight:600;font-size:.72rem;cursor:pointer;border:none;background:var(--accent);color:#fff;transition:all var(--transition);text-decoration:none;box-shadow:0 2px 7px rgba(79,70,229,.2)}
+.interactive-card .card-action-btn:hover{background:var(--accent2);box-shadow:0 4px 14px rgba(79,70,229,.3);transform:translateY(-2px)}
+@keyframes vpnPulse{0%{transform:scale(1);box-shadow:0 0 8px rgba(239,68,68,.3)}50%{transform:scale(1.08);box-shadow:0 0 24px rgba(239,68,68,.6);background:linear-gradient(135deg,#fecaca,#f87171)}100%{transform:scale(1);box-shadow:0 0 8px rgba(239,68,68,.3)}}
+.interactive-card .vpn-warning{display:inline-block;font-size:.65rem;background:linear-gradient(135deg,#fee2e2,#fecaca);color:#991b1b;padding:4px 12px;border-radius:8px;font-weight:800;border:2px solid #ef4444;letter-spacing:.04em;animation:vpnPulse 1.2s ease-in-out infinite;box-shadow:0 0 14px rgba(239,68,68,.4);text-transform:uppercase}
+body.dark .interactive-card .vpn-warning{background:linear-gradient(135deg,#450a0a,#7f1d1d);color:#fca5a5;border-color:#ef4444;box-shadow:0 0 14px rgba(239,68,68,.25)}
+
+.game-thumbnail{position:relative;border-radius:var(--radius);overflow:hidden;cursor:pointer;border:1px solid var(--border);box-shadow:var(--shadow);transition:all var(--transition);background:#0a0a14;aspect-ratio:16/9;max-height:260px}
+.game-thumbnail:hover{border-color:var(--accent-glow);box-shadow:var(--shadow-lg);transform:translateY(-2px)}
+.game-thumbnail img{width:100%;height:100%;object-fit:cover;display:block;opacity:.7;transition:opacity .3s ease,transform .4s ease}
+.game-thumbnail:hover img{opacity:.9;transform:scale(1.03)}
+.game-thumbnail-overlay{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.3);transition:background .3s ease}
+.game-thumbnail:hover .game-thumbnail-overlay{background:rgba(0,0,0,.12)}
+.game-thumbnail-overlay span{background:var(--accent);color:#fff;padding:9px 22px;border-radius:22px;font-weight:700;font-size:.8rem;box-shadow:0 4px 14px rgba(79,70,229,.4);transition:all var(--transition);pointer-events:none}
+.game-thumbnail:hover .game-thumbnail-overlay span{transform:scale(1.05);box-shadow:0 6px 22px rgba(99,102,241,.5)}
+
+.game-float{position:fixed;z-index:9600;width:400px;max-width:92vw;background:#0a0a14;border:1px solid var(--border);border-radius:var(--radius-lg);box-shadow:0 20px 60px rgba(0,0,0,.6);overflow:hidden;display:flex;flex-direction:column;opacity:0;transform:scale(.9);pointer-events:none;transition:opacity .25s ease,transform .25s ease;resize:both;min-width:260px;min-height:340px}
+.game-float.active{opacity:1;transform:scale(1);pointer-events:auto}
+.game-float-header{display:flex;align-items:center;justify-content:space-between;padding:7px 10px;background:#1a1530;border-bottom:1px solid var(--border);cursor:move;user-select:none;flex-shrink:0}
+.game-float-header span{font-size:.72rem;font-weight:600;color:var(--accent-glow)}
+.game-float-actions{display:flex;gap:3px}
+.game-float-btn{width:24px;height:24px;border-radius:5px;border:1px solid var(--border);background:#1e1b28;color:var(--accent-glow);cursor:pointer;font-size:.65rem;display:flex;align-items:center;justify-content:center;transition:all .15s ease;padding:0}
+.game-float-btn:hover{background:var(--border)}
+.game-float iframe{flex:1;border:none;width:100%;min-height:340px}
+
+#certificates .cert-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:7px}
+#certificates .cert-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;box-shadow:var(--shadow-sm);transition:all var(--transition);aspect-ratio:3/4;display:flex;align-items:center;justify-content:center;position:relative}
+#certificates .cert-card img{width:100%;height:100%;object-fit:contain;padding:5px}
+#certificates .cert-card:hover{border-color:var(--accent);box-shadow:var(--shadow-lg);transform:translateY(-2px)}
+#certificates .cert-label{position:absolute;bottom:4px;left:50%;transform:translateX(-50%);font-size:.5rem;background:rgba(0,0,0,.7);color:#fff;padding:2px 6px;border-radius:5px;white-space:nowrap;pointer-events:none}
+
+#education .edu-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:13px;box-shadow:var(--shadow-sm)}
+
+#site-footer{text-align:center;padding:16px;font-size:.62rem;color:var(--text3);border-top:1px solid var(--border);margin-top:8px}
+
+#back-to-top{position:fixed;bottom:24px;right:16px;z-index:8000;width:36px;height:36px;border-radius:50%;background:var(--accent);color:#fff;border:none;cursor:pointer;font-size:1rem;box-shadow:var(--shadow-lg);opacity:0;transform:translateY(20px);transition:all var(--transition);pointer-events:none;display:flex;align-items:center;justify-content:center}
+#back-to-top.show{opacity:1;transform:translateY(0);pointer-events:auto}
+#back-to-top:hover{background:var(--accent2);transform:translateY(-3px);box-shadow:0 6px 20px rgba(79,70,229,.3)}
+
+#toast{position:fixed;bottom:70px;left:50%;transform:translateX(-50%) translateY(20px);z-index:9999;background:var(--text);color:var(--bg);padding:7px 16px;border-radius:16px;font-size:.7rem;opacity:0;transition:all .3s ease;pointer-events:none;font-weight:500;box-shadow:0 6px 20px rgba(0,0,0,.25)}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+#image-lightbox{display:none;position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(0,0,0,.9);z-index:9999;align-items:center;justify-content:center;cursor:zoom-out}
+#image-lightbox.visible{display:flex;animation:fadeIn .2s ease}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+#pdf-preview{display:none;position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(0,0,0,.92);z-index:9998;align-items:center;justify-content:center;flex-direction:column}
+#pdf-preview.visible{display:flex;animation:fadeIn .2s ease}
+#pdf-preview iframe{width:90vw;height:85vh;border:none;border-radius:8px;background:#fff}
+#pdf-preview .pdf-close{position:absolute;top:16px;right:16px;width:38px;height:38px;border-radius:50%;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);color:#fff;font-size:1rem;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background .2s;z-index:10000}
+#pdf-preview .pdf-close:hover{background:rgba(255,255,255,.2)}
+#lightbox-close{position:absolute;top:20px;right:20px;width:38px;height:38px;border-radius:50%;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);color:#fff;font-size:1rem;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background .2s;z-index:10000}
+#lightbox-close:hover{background:rgba(255,255,255,.2)}
+#lightbox-img{max-width:90vw;max-height:90vh;object-fit:contain;border-radius:5px}
+#lightbox-caption{position:absolute;bottom:18px;left:50%;transform:translateX(-50%);color:#fff;font-size:.75rem;text-shadow:0 1px 3px rgba(0,0,0,.8);background:rgba(0,0,0,.6);padding:4px 10px;border-radius:14px}
+
+@media(min-width:481px)and(max-width:767px){
+:root{--max-w:95vw}
+#hero .hero-avatar{width:70px;height:70px}
+#highlights .highlight-cards{grid-template-columns:repeat(2,1fr)}
+#skills .skill-grid{grid-template-columns:repeat(2,1fr)}
+}
+@media(min-width:768px){
+:root{--nav-height:56px;--max-w:720px}
+#top-nav{padding:0 16px}
+#top-nav .nav-link{flex-shrink:0;padding:5px 10px;border-radius:16px;font-size:.72rem;cursor:pointer;color:var(--text2);text-decoration:none;transition:all var(--transition);font-weight:500;border:1px solid transparent;background:transparent}
+#hero{padding:30px 22px 22px}
+#hero .hero-avatar{width:85px;height:85px}
+#hero .hero-name{font-size:1.6rem}
+#highlights .highlight-cards{grid-template-columns:repeat(4,1fr)}
+.image-showcase-row{grid-template-columns:1fr 1fr;gap:10px}
+}
+@media(min-width:1024px){
+:root{--max-w:780px}
+#hero .hero-name{font-size:1.8rem}
+}
+@media(max-width:480px){
+@media(max-width:480px){
+#top-nav{padding:0 6px;gap:3px}
+#top-nav .nav-link{font-size:.66rem;padding:5px 8px}
+#top-nav .nav-brand{font-size:.7rem;padding:5px 6px}
+#top-nav .nav-icon-btn{width:30px;height:30px;font-size:.8rem}
+#main-content{padding-left:8px;padding-right:8px}
+#hero{padding:18px 12px 16px}
+#hero .hero-avatar{width:56px;height:56px}
+#hero .hero-name{font-size:1.1rem}
+#hero .hero-tagline{font-size:.75rem}
+#hero .hero-badge{font-size:.62rem;padding:3px 8px}
+#hero .hero-contact-btn{font-size:.65rem;padding:6px 10px}
+.quick-info{grid-template-columns:repeat(2,1fr);padding:8px}
+.quick-info .qi-value{font-size:.68rem}
+#highlights .highlight-cards{grid-template-columns:repeat(2,1fr)}
+#highlights .highlight-num{font-size:1.3rem}
+#skills .skill-grid{grid-template-columns:1fr}
+.cert-grid{grid-template-columns:repeat(2,1fr)}
+.tab-btn{font-size:.66rem;padding:5px 9px}
+.exp-card,.proj-card{padding:10px}
+.exp-card li,.proj-card li{font-size:.68rem}
+.exp-title,.proj-title{font-size:.8rem}
+.image-showcase-row{grid-template-columns:1fr 1fr;gap:4px}
+.interactive-card{padding:12px 10px}
+.interactive-card .card-title{font-size:.8rem}
+.interactive-card .card-desc{font-size:.68rem}
+.game-float{width:96vw;max-width:96vw;border-radius:var(--radius)}
+.game-float iframe{min-height:280px}
+.game-thumbnail{max-height:200px}
+.section-header{font-size:.88rem}
+.section-block{margin-bottom:10px}
+}
+@media print{
+#top-nav,#intro-overlay,#back-to-top,#global-tooltip,#toast,.nav-icon-btn,.interactive-card .card-action-btn,.vpn-warning,.image-showcase-row,#certificates .cert-grid,.hero-contact-btn,.game-thumbnail,.game-float{display:none!important}
+body{background:#fff!important;color:#000!important;font-size:10pt}
+#main-content{padding-top:0!important;max-width:100%!important}
+.section-block{break-inside:avoid;margin-bottom:6px;box-shadow:none!important;border:1px solid #ddd!important}
+.tab-panel{display:block!important}
+.tab-nav{display:none!important}
+a{color:#000!important;text-decoration:underline}
+}
+
+</style>
 </head>
 <body>
-  <header class="forest-header">
-      <a href="index.html" class="forest-logo">
-          <span class="logo-icon">🌳</span>
-          <span class="logo-text">心灵树洞</span>
-      </a>
-      <nav class="forest-nav">
-          <a href="index.html">广场</a>
-          <a href="books.html">书洞</a>
-          <a href="shuling.html">树灵</a>
-          <a href="chat.html">树友对话</a>
-          <a href="mood-ring.html">年轮</a>
-      </nav>
-      <div class="forest-user-actions" id="navUserArea">
-          <span id="navGuest">
-              <a href="login.html">登录</a>
-              <a href="register.html">注册</a>
-          </span>
-          <span id="navLoggedIn" style="display:none">
-              <span class="user-greeting" id="navNickname"></span>
-              <a href="profile.html">个人中心</a>
-              <a href="feedback.html">反馈</a>
-              <a href="#" class="logout-btn" id="navLogout">退出</a>
-          </span>
-          <button id="contactAdminBtn" style="background:none;border:none;color:var(--nav-text);cursor:pointer;font-size:0.95rem;padding:6px 12px;border-radius:8px;transition:background 0.2s;">🌳 站长</button>
-          <div id="wechatSection" style="display:none;">
-            <span id="wechatDisplay" style="font-size:0.95rem;color:#000000;">💚 q1427420863p</span>
-            <button id="copyWechatBtn" style="background:linear-gradient(135deg, var(--accent), var(--accent-light));color:white;border:none;border-radius:20px;padding:6px 14px;font-size:0.85rem;cursor:pointer;transition:transform 0.2s;">📋 复制</button>
-          </div>
-          <div id="copySuccessMsg" style="display:none;font-size:12px;color:#5ba07a;">嘿嘿^v^!微信复制成功，快去访问我吧！</div>
-      </div>
-  </header>
-  <div class="container">
-    <header class="header">
-      <h1>🌳 心灵树洞</h1>
-      <p class="subtitle">悄悄话，说给树洞听</p>
-    </header>
-
-    <div class="daily-whisper" id="dailyWhisper" style="display:none;">
-      <span class="daily-whisper-text" id="dailyWhisperText"></span>
+<div id="intro-overlay" aria-hidden="false">
+    <div class="intro-content">
+        <div class="intro-title" id="intro-title-text"></div>
     </div>
+    <div class="skip-hint">点击任意处跳过 · 欢迎访问我的个人网站</div>
+</div>
 
-    <section class="submit-form card">
-      <p class="form-guide-text">把情绪折成落叶，总有一簇篝火为你而燃</p>
-      <textarea id="question-content" placeholder="写下你的心事..." rows="3"></textarea>
-      <div id="question-msg" class="form-message"></div>
-      <div class="form-row">
-        <div class="form-row-input-wrapper">
-          <input type="text" id="question-nickname" placeholder="匿名树友" maxlength="20">
-          <span id="login-status" class="login-status">已登录，将以此昵称发布</span>
+<nav id="top-nav" role="navigation" aria-label="主导航">
+    <span class="nav-brand" data-section="all">管家玉</span>
+    <button class="nav-link active" data-section="all" data-has-tooltip="true" data-tooltip-img="6.png" data-tooltip-label="个人简历缩略图">📋 简历</button>
+    <button class="nav-link" data-section="skills">🛠 技能</button>
+    <button class="nav-link" data-section="experience">💼 经历</button>
+    <button class="nav-link" data-section="projects">🚀 项目</button>
+    <button class="nav-link" data-section="certificates">🏅 证书</button>
+    <button class="nav-link" data-section="education">🎓 教育</button>
+    <button class="nav-link" data-section="personal">🧩 作品</button>
+    <button class="nav-icon-btn" id="theme-toggle">🌙</button>
+    <button class="nav-icon-btn" id="print-btn">🖨️</button>
+</nav>
+
+<div id="global-tooltip" aria-hidden="true">
+    <img src="" alt="" id="tooltip-img"><span class="tooltip-label" id="tooltip-label"></span>
+</div>
+
+<main id="main-content">
+
+<section class="section-block visible" id="hero" data-section="hero">
+    <img src="tx.png" alt="管家玉头像" class="hero-avatar" onerror="this.style.display='none';this.nextElementSibling.style.display='inline-flex';" style="display:block;">
+    <div style="display:none;width:76px;height:76px;border-radius:50%;background:var(--gradient-hero);align-items:center;justify-content:center;font-size:1.6rem;color:#fff;margin:0 auto 10px;flex-shrink:0;">👤</div>
+    <h1 class="hero-name">管家玉</h1>
+    <span class="hero-target">求职意向：AI开发工程师 / 全栈开发（实习）</span>
+    <p class="hero-tagline">AI开发工程师 · 全栈开发者 · 多媒体创作者<br>以第一性原理驱动，融合AI与工程实践，持续交付高价值成果</p>
+    <div class="hero-badges">
+        <span class="hero-badge">AI Agent开发</span>
+        <span class="hero-badge">全栈架构</span>
+        <span class="hero-badge">Supabase RLS</span>
+        <span class="hero-badge">Playwright E2E</span>
+        <span class="hero-badge">视频创作</span>
+        <span class="hero-badge">Prompt工程</span>
+    </div>
+    <div class="quick-info reveal">
+        <div class="qi-item"><div class="qi-label">学校</div><div class="qi-value">内蒙古工业大学</div></div>
+        <div class="qi-item"><div class="qi-label">专业</div><div class="qi-value">土木工程（本科）</div></div>
+        <div class="qi-item"><div class="qi-label">GPA</div><div class="qi-value">年级前2%</div></div>
         </div>
-        <button id="anonymous-toggle" style="display:flex;align-items:center;gap:4px;padding:8px 16px;border-radius:8px;border:1px solid var(--border-light);background:transparent;color:var(--text-secondary);cursor:pointer;font-size:14px;transition:all 0.2s;">
-          <span id="anonymous-icon" style="font-size:1.1rem;">🌳</span>
-          <span>匿林</span>
-        </button>
-        <button id="submit-question-btn">📮 投入树洞</button>
-        <button id="polish-question-btn" class="btn-secondary" style="display:inline-flex;align-items:center;gap:6px;">
-          <span style="font-size:1.3rem;">🧚‍♀️</span>
-          树灵降临
-        </button>
-      </div>
-    </section>
+    <div class="hero-contact-row">
+        <a class="hero-contact-btn hero-resume-download" id="hero-resume-btn" href="内蒙古工业大学-管家玉.pdf" data-has-tooltip="true" data-tooltip-img="6.png" data-tooltip-label="个人简历缩略图">📋 个人简历</a>
 
-    <div class="search-container">
-      <div class="search-mode-row">
-        <button class="search-mode-btn active" data-mode="all">综合</button>
-        <button class="search-mode-btn" data-mode="content">内容</button>
-        <button class="search-mode-btn" data-mode="nickname">名字</button>
-      </div>
-      <input type="text" id="searchInput" placeholder="搜索心事...">
-      <span id="clearSearch" class="clear-search">×</span>
+        <button class="hero-contact-btn" data-copy="15116820947">📱 15116820947</button>
+        <button class="hero-contact-btn" data-copy="15116820947@139.com">✉️ 邮箱</button>
+        <button class="hero-contact-btn" data-copy="q1427420863p" data-has-tooltip="true" data-tooltip-img="wx.png" data-tooltip-label="微信主页">💬 微信</button>
+        <a class="hero-contact-btn" href="https://github.com/yu070159/" target="_blank" rel="noopener">🐙 GitHub</a>
     </div>
-
-    <section class="questions-list" id="questions-list">
-    </section>
-  </div>
-
-  <div class="login-modal-overlay" id="loginModal">
-    <div class="login-modal">
-      <p>登录后才能写下心事哦</p>
-      <div class="login-modal-buttons">
-        <button class="login-modal-btn login-modal-btn-primary" onclick="location.href='login.html'">去登录</button>
-        <button class="login-modal-btn login-modal-btn-secondary" onclick="document.getElementById('loginModal').style.display='none'">再想想</button>
-      </div>
+</section>
+<section class="section-block visible" id="highlights" data-section="highlights">
+    <div class="section-header"><span>📊 核心成果</span><span class="sh-line"></span></div>
+    <div class="highlight-cards reveal-stagger">
+        <div class="highlight-card reveal-up"><div class="highlight-num">300%+</div><div class="highlight-label">供应链产能提升</div></div>
+        <div class="highlight-card reveal-up"><div class="highlight-num">80%</div><div class="highlight-label">数据合格率</div></div>
+        <div class="highlight-card reveal-up"><div class="highlight-num">99.8%</div><div class="highlight-label">系统边界可用性</div></div>
+        <div class="highlight-card reveal-up"><div class="highlight-num">Top 22</div><div class="highlight-label">全国机器人大赛</div></div>
     </div>
-  </div>
+</section>
 
-  <script src="ai-float.js"></script>
-  <script src="user-popup.js"></script>
-  <script>
-    (async function() {
-      const el = document.getElementById('dailyWhisper');
-      const textEl = document.getElementById('dailyWhisperText');
-      if (!el || !textEl) return;
+<section class="section-block visible" id="skills" data-section="skills">
+    <div class="section-header"><span>🛠️ 技能矩阵</span><span class="sh-line"></span></div>
+    <div class="skill-grid reveal-stagger" id="skill-grid"></div>
+</section>
 
-      const today = new Date().toISOString().slice(0, 10);
-      const cacheKey = 'daily_whisper_' + today;
-      const cached = localStorage.getItem(cacheKey);
+<section class="section-block visible" id="experience" data-section="experience">
+    <div class="section-header"><span>💼 工作/实习经历</span><span class="sh-line"></span></div>
+    <div class="tab-nav" role="tablist">
+        <button class="tab-btn" role="tab" aria-selected="true" aria-controls="exp-panel-0" id="exp-tab-0">工作经历</button>
+        <button class="tab-btn" role="tab" aria-selected="false" aria-controls="exp-panel-1" id="exp-tab-1">实习经历</button>
+        <button class="tab-btn" role="tab" aria-selected="false" aria-controls="exp-panel-2" id="exp-tab-2">校园经历</button>
+    </div>
+    <div class="tab-panel" role="tabpanel" aria-hidden="false" id="exp-panel-0"></div>
+    <div class="tab-panel" role="tabpanel" aria-hidden="true" id="exp-panel-1"></div>
+    <div class="tab-panel" role="tabpanel" aria-hidden="true" id="exp-panel-2"></div>
+</section>
 
-      if (cached) {
-        textEl.textContent = cached;
-        el.style.display = 'block';
-        return;
-      }
+<section class="section-block visible" id="projects" data-section="projects">
+    <div class="section-header"><span>🚀 项目经历</span><span class="sh-line"></span></div>
+    <div class="tab-nav" role="tablist">
+        <button class="tab-btn" role="tab" aria-selected="true" aria-controls="proj-panel-0" id="proj-tab-0">心灵树洞</button>
+        <button class="tab-btn" role="tab" aria-selected="false" aria-controls="proj-panel-1" id="proj-tab-1">机器人大赛</button>
+        <button class="tab-btn" role="tab" aria-selected="false" aria-controls="proj-panel-2" id="proj-tab-2">创新创业</button>
+        <button class="tab-btn" role="tab" aria-selected="false" aria-controls="proj-panel-3" id="proj-tab-3">微电影</button>
+    </div>
+    <div class="tab-panel" role="tabpanel" aria-hidden="false" id="proj-panel-0"></div>
+    <div class="tab-panel" role="tabpanel" aria-hidden="true" id="proj-panel-1"></div>
+    <div class="tab-panel" role="tabpanel" aria-hidden="true" id="proj-panel-2"></div>
+    <div class="tab-panel" role="tabpanel" aria-hidden="true" id="proj-panel-3"></div>
+</section>
 
-      try {
-        const res = await fetch(window.API_BASE + '/api/chat', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            messages: [
-              { role: 'user', content: '请生成一句温暖的治愈语录，风格诗意含蓄、像深夜森林里的轻声细语。不超过30字，不要引号。主题围绕：接纳自己、允许脆弱、慢慢来。' }
-            ]
-          })
-        });
-        const data = await res.json();
-        const text = data.choices?.[0]?.message?.content?.trim();
-        if (text) {
-          textEl.textContent = text;
-          el.style.display = 'block';
-          localStorage.setItem(cacheKey, text);
-        }
-      } catch (e) {
-        // 静默失败，不影响页面
-      }
-    })();
-  </script>
+<section class="section-block visible" id="certificates" data-section="certificates">
+    <div class="section-header"><span>🏅 获奖与证书</span><span class="sh-line"></span></div>
+    <div class="cert-grid reveal-stagger">
+        <div class="cert-card reveal-scale"><img src="rst.png" alt="全国先进机器人及仿真技术大赛"><span class="cert-label">RST全国二等奖</span></div>
+        <div class="cert-card reveal-scale"><img src="11.png" alt="微调工程师认证"><span class="cert-label">微调工程师</span></div>
+        <div class="cert-card reveal-scale"><img src="22.png" alt="智能体工程师认证"><span class="cert-label">智能体工程师</span></div>
+        <div class="cert-card reveal-scale"><img src="33.png" alt="Prompt工程师认证"><span class="cert-label">Prompt工程师</span></div>
+        <div class="cert-card reveal-scale"><img src="44.png" alt="阿里云达摩院人工智能训练师"><span class="cert-label">阿里云AI训练师</span></div>
+    </div>
+</section>
 
-  <script>
-    document.getElementById('contactAdminBtn').addEventListener('click', function() {
-      document.getElementById('contactAdminBtn').style.display = 'none';
-      document.getElementById('wechatSection').style.display = 'flex';
-      document.getElementById('wechatSection').style.alignItems = 'center';
-      document.getElementById('wechatSection').style.gap = '12px';
-      document.getElementById('copySuccessMsg').style.display = 'none';
-    });
+<section class="section-block visible" id="education" data-section="education">
+    <div class="section-header"><span>🎓 教育背景</span><span class="sh-line"></span></div>
+    <div class="edu-card reveal-up">
+        <p style="font-weight:700;font-size:.82rem;">内蒙古工业大学 · 土木工程（本科）</p>
+        <p style="font-size:.67rem;color:var(--text3);">2025.09 - 2029.07</p>
+        <p style="font-size:.7rem;color:var(--text2);margin-top:3px;">综合学分绩点（GPA）位列年级前2%</p>
+        <p style="font-size:.65rem;color:var(--text3);">主修：高等数学 · 大学物理 · 理论力学 · 工科化学 · 工程制图</p>
+    </div>
+</section>
+<div class="section-header section-block" data-section="personal"><span>🧩 个人项目</span><span class="sh-line"></span></div>
 
-    document.getElementById('copyWechatBtn').addEventListener('click', async function() {
-      const wechat = 'q1427420863p';
-      const btn = document.getElementById('copyWechatBtn');
-      btn.disabled = true;
+<section class="section-block visible interactive-card reveal-up" data-section="personal" style="margin-bottom:10px;">
+    <div class="card-header">
+        <div class="card-icon">🌳</div>
+        <div class="card-title">心灵树洞 (Soul Tree Hollow)<span class="personal-badge" style="font-size:.55rem;background:var(--accent);color:#fff;padding:1px 7px;border-radius:6px;font-weight:500;margin-left:6px;vertical-align:middle;">个人项目</span></div>
+        
+    </div>
+    <p class="card-desc">一个为在学业压力、人际内耗与情绪低谷中彷徨的年轻人打造的匿名倾诉与心理互助社区。融合AI陪伴、心理学经典阅读与情绪管理工具，提供安全、温暖、无评判的栖息地。支持匿名发帖、MBTI与PHQ-9自测、弗洛伊德至荣格经典在线阅读及AI树灵对话。由非计算机专业背景的心理学爱好者借助AI独立完成，采用原生JS与Supabase全栈架构，部署于Vercel。</p>
+    <a class="card-action-btn" href="https://xinling-shudong.vercel.app/" target="_blank" rel="noopener" data-has-tooltip="true" data-tooltip-img="5.png" data-tooltip-label="心灵树洞截图">访问心灵树洞</a><span class="vpn-warning" style="margin-left:6px;">需VPN</span>
+</section>
 
-      try {
-        if (navigator.clipboard && window.isSecureContext) {
-          await navigator.clipboard.writeText(wechat);
-        } else {
-          const textarea = document.createElement('textarea');
-          textarea.style.position = 'fixed';
-          textarea.style.left = '-9999px';
-          textarea.value = wechat;
-          document.body.appendChild(textarea);
-          textarea.select();
-          document.execCommand('copy');
-          document.body.removeChild(textarea);
-        }
+<section class="section-block visible interactive-card reveal-up" data-section="personal" style="margin-bottom:10px;">
+    <div class="card-header">
+        <div class="card-icon">🚀</div>
+        <div class="card-title">雷霆战机 (Thunder Fighter)<span class="personal-badge" style="font-size:.55rem;background:var(--accent);color:#fff;padding:1px 7px;border-radius:6px;font-weight:500;margin-left:6px;vertical-align:middle;">个人项目</span></div>
+    </div>
+    <p class="card-desc">一款主打极致微操与震撼打击感的硬核纵版弹幕射击游戏。支持丝滑鼠标拖拽与全屏触控，配合自动射击与核心判定点设计，在密集弹幕中展开极限闪避。收集道具升级火力、部署纳米护盾与副武器，积攒能量释放全屏核弹，配合强烈屏幕震动与视觉星空特效，带来最纯粹、极度解压的太空空战体验！</p>
+    <div class="game-thumbnail" id="game-thumbnail">
+        <img src="1.png" alt="雷霆战机游戏截图">
+        <div class="game-thumbnail-overlay"><span>🎮 点击开始游戏</span></div>
+    </div>
+</section>
 
-        document.getElementById('wechatSection').style.display = 'none';
-        document.getElementById('copySuccessMsg').style.display = 'block';
+<div class="section-header section-block" data-section="showcase-images"><span>📷 照片展示</span><span class="sh-line"></span></div>
+<section class="section-block visible image-showcase-row" data-section="showcase-images">
+    <div class="showcase-img-wrapper reveal-up"><img src="2.png" alt="工作经历"></div>
+    <div class="showcase-img-wrapper reveal-up"><img src="4.png" alt="校园风光"></div>
+</section>
 
-      } catch (err) {
-        console.error('复制失败:', err);
-      }
+<footer id="site-footer" class="reveal" data-section="footer">
+    <p>© 2026 管家玉 · 更新于2026年6月 · 用心打造每一行代码</p>
+</footer>
+</main>
 
-      setTimeout(() => {
-        document.getElementById('copySuccessMsg').style.display = 'none';
-        document.getElementById('contactAdminBtn').style.display = 'block';
-        btn.disabled = false;
-      }, 5000);
-    });
-  </script>
+<button id="back-to-top">↑</button>
+<div id="toast"></div>
+
+<div id="image-lightbox">
+    <button id="lightbox-close">✕</button>
+    <img id="lightbox-img" src="" alt="">
+    <span id="lightbox-caption"></span>
+</div>
+
+<div id="pdf-preview">
+    <button class="pdf-close" id="pdf-close-btn">✕</button>
+    <iframe id="pdf-iframe" title="简历预览"></iframe>
+</div>
+
+<div class="game-float" id="game-float" aria-hidden="true">
+    <div class="game-float-header" id="game-float-header">
+        <span>🚀 雷霆战机</span>
+        <div class="game-float-actions">
+            <button class="game-float-btn" id="game-float-fullscreen">⛶</button>
+            <button class="game-float-btn" id="game-float-close">✕</button>
+        </div>
+    </div>
+    <iframe id="game-float-iframe" title="雷霆战机" allow="autoplay; fullscreen"></iframe>
+</div>
+<script>
+(function() {
+var resume = {
+    name:'管家玉',phone:'15116820947',wechat:'q1427420863p',email:'15116820947@139.com',github:'https://github.com/yu070159/',
+    education:{school:'内蒙古工业大学',major:'土木工程（本科）',period:'2025.09 - 2029.07',gpa:'综合学分绩点（GPA）位列年级前2%',courses:'高等数学 · 大学物理 · 理论力学 · 工科化学 · 工程制图'},
+    experiences:[
+        {category:'work',title:'AI训练视频数据集项目',role:'供应链项目负责人',period:'2026.05 - 至今',points:['主导高标准流程制定：针对3D重构频率对画面场景复现的严格要求，主导空间坐标参数到采集团队标准化作业流程（SOP）的深度转化，实现团队数据采纳正确率的阶跃式提升，数据合格率达80%。','网格化团队组建与协同：通过垂直社群渠道，从0到1组建并网格化管理了50至100人规模的跨区域数据采集网络，制定严密的日常考核与联动机制，彻底攻克海量并发任务下的劳动力缺口。','供应链产能优化与交付：全面重构供应链管理与资源调配模式，推动整体数据采集供应链产能大幅提升达300%以上，提前10天完成核心阶段数据的闭环交付。']},
+        {category:'intern',title:'美团AI coding',role:'校园大使',period:'2026.03 - 至今',points:['私域流量矩阵搭建：负责美团AI核心产品在校园市场的全渠道品牌推广，从0到1成功组建并精细化运营百人级校园微信技术交流群。','社群促活与裂变：负责社群日常技术答疑、功能宣发及官方活动通知，通过定制化激励机制确保社群月度活跃度维持在70%以上。','渠道转化与用户增长：积极推进线上线下校园裂变活动，成功引导超过80名目标学生群体下载并深度使用美团AI工具，实现新用户转化率提升20%。']},
+        {category:'campus',title:'校社团联合会发展运营部',role:'社团成员',period:'2025.09 - 至今',points:['大型活动全流程保障：深度参与多项千人级大型校园活动的现场组织与后勤保障工作，负责物料统筹、设备调试及多部门突发事务的紧急协调，确保现场零失误运行。','流程资产沉淀与提效：协助部长将复杂的协同流程、人员排班及后勤执行经验全面数字化，沉淀并编写出一套可复制的标准化作业流程（SOP），使后续同类活动筹备周期缩短30%。']}
+    ],
+    projects:[
+        {name:'心灵树洞全栈Web应用',role:'独立全栈开发者',period:'2026.05',tech:'HTML5/CSS3/ES6+ / Supabase / Vercel / DeepSeek API',link:'',points:['极速原型交付：100%融合Trae与Claude Code智能工具链，采用轻量化原生架构，15天内独立闭环交付16个高保真响应式交互页面。','全栈架构与AI深度集成：独立设计并部署Supabase数据库网关，构建14张基础数据表，接入DeepSeek API实现毫秒级动态响应用户情感互动。','工程安全与质量保障：配置行级安全策略（RLS）实现匿名用户隐私数据物理隔离；利用Playwright编写213个E2E自动化测试用例，系统边界可用性达99.8%。']},
+        {name:'全国先进机器人及仿真技术大赛',role:'算法与控制核心负责人',period:'2026.04 - 2026.05',tech:'Python 3.7 / Prompt Engineering / 仿真平台',link:'',points:['控制策略开发与逻辑调优：运用前沿AI提示词工程辅助优化控制算法，独立编写机器鱼各关节运动、三维空间位置及动态姿态控制的底层核心代码。','极端边界死卡与精调：针对大赛死卡18秒极严苛通关时限，通过多轮仿真测试参数微调，精细化控制动态推进力及胸鳍沿Y轴旋转角度。','复杂三维约束突破：成功破解机器鱼通关复杂三维水池空间约束与最优路径规划难题，斩获全国二等奖（国赛Top 22）。']},
+        {name:'大学生创新创业大赛',role:'项目负责人',period:'2026.01 - 至今',tech:'Elicit / 商业计划书 / 竞品分析',link:'',points:['AI自动化文献提炼：高效利用Elicit自动化文献分析工具，针对特定行业痛点检索并深度提炼10篇核心文献，快速构建完备的项目理论体系与竞品分析模型。','商业计划书独立撰写：独立主导撰写15页高质量商业计划书，覆盖市场痛点分析、产品核心定义、跨学科团队组建及中长期财务预测四大战略模块，获校内评审专家高度评价。']},
+        {name:'校园多媒体微电影实践项目',role:'组织策划者',period:'2025.12',tech:'Gemini / Adobe Premiere Pro / Adobe Audition',link:'',points:['AI大模型协同剧本创作：借助Gemini大模型进行灵感碰撞与结构化提炼，高效创作逻辑严密的多媒体脚本与创意分镜大纲，前期剧本筹备时间缩短50%。','专业级后期音视频处理：熟练运用Premiere Pro和Audition进行精细化剪辑、色彩科学调色、多轨音频降噪与视觉特效美化，保障高质量视觉呈现。']}
+    ],
+    skills:[
+        {category:'AI开发工具链与前沿大模型',items:[{name:'Claude Code / TRAE',level:92},{name:'DeepSeek / Gemini Pro API',level:88},{name:'智能体(Agent)构建',level:85},{name:'提示词工程(Prompt)',level:90}]},
+        {category:'全栈开发与测试体系',items:[{name:'HTML5 / CSS3 / ES6+',level:93},{name:'Supabase / RLS策略',level:85},{name:'Playwright E2E测试',level:82},{name:'Git / GitHub 版本控制',level:88}]},
+        {category:'多媒体音视频创作',items:[{name:'Adobe Premiere Pro',level:87},{name:'Adobe Audition',level:80},{name:'CapCut（剪映）',level:90}]},
+        {category:'方法论与办公专项',items:[{name:'Elicit文献提炼',level:85},{name:'SOP标准化流程',level:88},{name:'Office / Markdown',level:92}]}
+    ]
+};
+
+var O=document.getElementById('intro-overlay'),IT=document.getElementById('intro-title-text'),MC=document.getElementById('main-content'),TN=document.getElementById('top-nav'),TT=document.getElementById('global-tooltip'),TI=document.getElementById('tooltip-img'),TL=document.getElementById('tooltip-label'),T=document.getElementById('toast'),BT=document.getElementById('back-to-top'),TH=document.getElementById('theme-toggle'),PB=document.getElementById('print-btn'),SB=MC.querySelectorAll('.section-block'),NL=TN.querySelectorAll('.nav-link[data-section]'),NB=TN.querySelector('.nav-brand');
+var th=localStorage.getItem('theme')||(window.matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light');
+if(th==='dark')document.body.classList.add('dark');
+TH.addEventListener('click',function(){document.body.classList.toggle('dark');localStorage.setItem('theme',document.body.classList.contains('dark')?'dark':'light');});
+var tT;
+function sT(m){clearTimeout(tT);T.textContent=m;T.classList.add('show');tT=setTimeout(function(){T.classList.remove('show');},1800);}
+function cT(t){try{navigator.clipboard.writeText(t);sT('✓ 已复制：'+t);}catch(e){var ta=document.createElement('textarea');ta.value=t;ta.style.position='fixed';ta.style.opacity='0';document.body.appendChild(ta);ta.select();document.execCommand('copy');document.body.removeChild(ta);sT('✓ 已复制：'+t);}}
+document.addEventListener('click',function(e){var b=e.target.closest('[data-copy]');if(b){e.preventDefault();cT(b.getAttribute('data-copy'));b.classList.add('copied');setTimeout(function(){b.classList.remove('copied');},1200);}});
+var tA=false,tE=null;
+function sTT(el,img,lbl){tA=true;tE=el;TI.src=img;TI.onerror=function(){TI.style.display='none';TL.textContent=lbl;};TI.onload=function(){TI.style.display='block';};TI.style.display='block';TL.textContent=lbl||'';TT.classList.add('visible');pTT(el);}
+function hTT(){tA=false;tE=null;TT.classList.remove('visible');}
+function pTT(el){var r=el.getBoundingClientRect(),w=TT.offsetWidth||160,h=TT.offsetHeight||100,l=r.left+r.width/2,t=r.bottom+10;if(l-w/2<8)l=w/2+8;if(l+w/2>window.innerWidth-8)l=window.innerWidth-w/2-8;if(t+h>window.innerHeight-20)t=r.top-h-10;TT.style.left=l+'px';TT.style.top=t+'px';TT.style.transform='translate(-50%,0)';}
+document.addEventListener('mouseover',function(e){var el=e.target.closest('[data-has-tooltip="true"]');if(el)sTT(el,el.getAttribute('data-tooltip-img')||'',el.getAttribute('data-tooltip-label')||'');else if(!e.target.closest('#global-tooltip')&&!e.target.closest('[data-has-tooltip="true"]'))hTT();});
+document.addEventListener('mousemove',function(e){if(tA&&tE&&window.innerWidth>768){var l=e.clientX,t=e.clientY+15,w=TT.offsetWidth||160,h=TT.offsetHeight||100;if(l-w/2<8)l=w/2+8;if(l+w/2>window.innerWidth-8)l=window.innerWidth-w/2-8;if(t+h>window.innerHeight-20)t=e.clientY-h-15;TT.style.left=l+'px';TT.style.top=t+'px';TT.style.transform='translate(-50%,0)';}});
+document.addEventListener('mouseout',function(e){if(e.target.closest('[data-has-tooltip="true"]')&&!e.relatedTarget)hTT();});
+TT.addEventListener('mouseleave',hTT);
+function sA(){SB.forEach(function(b){b.classList.add('visible');});MC.classList.remove('hidden-sections');uN('all');}
+function sS(s){MC.classList.add('hidden-sections');SB.forEach(function(b){b.getAttribute('data-section')===s?b.classList.add('visible'):b.classList.remove('visible');});uN(s);var t=MC.querySelector('[data-section="'+s+'"]');if(t)t.scrollIntoView({behavior:'smooth',block:'start'});}
+function uN(s){NL.forEach(function(l){l.classList.remove('active');if(l.getAttribute('data-section')===s)l.classList.add('active');});}
+NL.forEach(function(l){l.addEventListener('click',function(){var s=this.getAttribute('data-section');s==='all'?sA():sS(s);});});
+NB.addEventListener('click',sA);sA();
+
+var pU='内蒙古工业大学-管家玉.pdf',pN='内蒙古工业大学-管家玉.pdf',iF=window.location.protocol==='file:';
+function oP(){window.open(encodeURI(pU),'_blank','noopener');}
+function dP(){var u=encodeURI(pU);if(iF){sT('⬇ 正在下载简历..');window.location.href=u;}else{sT('📜 正在下载简历..');fetch(u).then(function(r){if(!r.ok)throw Error();return r.blob();}).then(function(b){var u=URL.createObjectURL(new Blob([b],{type:'application/pdf'}));var a=document.createElement('a');a.href=u;a.download=pN;document.body.appendChild(a);a.click();document.body.removeChild(a);setTimeout(function(){URL.revokeObjectURL(u);},2000);sT('✓ 下载完成');}).catch(function(){sT('⬇ 跳转下载..');window.location.href=u;});}}
+
+document.getElementById('hero-resume-btn').addEventListener('click',function(e){if(window.innerWidth>768){e.preventDefault();var pdfDiv=document.getElementById('pdf-preview');var iframe=document.getElementById('pdf-iframe');iframe.src=encodeURI('内蒙古工业大学-管家玉.pdf');pdfDiv.classList.add('visible');document.body.style.overflow='hidden';}else{sT('正在打开简历..');}});
+
+window.addEventListener('scroll',function(){window.scrollY>400?BT.classList.add('show'):BT.classList.remove('show');},{passive:true});
+BT.addEventListener('click',function(){window.scrollTo({top:0,behavior:'smooth'});});
+PB.addEventListener('click',function(){sA();setTimeout(function(){window.print();},150);});
+
+var eP=[document.getElementById('exp-panel-0'),document.getElementById('exp-panel-1'),document.getElementById('exp-panel-2')];
+var eT=[document.getElementById('exp-tab-0'),document.getElementById('exp-tab-1'),document.getElementById('exp-tab-2')];
+['work','intern','campus'].forEach(function(c,i){var items=resume.experiences.filter(function(e){return e.category===c;});eP[i].innerHTML=items.length?items.map(function(e){return '<div class="exp-card reveal-up"><div class="exp-header"><span class="exp-title">'+e.title+'</span><span class="exp-meta"> / '+e.role+' / '+e.period+'</span></div><ul>'+e.points.map(function(p){return '<li>'+p+'</li>';}).join('')+'</ul></div>';}).join(''):'<p style="color:var(--text3);font-size:.7rem;padding:8px;">暂无相关经历</p>';});
+eT.forEach(function(t,i){t.addEventListener('click',function(){eT.forEach(function(x){x.setAttribute('aria-selected','false');});eP.forEach(function(x){x.setAttribute('aria-hidden','true');});t.setAttribute('aria-selected','true');eP[i].setAttribute('aria-hidden','false');});});
+
+var pP=[document.getElementById('proj-panel-0'),document.getElementById('proj-panel-1'),document.getElementById('proj-panel-2'),document.getElementById('proj-panel-3')];
+var pT=[document.getElementById('proj-tab-0'),document.getElementById('proj-tab-1'),document.getElementById('proj-tab-2'),document.getElementById('proj-tab-3')];
+resume.projects.forEach(function(p,i){if(!p){pP[i].innerHTML='<p style="color:var(--text3);font-size:.7rem;padding:8px;">暂无相关项目</p>';return;}pP[i].innerHTML='<div class="proj-card reveal-up"><div class="proj-header"><span class="proj-title">'+p.name+'</span><span class="proj-meta"> / '+p.role+' / '+p.period+'</span></div><p style="font-size:.65rem;color:var(--text3);margin-bottom:3px;">🔧 '+p.tech+'</p><ul>'+p.points.map(function(pt){return '<li>'+pt+'</li>';}).join('')+'</ul><div style="display:flex;align-items:center;gap:6px;">'+(p.link?'<a class="proj-link" href="'+p.link+'" target="_blank" rel="noopener">🔗 访问项目 →</a>':'')+(i===0?'<span class="vpn-warning" style="margin-left:6px;">需VPN</span>':'')+'</div></div>';});
+pT.forEach(function(t,i){t.addEventListener('click',function(){pT.forEach(function(x){x.setAttribute('aria-selected','false');});pP.forEach(function(x){x.setAttribute('aria-hidden','true');});t.setAttribute('aria-selected','true');pP[i].setAttribute('aria-hidden','false');});});
+
+document.getElementById('skill-grid').innerHTML=resume.skills.map(function(c){return '<div class="skill-category reveal-up"><div class="skill-cat-title">'+c.category+'</div>'+c.items.map(function(it){return '<div class="skill-item"><span style="flex:0 0 82px;font-size:.65rem;">'+it.name+'</span><div class="skill-bar-bg"><div class="skill-bar-fill" style="width:0;" data-width="'+it.level+'%"></div></div><span class="skill-label">'+it.level+'%</span></div>';}).join('')+'</div>';}).join('');
+
+(function(){var obs=new IntersectionObserver(function(entries){entries.forEach(function(entry){if(!entry.isIntersecting)return;entry.target.classList.add('revealed');entry.target.querySelectorAll('.skill-bar-fill[data-width]').forEach(function(bar,i){setTimeout(function(){bar.style.width=bar.getAttribute('data-width');},i*80);});obs.unobserve(entry.target);});},{threshold:0.1});document.querySelectorAll('.reveal,.reveal-up,.reveal-scale').forEach(function(el){obs.observe(el);});var hs=document.getElementById('highlights');if(hs){var targets=Array.from(hs.querySelectorAll('.highlight-num')).map(function(el){var t=el.textContent.trim(),m=t.match(/([\d.]+)/);return{el:el,suffix:t.replace(/[\d.]+/,''),prefix:(t.match(/^[^\d]*/)||[''])[0],target:m?parseFloat(m[1]):0,hasDecimal:m?m[1].includes('.'):false,animated:false};});var co=new IntersectionObserver(function(entries){entries.forEach(function(entry){if(!entry.isIntersecting)return;targets.forEach(function(t,i){if(t.animated)return;t.animated=true;var dur=1200,st=performance.now(),delay=i*100;function upd(now){var elapsed=now-st-delay;if(elapsed<0){t.el.textContent=t.prefix+'0'+t.suffix;requestAnimationFrame(upd);return;}var p=Math.min(elapsed/dur,1),eased=1-Math.pow(1-p,3),val=t.target*eased;t.el.textContent=t.prefix+(t.hasDecimal?val.toFixed(1):t.target>=100?Math.floor(val):Math.round(val))+t.suffix;if(p<1)requestAnimationFrame(upd);else t.el.textContent=t.prefix+t.target+t.suffix;}requestAnimationFrame(upd);});co.unobserve(entry.target);});},{threshold:0.3});co.observe(hs);}})();
+
+if(localStorage.getItem('visited')==='true'){O.style.display='none';O.setAttribute('aria-hidden','true');}else{localStorage.setItem('visited','true');var skipped=false;function skip(){if(skipped)return;skipped=true;O.classList.add('fade-out');setTimeout(function(){O.style.display='none';O.setAttribute('aria-hidden','true');},400);}IT.innerHTML='';var cs=document.createElement('span');cs.className='cursor-blink';IT.appendChild(cs);var txt='^v^ 欢迎访问我的个人网站 ^v^';var ci=0;var ti=setInterval(function(){if(ci<txt.length){cs.before(document.createTextNode(txt[ci]));ci++;}else{clearInterval(ti);setTimeout(function(){if(!skipped)skip();},1200);}},45);O.addEventListener('click',skip,{once:true});}
+window.addEventListener('resize',function(){if(tA&&tE)pTT(tE);});
+
+var LB=document.getElementById('image-lightbox'),LI=document.getElementById('lightbox-img'),LC=document.getElementById('lightbox-caption'),LX=document.getElementById('lightbox-close');
+function sLB(i){LI.src=i.src;LC.textContent=i.alt||'';LB.classList.add('visible');document.body.style.overflow='hidden';}
+function hLB(){LB.classList.remove('visible');document.body.style.overflow='';}
+LB.addEventListener('click',hLB);LX.addEventListener('click',function(e){e.stopPropagation();hLB();});LI.addEventListener('click',function(e){e.stopPropagation();});
+document.addEventListener('dblclick',function(e){var i=e.target.closest('img');if(i&&!e.target.closest('#global-tooltip')&&!e.target.closest('#image-lightbox'))sLB(i);});
+document.addEventListener('keydown',function(e){if(e.key==='Escape'&&LB.classList.contains('visible'))hLB();});
+
+var GF=document.getElementById('game-float'),GI=document.getElementById('game-float-iframe'),GH=document.getElementById('game-float-header'),GT=document.getElementById('game-thumbnail'),GC=document.getElementById('game-float-close'),GFf=document.getElementById('game-float-fullscreen'),gU='飞机.html',gL=false;
+function oGF(){if(!gL){GI.src=gU;gL=true;}var w=Math.min(400,window.innerWidth*.92),h=Math.min(500,window.innerHeight*.8);GF.style.width=w+'px';GF.style.height=h+'px';GF.style.left=((window.innerWidth-w)/2)+'px';GF.style.top=((window.innerHeight-h)/2)+'px';GF.classList.add('active');GF.setAttribute('aria-hidden','false');}
+function cGF(){GF.classList.remove('active');GF.setAttribute('aria-hidden','true');}
+if(GT)GT.addEventListener('click',oGF);if(GC)GC.addEventListener('click',cGF);if(GFf)GFf.addEventListener('click',function(){if(GI.requestFullscreen)GI.requestFullscreen();});
+if(GH&&GF){var dr=false,sx,sy,sl,st;GH.addEventListener('mousedown',function(e){if(e.target.closest('.game-float-btn'))return;dr=true;sx=e.clientX;sy=e.clientY;sl=GF.offsetLeft;st=GF.offsetTop;GF.style.transition='none';e.preventDefault();});
+document.addEventListener('mousemove',function(e){if(!dr)return;GF.style.left=Math.max(0,Math.min(sl+e.clientX-sx,window.innerWidth-GF.offsetWidth))+'px';GF.style.top=Math.max(0,Math.min(st+e.clientY-sy,window.innerHeight-48))+'px';});
+document.addEventListener('mouseup',function(){if(dr){dr=false;GF.style.transition='opacity .25s ease, transform .25s ease';}});
+GH.addEventListener('touchstart',function(e){if(e.target.closest('.game-float-btn'))return;dr=true;sx=e.touches[0].clientX;sy=e.touches[0].clientY;sl=GF.offsetLeft;st=GF.offsetTop;GF.style.transition='none';},{passive:false});
+document.addEventListener('touchmove',function(e){if(!dr)return;var dx=e.touches[0].clientX-sx,dy=e.touches[0].clientY-sy;GF.style.left=Math.max(0,Math.min(sl+dx,window.innerWidth-GF.offsetWidth))+'px';GF.style.top=Math.max(0,Math.min(st+dy,window.innerHeight-48))+'px';},{passive:false});
+document.addEventListener('touchend',function(){if(dr){dr=false;GF.style.transition='opacity .25s ease, transform .25s ease';}});}
+document.addEventListener('keydown',function(e){if(e.key==='Escape'&&GF.classList.contains('active'))cGF();});
+console.log('✓ 管家玉个人网站已就绪');
+document.getElementById('pdf-close-btn').addEventListener('click',function(){document.getElementById('pdf-preview').classList.remove('visible');document.getElementById('pdf-iframe').src='';document.body.style.overflow='';});
+
+})();
+</script>
+
 </body>
 </html>
